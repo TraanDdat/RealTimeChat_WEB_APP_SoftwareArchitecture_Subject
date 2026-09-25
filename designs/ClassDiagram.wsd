@@ -1,0 +1,100 @@
+@startuml
+
+title RealTimeChat - Class Diagram
+
+class User {
+    - userId: Long
+    - username: String
+    - email: String
+    - passwordHash: String
+    - avatarUrl: String
+    - status: UserStatus
+
+    + login()
+    + logout()
+    + updateProfile()
+}
+
+enum UserStatus {
+    ONLINE
+    OFFLINE
+    AWAY
+}
+
+abstract class Conversation {
+    - conversationId: Long
+    - createdAt: DateTime
+
+    + sendMessage()
+    + getMessages()
+}
+
+class DirectConversation {
+}
+
+class GroupConversation {
+    - groupName: String
+    - groupAvatar: String
+
+    + addMember()
+    + removeMember()
+}
+
+class Message {
+    - messageId: Long
+    - content: String
+    - sentAt: DateTime
+    - status: MessageStatus
+
+    + send()
+    + edit()
+    + delete()
+}
+
+enum MessageStatus {
+    SENT
+    DELIVERED
+    READ
+}
+
+class Attachment {
+    - attachmentId: Long
+    - fileName: String
+    - fileUrl: String
+    - fileType: String
+    - fileSize: Long
+}
+
+class Notification {
+    - notificationId: Long
+    - title: String
+    - content: String
+    - createdAt: DateTime
+    - isRead: Boolean
+
+    + markAsRead()
+}
+
+Conversation <|-- DirectConversation
+Conversation <|-- GroupConversation
+
+User "1" -- "*" ConversationMember
+Conversation "1" -- "*" ConversationMember
+
+class ConversationMember {
+    - joinedAt: DateTime
+    - role: MemberRole
+}
+
+enum MemberRole {
+    MEMBER
+    ADMIN
+}
+
+User "1" -- "*" Message : sends >
+Conversation "1" -- "*" Message : contains >
+Message "1" -- "*" Attachment : has >
+
+User "1" -- "*" Notification : receives >
+
+@enduml

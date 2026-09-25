@@ -1,0 +1,31 @@
+@startuml
+
+title RealTimeChat - Login Sequence
+
+actor User
+participant Client as "Web / Android"
+participant AuthController
+participant AuthService
+database DB as "Database"
+
+User -> Client : Enter email/password
+
+Client -> AuthController : POST /login
+
+AuthController -> AuthService : authenticate(email,password)
+
+AuthService -> DB : Find user
+
+DB --> AuthService : User data
+
+AuthService -> AuthService : Verify password
+
+AuthService -> AuthService : Generate JWT
+
+AuthService --> AuthController : JWT
+
+AuthController --> Client : Login success + JWT
+
+Client --> User : Show Home screen
+
+@enduml
