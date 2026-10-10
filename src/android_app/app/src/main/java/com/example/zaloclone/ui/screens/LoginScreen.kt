@@ -17,9 +17,11 @@ import com.example.zaloclone.ui.theme.TextGray
 import com.example.zaloclone.ui.theme.ZaloCyan
 
 @Composable
-fun LoginScreen(onLoginClick: () -> Unit) {
-    var phoneNumber by remember { mutableStateOf("") }
+fun LoginScreen(onLoginClick: (String, String, String) -> Unit) {
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // Kotlin, API connect backend
 
     Column(
         modifier = Modifier
@@ -38,8 +40,8 @@ fun LoginScreen(onLoginClick: () -> Unit) {
         )
 
         ZaloTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
+            value = email,
+            onValueChange = { email = it },
             placeholder = "Số điện thoại"
         )
         
@@ -51,7 +53,7 @@ fun LoginScreen(onLoginClick: () -> Unit) {
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        PrimaryButton(text = "Đăng nhập", onClick = onLoginClick)
+        PrimaryButton(text = "Đăng nhập", onClick = {onLoginClick(email, password, "User")})
 
         Spacer(modifier = Modifier.height(30.dp))
 

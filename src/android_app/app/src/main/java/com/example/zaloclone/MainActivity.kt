@@ -16,6 +16,8 @@ import com.example.zaloclone.ui.screens.LoginScreen
 import com.example.zaloclone.ui.screens.RegisterScreen
 import com.example.zaloclone.ui.screens.WelcomeScreen
 import com.example.zaloclone.ui.theme.ZaloCyan
+import com.example.zaloclone.ui.data.remote.login
+import com.example.zaloclone.ui.data.remote.LoginRequest
 
 private val LightColorScheme = lightColorScheme(
     primary = ZaloCyan,
@@ -50,9 +52,14 @@ fun MainAppNavigation() {
             onNavigateToRegister = { currentScreen = "register" }
         )
         "login" -> LoginScreen(
-            onLoginClick = {
-                // Khi nhấn Đăng Nhập -> Chuyển sang ChatListScreen
-                currentScreen = "chat_list"
+            onLoginClick = { email, password, role ->
+                login(
+                    LoginRequest(
+                        email = email,
+                        password = password,
+                        role = role
+                    )
+                ) { response -> currentScreen = "chat_list" }
             }
         )
         "register" -> RegisterScreen(

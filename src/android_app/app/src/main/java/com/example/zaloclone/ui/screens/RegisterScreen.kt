@@ -17,7 +17,7 @@ import com.example.zaloclone.ui.theme.ZaloCyan
 @Composable
 fun RegisterScreen(onRegisterClick: () -> Unit) {
     var name by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
@@ -46,8 +46,8 @@ fun RegisterScreen(onRegisterClick: () -> Unit) {
         )
         
         ZaloTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
+            value = email,
+            onValueChange = { email = it },
             placeholder = "Số điện thoại"
         )
         
