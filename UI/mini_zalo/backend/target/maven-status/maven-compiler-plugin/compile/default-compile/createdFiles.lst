@@ -1,0 +1,13 @@
+com\example\demo\DemoApplication.class
+com\example\demo\ChatUser.class
+com\example\demo\ChatUserInitializer.class
+com\example\demo\LoginResponse.class
+com\example\demo\UserController.class
+com\example\demo\StoredMessage.class
+com\example\demo\User.class
+com\example\demo\AuthController.class
+com\example\demo\PasswordConfiguration.class
+com\example\demo\StoredMessageRepository.class
+com\example\demo\ChatMessage.class
+com\example\demo\LoginRequest.class
+com\example\demo\ChatUserRepository.class
