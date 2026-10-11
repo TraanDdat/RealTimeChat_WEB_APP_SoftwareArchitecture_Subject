@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 import { protect } from "../middleware/auth.js";
+import { findUserByEmail, createUser } from "../models.js/userModel.js";
 
 const router = express.Router();
 
@@ -30,26 +31,33 @@ router.post("/register", async (req, res) => {
       .json({ message: "Please provide all required fields" });
   }
 
-  const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [
-    email,
-  ]);
+  // const userExists = await pool.query("SELECT * FROM users WHERE email = $1", [
+  //   email,
+  // ]);
 
-  if (userExists.rows.length > 0) {
-    return res.status(400).json({ message: "User already exists" });
-  }
+  // if (userExists.rows.length > 0) {
+  //   return res.status(400).json({ message: "User already exists" });
+  // }
+  const existingUser = await findUserByEmail(email);
+
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const newUser = await pool.query(
-    "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email",
-    [name, email, hashedPassword]
-  );
+  // const newUser = await pool.query(
+  //   "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email",
+  //   [name, email, hashedPassword]
+  // );
 
-  const token = generateToken(newUser.rows[0].id);
+  const newUser = await createUser(name, email, hashedPassword);
+
+  const token = generateToken(newUser.id);
 
   res.cookie("token", token, cookieOptions);
 
-  return res.status(201).json({ user: newUser.rows[0] });
+  return res.status(201).json({ user: newUser });
 });
 
 // Login
