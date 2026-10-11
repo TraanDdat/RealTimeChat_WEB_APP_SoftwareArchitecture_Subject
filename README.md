@@ -8,7 +8,7 @@ Cài đặt PostgreSQL
 
 Tại cửa sổ dòng lệnh Linux vừa mở, hãy chạy lệnh sau để tải và cài đặt PostgreSQL cùng các công cụ hỗ trợ:
 
-sudo apt update && sudo apt install postgresql postgresql-contrib -y
+✏️ sudo apt update && sudo apt install postgresql postgresql-contrib -y
 
 
 
@@ -16,12 +16,12 @@ Khởi động dịch vụ Database
 
 Trên WSL2, PostgreSQL không tự động chạy. Bạn cần phải khởi động nó bằng lệnh:
 
-sudo service postgresql start
+✏️ sudo service postgresql start
 
 
 Để chắc chắn hệ thống đã chạy thành công, bạn có thể kiểm tra trạng thái:
 
-sudo service postgresql status
+✏️ sudo service postgresql status
 
 
 (Nếu màn hình hiện chữ online kèm theo cổng 5432, dịch vụ đã hoạt động).
@@ -32,14 +32,8 @@ PostgreSQL tạo sẵn một tài khoản siêu quản trị có tên là postgr
 
 Đăng nhập vào môi trường gõ lệnh của PostgreSQL:
 
-sudo -u postgres psql
+✏️ sudo -u postgres psql
 
-
-(Dấu nhắc lệnh sẽ đổi thành postgres=#)
-
-Đổi mật khẩu cho tài khoản postgres (ví dụ ở đây đặt mật khẩu cũng là postgres):
-
-ALTER USER postgres PASSWORD 'postgres';
 
 
 
@@ -50,7 +44,7 @@ Các dự án code cần một database cụ thể để lưu trữ bảng (tabl
 
 Ngay tại màn hình postgres=#, gõ lệnh:
 
-CREATE DATABASE pern_auth;
+✏️ CREATE DATABASE pern_auth;
 
 
 Nếu màn hình phản hồi chữ CREATE DATABASE, bạn đã tạo thành công.
@@ -61,26 +55,26 @@ Dưới đây là một số thao tác kiểm tra dữ liệu quan trọng dành
 
 Xem danh sách các database đang có:
 
-\l
+✏️ \l
 
 
 Đi vào (kết nối) một database cụ thể:
 
-\c pern_auth
+✏️ \c pern_auth
 
 
 (Màn hình sẽ báo: You are now connected to database "pern_auth"...)
 
 Xem danh sách các bảng (tables) trong database:
 
-\dt
+✏️ \dt
 
 
 Xem dữ liệu bên trong một bảng (ví dụ bảng users):
 
-SELECT * FROM users;
+✏️ SELECT * FROM users;
 
 
 Thoát khỏi PostgreSQL (trở về màn hình Ubuntu):
 
-\q
+✏️ \q
