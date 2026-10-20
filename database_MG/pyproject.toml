@@ -7,4 +7,5 @@ dependencies = [
     "pydantic>=2.14.1",
     "pymongo>=4.19.0",
     "sqlalchemy>=2.1.5",
+    "uvicorn[standard]>=0.54.0",
 ]
