@@ -1,0 +1,10 @@
+[project]
+name = "database-mg"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi>=0.152.0",
+    "pydantic>=2.14.1",
+    "pymongo>=4.19.0",
+    "sqlalchemy>=2.1.5",
+]
