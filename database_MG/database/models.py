@@ -1,10 +1,16 @@
-from pydantic import BaseModel
-from datetime import datetime
+from typing import Optional
 
-class Todo(BaseModel):
-    title: str
-    description: str
-    is_completed: bool = False
-    is_deleted: bool = False
-    updated_at: int = int (datetime.timestamp(datetime.now()))
-    creation: int = int (datetime.timestamp(datetime.now()))
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+
+class MessageCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    text: Optional[str] = Field(default=None, max_length=2000)
+    image: Optional[str] = Field(default=None, max_length=8_000_000)
+
+    @model_validator(mode="after")
+    def require_content(self):
+        if not self.text and not self.image:
+            raise ValueError("Text or image is required.")
+        return self

@@ -1,10 +1,27 @@
-def individual_data(todo):
-    return{
-        "id": str(todo["_id"]),
-        "title": todo["title"],
-        "description": todo["description"],
-        "status": todo["is_completed"]
-    }
+from datetime import datetime
+from typing import Optional
 
-def all_tasks(todos):
-    return [individual_data(todo) for todo in todos]
+from pydantic import BaseModel, ConfigDict, Field
+
+
+class PublicUser(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int = Field(gt=0)
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+
+
+class Message(BaseModel):
+    id: str = Field(alias="_id")
+    senderId: int
+    receiverId: int
+    text: Optional[str] = None
+    image: Optional[str] = None
+    createdAt: datetime
+    updatedAt: datetime
+
+
+def message_data(document):
+    return Message.model_validate({**document, "_id": str(document["_id"])})
