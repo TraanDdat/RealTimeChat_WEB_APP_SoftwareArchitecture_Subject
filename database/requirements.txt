@@ -1,5 +1,0 @@
-fastapi
-uvicorn
-SQLAlchemy >=1.4,<2.0
-psycopg2-binary
-pydantic

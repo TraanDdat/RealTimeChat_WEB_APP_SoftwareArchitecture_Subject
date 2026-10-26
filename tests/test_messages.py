@@ -6,8 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 from pymongo.errors import ConnectionFailure
 
-import main
-import user_service
+from backend.message_service import config, database, realtime, service, user_client
+from backend.message_service.main import app, limiter
 
 
 USERS = [
@@ -23,9 +23,9 @@ def headers(user_id=1):
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setattr(main, "collection", mongomock.MongoClient(tz_aware=True).chat.messages)
-    monkeypatch.setattr(main.sio, "emit", AsyncMock())
-    main.limiter.storage.reset()
+    monkeypatch.setattr(database, "collection", mongomock.MongoClient(tz_aware=True).chat.messages)
+    monkeypatch.setattr(realtime.sio, "emit", AsyncMock())
+    limiter.storage.reset()
 
     def user_api(url, **kwargs):
         path = httpx.URL(url).path
@@ -35,8 +35,8 @@ def client(monkeypatch):
         user = next((user for user in USERS if path == f"/users/{user['id']}"), None)
         return httpx.Response(200 if user else 404, json=user, request=request)
 
-    monkeypatch.setattr(user_service.httpx, "get", user_api)
-    with TestClient(main.app) as test_client:
+    monkeypatch.setattr(user_client.httpx, "get", user_api)
+    with TestClient(app) as test_client:
         yield test_client
 
 
@@ -56,7 +56,7 @@ def test_send_history_and_private_realtime_event(client):
     assert message["text"] == "hello"
     assert message["createdAt"] == message["updatedAt"]
     assert isinstance(message["_id"], str)
-    main.sio.emit.assert_awaited_once_with("newMessage", message, room="2")
+    realtime.sio.emit.assert_awaited_once_with("newMessage", message, room="2")
     client.post("/api/messages/send/1", headers=headers(2), json={"text": "reply"})
     client.post("/api/messages/send/3", headers=headers(2), json={"text": "private"})
     history = client.get("/api/messages/2", headers=headers()).json()
@@ -80,14 +80,14 @@ def test_chat_partners_are_unique_and_bidirectional(client):
                                       {"text": "hello", "senderId": 3}])
 def test_invalid_message_body(client, body):
     assert client.post("/api/messages/send/2", headers=headers(), json=body).status_code == 422
-    assert main.collection.count_documents({}) == 0
+    assert database.collection.count_documents({}) == 0
 
 
 @pytest.mark.parametrize("receiver, status", [(1, 400), (99, 404), (0, 422), ("abc", 422)])
 def test_invalid_receiver(client, receiver, status):
     response = client.post(f"/api/messages/send/{receiver}", headers=headers(), json={"text": "hi"})
     assert response.status_code == status
-    assert main.collection.count_documents({}) == 0
+    assert database.collection.count_documents({}) == 0
 
 
 @pytest.mark.parametrize("user_id, status", [(None, 422), ("abc", 422), (0, 422),
@@ -100,14 +100,14 @@ def test_existing_positive_user_id_is_required(client, user_id, status):
 
 
 def test_image_upload_and_provider_failure(client, monkeypatch):
-    monkeypatch.setattr(main, "CLOUDINARY_URL", "configured")
+    monkeypatch.setattr(config, "CLOUDINARY_URL", "configured")
     calls = []
 
     def upload(image, **kwargs):
         calls.append(image)
         return {"secure_url": "https://res.cloudinary.com/demo/image/upload/test.png"}
 
-    monkeypatch.setattr(main.cloudinary.uploader, "upload", upload)
+    monkeypatch.setattr(service.cloudinary.uploader, "upload", upload)
     response = client.post("/api/messages/send/2", headers=headers(), json={"image": "data:image/png;base64,aGk="})
     assert response.status_code == 201
     assert response.json()["image"].startswith("https://res.cloudinary.com/")
@@ -116,10 +116,10 @@ def test_image_upload_and_provider_failure(client, monkeypatch):
     def fail_upload(*args, **kwargs):
         raise RuntimeError("provider unavailable")
 
-    monkeypatch.setattr(main.cloudinary.uploader, "upload", fail_upload)
+    monkeypatch.setattr(service.cloudinary.uploader, "upload", fail_upload)
     response = client.post("/api/messages/send/2", headers=headers(), json={"image": "data:image/png;base64,aGk="})
     assert response.status_code == 502
-    assert main.collection.count_documents({}) == 1
+    assert database.collection.count_documents({}) == 1
 
 
 def test_upstream_and_storage_failures(client, monkeypatch):
@@ -127,28 +127,28 @@ def test_upstream_and_storage_failures(client, monkeypatch):
         raise httpx.ConnectError("offline")
 
     with monkeypatch.context() as patch:
-        patch.setattr(user_service.httpx, "get", unavailable)
+        patch.setattr(user_client.httpx, "get", unavailable)
         assert client.get("/api/messages/contacts", headers=headers()).status_code == 503
 
     def storage_unavailable(*args, **kwargs):
         raise ConnectionFailure("offline")
 
-    monkeypatch.setattr(main.collection, "insert_one", storage_unavailable)
+    monkeypatch.setattr(database.collection, "insert_one", storage_unavailable)
     response = client.post("/api/messages/send/2", headers=headers(), json={"text": "hello"})
     assert response.status_code == 503
-    main.sio.emit.assert_not_awaited()
+    realtime.sio.emit.assert_not_awaited()
 
 
 def test_socket_connection_checks_user_exists(client, monkeypatch):
     import asyncio
 
     enter_room = AsyncMock()
-    monkeypatch.setattr(main.sio, "enter_room", enter_room)
+    monkeypatch.setattr(realtime.sio, "enter_room", enter_room)
     for auth in ({}, None, {"user_id": "invalid"}, {"user_id": True},
                  {"user_id": 0}, {"user_id": -1}, {"user_id": 99}):
-        assert asyncio.run(main.connect("sid", {}, auth)) is False
+        assert asyncio.run(realtime.connect("sid", {}, auth)) is False
     enter_room.assert_not_awaited()
-    asyncio.run(main.connect("sid", {}, {"user_id": 2}))
+    asyncio.run(realtime.connect("sid", {}, {"user_id": 2}))
     enter_room.assert_awaited_once_with("sid", "2")
 
 

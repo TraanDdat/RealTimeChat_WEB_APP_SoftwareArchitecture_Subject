@@ -2,8 +2,8 @@ import httpx
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from configuration import USER_SERVICE_URL
-from database.schemas import PublicUser
+from .config import USER_SERVICE_URL
+from .schemas import PublicUser
 
 
 def _request(path: str, allow_missing: bool = False):
