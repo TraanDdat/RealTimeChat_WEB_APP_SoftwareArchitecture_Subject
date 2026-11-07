@@ -8,45 +8,45 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-// Data model đại diện cho mỗi mục trò chuyện
-data class ChatItem(
-    val id: String,
-    val name: String,
-    val lastMessage: String,
-    val time: String,
-    val unreadCount: Int = 0,
-    val avatarBgColor: Color = Color(0xFFD1E3FF)
-)
-
 @Composable
 fun ChatListScreen(
-    onChatItemClick: (String) -> Unit = {},
-    onNavigateToFriends: () -> Unit = {}
+    onChatItemClick: (String, String) -> Unit = { _, _ -> },
+    onNavigateToFriends: () -> Unit = {},
+    onGroupCreated: (String, String) -> Unit = { _, _ -> }
 ) {
-    val sampleChats = listOf(
-        ChatItem("1", "Anny Peter", "Why didn't you reply to me?", "12:00 AM", unreadCount = 2, Color(0xFFE2C4B1)),
-        ChatItem("2", "Esha Chikere", "I don't know I think it's nice.", "12:00 AM", 0, Color(0xFFE0C1C6)),
-        ChatItem("3", "Wanna Bear", "Esha: I've a saving account in th...", "12:00 AM", 0, Color(0xFFE5E5EA)),
-        ChatItem("4", "Piety Candi", "What is a short long term go...", "12:00 AM", 0, Color(0xFFBDC3C7)),
-        ChatItem("5", "Heaven Sparrow", "Let me see that for you!", "12:00 AM", 0, Color(0xFFD0D3D4)),
-        ChatItem("6", "My Family", "Esha: Let's make a party at my h...", "12:00 AM", 0, Color(0xFFE5E5EA)),
-        ChatItem("7", "Duane Jazmyn", "Where is the closest ATM to you...", "12:00 AM", 0, Color(0xFFD7BDE2))
-    )
+    val context = LocalContext.current
+    val chatList = remember { mutableStateListOf<ChatItem>() }
+    var isEditing by remember { mutableStateOf(false) }
+    var showCreateGroupDialog by remember { mutableStateOf(false) }
+
+    // Tải dữ liệu từ JSON file khi khởi tạo màn hình
+    LaunchedEffect(Unit) {
+        syncChatListWithHistory(context)
+        val savedList = loadChatListFromJson(context)
+        // Chỉ lấy những chat item có lastMessage không bị rỗng
+        val filteredList = savedList.filter { it.lastMessage.isNotBlank() }
+
+        chatList.clear()
+        chatList.addAll(filteredList)
+    }
 
     val cyanHeaderColor = Color(0xFF38C7FF)
     val navActiveColor = Color(0xFF5B61F4)
@@ -73,13 +73,23 @@ fun ChatListScreen(
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = { /* Tạo tin nhắn mới */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "New Chat",
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showCreateGroupDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Group,
+                                contentDescription = "Create Group",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        TextButton(onClick = { isEditing = !isEditing }) {
+                            Text(
+                                text = if (isEditing) "Done" else "Edit",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -130,18 +140,40 @@ fun ChatListScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            items(sampleChats) { chat ->
-                ChatItemRow(chat = chat, onClick = { onChatItemClick(chat.id) })
+            items(chatList) { chat ->
+                ChatItemRow(
+                    chat = chat,
+                    isEditing = isEditing,
+                    onClick = { onChatItemClick(chat.id, chat.name) },
+                    onDelete = {
+                        deleteChat(context, chat.id)
+                        chatList.remove(chat)
+                    }
+                )
                 HorizontalDivider(color = Color(0xFFF2F2F7), thickness = 1.dp, modifier = Modifier.padding(start = 76.dp))
             }
         }
+    }
+
+    if (showCreateGroupDialog) {
+        CreateGroupDialog(
+            context = context,
+            onDismiss = { showCreateGroupDialog = false },
+            onGroupCreated = { chatId, chatName ->
+                showCreateGroupDialog = false
+                onGroupCreated(chatId, chatName)
+                onChatItemClick(chatId, chatName)
+            }
+        )
     }
 }
 
 @Composable
 fun ChatItemRow(
     chat: ChatItem,
-    onClick: () -> Unit
+    isEditing: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -174,7 +206,7 @@ fun ChatItemRow(
         ) {
             Text(
                 text = chat.name,
-                fontWeight = FontWeight.Bold,
+                fontWeight = if (chat.unreadCount > 0) FontWeight.ExtraBold else FontWeight.Bold,
                 fontSize = 16.sp,
                 color = Color.Black
             )
@@ -182,40 +214,54 @@ fun ChatItemRow(
             Text(
                 text = chat.lastMessage,
                 fontSize = 14.sp,
-                color = Color.Gray,
+                fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
+                color = if (chat.unreadCount > 0) Color.Black else Color.Gray,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        // Thời gian & Badge số tin chưa đọc
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = chat.time,
-                fontSize = 12.sp,
-                color = Color(0xFF5B61F4)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            if (chat.unreadCount > 0) {
-                Box(
-                    modifier = Modifier
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF5B61F4)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = chat.unreadCount.toString(),
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+        // Thời gian & Nút xóa hoặc badge số tin chưa đọc
+        if (isEditing) {
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Chat",
+                    tint = Color.Red
+                )
+            }
+        } else {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(
+                    text = chat.time,
+                    fontSize = 12.sp,
+                    color = if (chat.unreadCount > 0) Color(0xFF5B61F4) else Color.Gray,
+                    fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.Normal
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                if (chat.unreadCount > 0) {
+                    val displayCount = if (chat.unreadCount > 5) "5+" else chat.unreadCount.toString()
+                    Box(
+                        modifier = Modifier
+                            .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
+                            .padding(horizontal = 4.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF5B61F4)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = displayCount,
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
-            } else {
-                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }

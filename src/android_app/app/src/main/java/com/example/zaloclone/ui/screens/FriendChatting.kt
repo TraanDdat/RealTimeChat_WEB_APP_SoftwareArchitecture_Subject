@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -20,46 +22,59 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// Data model bạn bè
-data class FriendItem(
-    val id: String,
-    val name: String,
-    val status: String,
-    val isOnline: Boolean = false,
-    val avatarBgColor: Color = Color(0xFFD1E3FF)
-)
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun FriendsScreen(
     onFriendSelect: (FriendItem) -> Unit = {},
-    onNavigateToChats: () -> Unit = {}
+    onNavigateToChats: () -> Unit = {},
+    onGroupCreated: (String, String) -> Unit = { _, _ -> }
 ) {
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
+    val friendList = remember { mutableStateListOf<FriendItem>() }
+    val requestList = remember { mutableStateListOf<FriendRequestItem>() }
+    var isEditing by remember { mutableStateOf(false) }
 
-    val sampleFriends = listOf(
-        FriendItem("1", "Anny Peter", "Online", isOnline = true, Color(0xFFE2C4B1)),
-        FriendItem("2", "Arnold Peter", "Last seen at 6:20 PM", isOnline = false, Color(0xFFE0C1C6)),
-        FriendItem("3", "Dann Jazmyn", "Last seen at 6:20 PM", isOnline = false, Color(0xFFE5E5EA)),
-        FriendItem("4", "Duane Brodie", "Online", isOnline = true, Color(0xFFD7BDE2)),
-        FriendItem("5", "Damion Gage", "Last seen at 6:20 PM", isOnline = false, Color(0xFFBDC3C7)),
-        FriendItem("6", "Demarcus Jazmyn", "Online", isOnline = true, Color(0xFFD0D3D4)),
-        FriendItem("7", "Emmalee Alivia", "Last seen at 6:20 PM", isOnline = false, Color(0xFFE5E5EA)),
-        FriendItem("8", "Esha Chikere", "Last seen at 6:20 PM", isOnline = false, Color(0xFFE0C1C6)),
-        FriendItem("9", "Mariam Rowan", "Last seen at 6:20 PM", isOnline = false, Color(0xFFD1E3FF)),
-        FriendItem("10", "Piety Candi", "Online", isOnline = true, Color(0xFFBDC3C7))
-    )
+    // Dialog states
+    var showAddDialog by remember { mutableStateOf(false) }
+    var showRequestsDialog by remember { mutableStateOf(false) }
+    var showCreateGroupDialog by remember { mutableStateOf(false) }
+    var phoneInput by remember { mutableStateOf("") }
+    var nameInput by remember { mutableStateOf("") }
+
+    // Load friends and requests from JSON database on start
+    LaunchedEffect(Unit) {
+        val loaded = loadFriendListFromJson(context)
+        friendList.clear()
+        friendList.addAll(loaded)
+
+        val loadedRequests = loadFriendRequestsFromJson(context)
+        requestList.clear()
+        requestList.addAll(loadedRequests)
+    }
 
     val cyanHeaderColor = Color(0xFF38C7FF)
     val searchBarBg = Color(0xFF2CBCEE)
     val navActiveColor = Color(0xFF5B61F4)
 
+    val filteredFriends = if (searchQuery.isBlank()) {
+        friendList
+    } else {
+        friendList.filter {
+            it.name.contains(searchQuery, ignoreCase = true) || it.phone.contains(searchQuery)
+        }
+    }
+
     Scaffold(
         topBar = {
-            // Header Xanh Cyan chứa Title + Nút thêm + Thanh Search
+            // Header Xanh Cyan chứa Title + Nút Edit + Nút thêm + Thanh Search
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -77,44 +92,62 @@ fun FriendsScreen(
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = { /* Thêm bạn mới */ }) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add Friend",
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { showCreateGroupDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Group,
+                                contentDescription = "Create Group",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        TextButton(onClick = { isEditing = !isEditing }) {
+                            Text(
+                                text = if (isEditing) "Done" else "Edit",
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        IconButton(onClick = { showAddDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add Friend",
+                                tint = Color.White,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Thanh Tìm kiếm (Search Box)
-                Box(
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search by name or phone", color = Color.White.copy(alpha = 0.8f)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = searchBarBg,
+                        unfocusedContainerColor = searchBarBg,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(searchBarBg)
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                        .height(50.dp)
+                        .clip(RoundedCornerShape(10.dp)),
+                    leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search Icon",
                             tint = Color.White.copy(alpha = 0.8f)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (searchQuery.isEmpty()) "Search" else searchQuery,
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 16.sp
-                        )
                     }
-                }
+                )
             }
         },
         bottomBar = {
@@ -163,18 +196,208 @@ fun FriendsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            items(sampleFriends) { friend ->
-                FriendItemRow(friend = friend, onClick = { onFriendSelect(friend) })
+            if (requestList.isNotEmpty()) {
+                item {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showRequestsDialog = true },
+                        color = Color(0xFFFFF3CD)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color(0xFF856404)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = "Có ${requestList.size} lời mời kết bạn mới",
+                                    color = Color(0xFF856404),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                            }
+                            Text(
+                                text = "Xem >",
+                                color = Color(0xFF856404),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                    HorizontalDivider(color = Color(0xFFE0E0E0), thickness = 1.dp)
+                }
+            }
+
+            items(filteredFriends) { friend ->
+                FriendItemRow(
+                    friend = friend,
+                    isEditing = isEditing,
+                    onClick = { onFriendSelect(friend) },
+                    onDelete = {
+                        deleteFriend(context, friend.id)
+                        friendList.remove(friend)
+                    }
+                )
                 HorizontalDivider(color = Color(0xFFF2F2F7), thickness = 1.dp, modifier = Modifier.padding(start = 76.dp))
             }
         }
+    }
+
+    // Dialog thêm bạn bằng số điện thoại
+    if (showAddDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = { Text("Thêm bạn mới") },
+            text = {
+                Column {
+                    Text("Nhập số điện thoại để thêm bạn:", fontSize = 14.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = phoneInput,
+                        onValueChange = { phoneInput = it },
+                        label = { Text("Số điện thoại") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = nameInput,
+                        onValueChange = { nameInput = it },
+                        label = { Text("Tên gợi nhớ (Tùy chọn)") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (phoneInput.isNotBlank()) {
+                            val newId = System.currentTimeMillis().toString()
+                            val newName = if (nameInput.isNotBlank()) nameInput else "Bạn ($phoneInput)"
+                            val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2), Color(0xFFBDC3C7))
+                            val randomColor = colors[friendList.size % colors.size]
+
+                            addFriendAndChat(context, newId, newName, phoneInput, randomColor)
+                            friendList.clear()
+                            friendList.addAll(loadFriendListFromJson(context))
+
+                            phoneInput = ""
+                            nameInput = ""
+                            showAddDialog = false
+                        }
+                    }
+                ) {
+                    Text("Thêm")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text("Hủy")
+                }
+            }
+        )
+    }
+
+    // Dialog danh sách lời mời kết bạn
+    if (showRequestsDialog) {
+        AlertDialog(
+            onDismissRequest = { showRequestsDialog = false },
+            title = { Text("Lời mời kết bạn (${requestList.size})") },
+            text = {
+                if (requestList.isEmpty()) {
+                    Text("Không có lời mời kết bạn nào.")
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                    ) {
+                        items(requestList) { req ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(req.avatarBgColor),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = req.name.take(1),
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = req.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(text = req.message, fontSize = 12.sp, color = Color.Gray)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    TextButton(
+                                        onClick = {
+                                            // Accept
+                                            addFriendAndChat(context, req.id, req.name, req.phone, req.avatarBgColor)
+                                            friendList.clear()
+                                            friendList.addAll(loadFriendListFromJson(context))
+
+                                            requestList.remove(req)
+                                            saveFriendRequestsFromJson(context, requestList)
+                                            if (requestList.isEmpty()) {
+                                                showRequestsDialog = false
+                                            }
+                                        },
+                                        contentPadding = PaddingValues(4.dp)
+                                    ) {
+                                        Text("Chấp nhận", color = Color(0xFF007AFF), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    }
+                                    TextButton(
+                                        onClick = {
+                                            // Reject
+                                            requestList.remove(req)
+                                            saveFriendRequestsFromJson(context, requestList)
+                                            if (requestList.isEmpty()) {
+                                                showRequestsDialog = false
+                                            }
+                                        },
+                                        contentPadding = PaddingValues(4.dp)
+                                    ) {
+                                        Text("Từ chối", color = Color.Red, fontSize = 13.sp)
+                                    }
+                                }
+                            }
+                            HorizontalDivider(thickness = 0.5.dp, color = Color.LightGray)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showRequestsDialog = false }) {
+                    Text("Đóng")
+                }
+            }
+        )
     }
 }
 
 @Composable
 fun FriendItemRow(
     friend: FriendItem,
-    onClick: () -> Unit
+    isEditing: Boolean,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -201,8 +424,10 @@ fun FriendItemRow(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Tên & Trạng thái Online / Offline
-        Column {
+        // Tên, số điện thoại & Trạng thái Online / Offline
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = friend.name,
                 fontWeight = FontWeight.Bold,
@@ -210,11 +435,30 @@ fun FriendItemRow(
                 color = Color.Black
             )
             Spacer(modifier = Modifier.height(2.dp))
+            if (friend.phone.isNotBlank()) {
+                Text(
+                    text = "SĐT: ${friend.phone}",
+                    fontSize = 12.sp,
+                    color = Color.DarkGray
+                )
+            }
+            Spacer(modifier = Modifier.height(1.dp))
             Text(
                 text = friend.status,
                 fontSize = 13.sp,
                 color = if (friend.isOnline) Color(0xFF34C759) else Color.Gray
             )
+        }
+
+        // Nút xóa khi ở chế độ Edit
+        if (isEditing) {
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Friend",
+                    tint = Color.Red
+                )
+            }
         }
     }
 }

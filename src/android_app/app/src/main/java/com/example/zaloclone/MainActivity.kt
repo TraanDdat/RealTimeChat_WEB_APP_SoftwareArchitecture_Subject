@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import com.example.zaloclone.ui.screens.ChatListScreen
+import com.example.zaloclone.ui.screens.ChattingScreen
 import com.example.zaloclone.ui.screens.FriendsScreen
 import com.example.zaloclone.ui.screens.LoginScreen
 import com.example.zaloclone.ui.screens.RegisterScreen
@@ -43,6 +44,8 @@ class MainActivity : ComponentActivity() {
 fun MainAppNavigation() {
     // Mặc định xuất phát từ màn hình "welcome"
     var currentScreen by remember { mutableStateOf("welcome") }
+    var selectedChatId by remember { mutableStateOf("1") }
+    var selectedChatName by remember { mutableStateOf("Anny Peter") }
 
     when (currentScreen) {
         "welcome" -> WelcomeScreen(
@@ -57,21 +60,30 @@ fun MainAppNavigation() {
         )
         "register" -> RegisterScreen(
             onRegisterClick = {
-                // Khi nhấn Đăng Ký -> Chuyển sang ChatListScreen (hoặc "login" tùy bạn)
+                // Khi nhấn Đăng Ký -> Chuyển sang ChatListScreen
                 currentScreen = "chat_list"
             }
         )
         "chat_list" -> ChatListScreen(
             onNavigateToFriends = { currentScreen = "friends" },
-            onChatItemClick = { chatId ->
-                // Mở khung chat chi tiết với bạn bè
+            onChatItemClick = { chatId, chatName ->
+                selectedChatId = chatId
+                selectedChatName = chatName
+                currentScreen = "chatting"
             }
         )
         "friends" -> FriendsScreen(
             onNavigateToChats = { currentScreen = "chat_list" },
             onFriendSelect = { friend ->
-                // Chọn bạn bè xong -> Mở khung chat
+                selectedChatId = friend.id
+                selectedChatName = friend.name
+                currentScreen = "chatting"
             }
+        )
+        "chatting" -> ChattingScreen(
+            chatId = selectedChatId,
+            chatName = selectedChatName,
+            onNavigateBack = { currentScreen = "chat_list" } // Nút Back trở về danh sách
         )
     }
 }
