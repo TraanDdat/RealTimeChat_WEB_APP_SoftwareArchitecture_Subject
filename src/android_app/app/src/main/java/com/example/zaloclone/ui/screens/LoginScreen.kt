@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaloclone.ui.components.PrimaryButton
 import com.example.zaloclone.ui.components.ZaloTextField
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.example.zaloclone.ui.theme.TextGray
 import com.example.zaloclone.ui.theme.ZaloCyan
 
@@ -32,7 +33,7 @@ fun LoginScreen(onLoginClick: (String, String, String) -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Đăng nhập Zalo",
+            text = "Welcome to Zalo",
             fontSize = 32.sp,
             color = ZaloCyan,
             fontWeight = FontWeight.Bold,
@@ -42,23 +43,24 @@ fun LoginScreen(onLoginClick: (String, String, String) -> Unit) {
         ZaloTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = "Số điện thoại"
+            placeholder = "Email"
         )
         
         ZaloTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Mật khẩu"
+            placeholder = "password",
+            visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        PrimaryButton(text = "Đăng nhập", onClick = {onLoginClick(email, password, "User")})
+        PrimaryButton(text = "Login", onClick = {onLoginClick(email, password, "User")})
 
         Spacer(modifier = Modifier.height(30.dp))
 
         TextButton(onClick = { /* Handle Forgot Password */ }) {
-            Text(text = "Quên mật khẩu", color = TextGray, fontSize = 16.sp)
+            Text(text = "Forgot password", color = TextGray, fontSize = 16.sp)
         }
     }
 }

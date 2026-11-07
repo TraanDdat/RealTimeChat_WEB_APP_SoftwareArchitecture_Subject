@@ -6,19 +6,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.zaloclone.ui.data.remote.AuthApiServices
 
-fun login(
-    request: LoginRequest,
-    onResult: (LoginResponse) -> Unit
-) {
-    CoroutineScope(Dispatchers.IO).launch {
+suspend fun loginUser(request: LoginRequest): Result<LoginResponse>
+{
+    return withContext(Dispatchers.IO) {
         try {
-            val response = RetrofitClient.AuthApi.login(request)
-            withContext(Dispatchers.Main) {
-                println("Android login success: ${response.email}")
-                onResult(response)
-            }
+            val response = RetrofitClient.AuthApi.loginUser(request)
+            Result.success(response)
         } catch (e: Exception) {
-            println("Android login failed: ${e.message}")
+            Result.failure(e)
         }
     }
 }

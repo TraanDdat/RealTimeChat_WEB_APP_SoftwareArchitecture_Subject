@@ -13,10 +13,10 @@ import androidx.compose.ui.unit.sp
 import com.example.zaloclone.ui.components.PrimaryButton
 import com.example.zaloclone.ui.components.ZaloTextField
 import com.example.zaloclone.ui.theme.ZaloCyan
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 
 @Composable
-fun RegisterScreen(onRegisterClick: () -> Unit) {
-    var name by remember { mutableStateOf("") }
+fun RegisterScreen(onRegisterClick: (String, String, String, String) -> Unit) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -30,7 +30,7 @@ fun RegisterScreen(onRegisterClick: () -> Unit) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Đăng ký",
+            text = "Register",
             fontSize = 32.sp,
             color = ZaloCyan,
             fontWeight = FontWeight.Bold,
@@ -40,34 +40,30 @@ fun RegisterScreen(onRegisterClick: () -> Unit) {
         )
 
         ZaloTextField(
-            value = name,
-            onValueChange = { name = it },
-            placeholder = "Tên"
-        )
-        
-        ZaloTextField(
             value = email,
             onValueChange = { email = it },
-            placeholder = "Số điện thoại"
+            placeholder = "Email"
         )
         
         ZaloTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Mật khẩu"
+            placeholder = "Password",
+            visualTransformation = PasswordVisualTransformation()
         )
         
         ZaloTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            placeholder = "Nhập lại mật khẩu"
+            placeholder = "confirm Password",
+            visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(modifier = Modifier.height(30.dp))
 
         PrimaryButton(
-            text = "Đăng ký", 
-            onClick = onRegisterClick,
+            text = "Register",
+            onClick = {onRegisterClick(email, password, confirmPassword, "User")},
             modifier = Modifier.padding(horizontal = 20.dp)
         )
     }

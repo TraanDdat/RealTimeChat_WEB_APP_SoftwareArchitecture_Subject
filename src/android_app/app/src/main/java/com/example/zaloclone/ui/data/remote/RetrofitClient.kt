@@ -15,4 +15,6 @@ object RetrofitClient {
     }
 
     val AuthApi: AuthApiServices = retrofit.create(AuthApiServices::class.java)
+    val RegisterApi: RegisterApiServices = retrofit.create(RegisterApiServices::class.java)
+    val ResetPwApi: ResetPasswordApiServices = retrofit.create(ResetPasswordApiServices::class.java)
 }

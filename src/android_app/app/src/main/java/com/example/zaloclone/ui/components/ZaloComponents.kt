@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.sp
 import com.example.zaloclone.ui.theme.ButtonGray
 import com.example.zaloclone.ui.theme.TextGray
 import com.example.zaloclone.ui.theme.ZaloCyan
+import androidx.compose.ui.text.input.VisualTransformation
 
 @Composable
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -45,7 +46,7 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ZaloTextField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
+fun ZaloTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, visualTransformation: VisualTransformation = VisualTransformation.None) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -58,6 +59,7 @@ fun ZaloTextField(value: String, onValueChange: (String) -> Unit, placeholder: S
             focusedBorderColor = ZaloCyan,
             unfocusedBorderColor = ZaloCyan.copy(alpha = 0.5f)
         ),
-        singleLine = true
+        singleLine = true,
+        visualTransformation = visualTransformation
     )
 }
