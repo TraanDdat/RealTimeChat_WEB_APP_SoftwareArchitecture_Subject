@@ -21,9 +21,7 @@ class PublicUser(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     id: int = Field(gt=0)
-    name: Optional[str] = None
     email: Optional[str] = None
-    phone_number: Optional[str] = None
 
 
 class Message(BaseModel):

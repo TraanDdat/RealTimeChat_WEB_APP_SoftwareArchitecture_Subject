@@ -1,7 +1,7 @@
 from fastapi import Header, HTTPException
 
 from . import user_client
-from .schemas import PublicUser
+from zalo_backend.models.mongodb.msg import PublicUser
 
 
 def resolve_user(user_id: int) -> PublicUser:

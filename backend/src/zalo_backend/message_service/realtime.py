@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
 
 from .dependencies import resolve_user
-from .schemas import Message
+from zalo_backend.models.mongodb.msg import Message
 
 
 logger = logging.getLogger(__name__)

@@ -5,8 +5,10 @@ import cloudinary.uploader
 from fastapi import HTTPException
 from pymongo import ASCENDING
 
-from . import config, database, user_client
-from .schemas import MessageCreate, message_data
+from . import user_client
+from zalo_backend import database
+from zalo_backend.core.config import settings
+from zalo_backend.models.mongodb.msg import MessageCreate, message_data
 
 
 logger = logging.getLogger(__name__)
@@ -41,7 +43,7 @@ def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
 
     image_url = None
     if data.image:
-        if not config.CLOUDINARY_URL:
+        if not settings.CLOUDINARY_URL:
             raise HTTPException(status_code=503, detail="Image upload is not configured.")
         try:
             upload = cloudinary.uploader.upload(data.image, resource_type="image")

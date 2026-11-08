@@ -2,13 +2,13 @@ import httpx
 from fastapi import HTTPException
 from pydantic import ValidationError
 
-from .config import USER_SERVICE_URL
-from .schemas import PublicUser
+from zalo_backend.core.config import settings
+from zalo_backend.models.mongodb.msg import PublicUser
 
 
 def _request(path: str, allow_missing: bool = False):
     try:
-        response = httpx.get(f"{USER_SERVICE_URL}{path}", timeout=5.0)
+        response = httpx.get(f"{settings.USER_SERVICE_URL}{path}", timeout=5.0)
         if allow_missing and response.status_code == 404:
             return None
         response.raise_for_status()

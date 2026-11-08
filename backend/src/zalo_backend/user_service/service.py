@@ -1,11 +1,17 @@
 from sqlalchemy.orm import Session
+from zalo_backend.core.security import hash_password
 
-from .models import User
-from .schemas import UserCreate
+from zalo_backend.models.postgres.user import User
+from zalo_backend.schemas.user import RegisterRequest
 
 
-def create_user(db: Session, data: UserCreate):
-    user_instance = User(**data.model_dump())
+def create_user(db: Session, data: RegisterRequest):
+    user_instance = User(
+        username=data.username,
+        email=data.email,
+        password=hash_password(data.password),
+    )
+    
     db.add(user_instance)
     db.commit()
     db.refresh(user_instance)
@@ -29,12 +35,15 @@ def _find_user(db: Session, user_id: int | None = None, email: str | None = None
 
 
 def get_user(db: Session, user_id: int | None = None, email: str | None = None):
-    return _find_user(db, user_id, email)
+    if not _find_user(db, user_id, email):
+        return None
+    else:
+        return _find_user(db, user_id, email)
 
 
 def update_user(
     db: Session,
-    user: UserCreate,
+    user: RegisterRequest,
     user_id: int | None = None,
     email: str | None = None,
 ):
