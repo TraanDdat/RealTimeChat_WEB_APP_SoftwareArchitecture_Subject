@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.zaloclone.ui.screens.ChatListScreen
+import com.example.zaloclone.ui.screens.ChattingScreen
 import com.example.zaloclone.ui.screens.FriendsScreen
 import com.example.zaloclone.ui.screens.LoginScreen
 import com.example.zaloclone.ui.screens.RegisterScreen
@@ -55,6 +56,8 @@ fun MainAppNavigation() {
     var currentScreen by remember { mutableStateOf("welcome") }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var selectedChatId by remember { mutableStateOf("1") }
+    var selectedChatName by remember { mutableStateOf("Anny Peter") }
 
     when (currentScreen) {
         "welcome" -> WelcomeScreen(
@@ -107,16 +110,25 @@ fun MainAppNavigation() {
 
         "chat_list" -> ChatListScreen(
             onNavigateToFriends = { currentScreen = "friends" },
-            onChatItemClick = { chatId ->
-                // Mở khung chat chi tiết với bạn bè
+            onChatItemClick = { chatId, chatName ->
+                selectedChatId = chatId
+                selectedChatName = chatName
+                currentScreen = "chatting"
             }
         )
 
         "friends" -> FriendsScreen(
             onNavigateToChats = { currentScreen = "chat_list" },
             onFriendSelect = { friend ->
-                // Chọn bạn bè xong -> Mở khung chat
+                selectedChatId = friend.id
+                selectedChatName = friend.name
+                currentScreen = "chatting"
             }
+        )
+        "chatting" -> ChattingScreen(
+            chatId = selectedChatId,
+            chatName = selectedChatName,
+            onNavigateBack = { currentScreen = "chat_list" } // Nút Back trở về danh sách
         )
     }
 }
