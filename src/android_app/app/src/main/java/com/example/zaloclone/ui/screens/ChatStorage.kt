@@ -26,16 +26,32 @@ import java.util.Locale
 // ==========================================
 // 1. DATA MODELS
 // ==========================================
+enum class MessageType { TEXT, AUDIO, IMAGE, VIDEO, DOCUMENT, EMOTION }
+
 data class Message(
     val id: String,
-    val text: String,
+    val text: String = "",
     val isMe: Boolean,
     val type: MessageType = MessageType.TEXT,
     val timestamp: String? = null,
-    val duration: String? = null
+    val duration: String? = null,
+    val mediaUrl: String? = null,
+    val fileName: String? = null,
+    val fileSize: String? = null,
+    val emotion: String? = null,
+    val reaction: String? = null
 )
 
-enum class MessageType { TEXT, AUDIO }
+fun getPreviewTextForMessage(message: Message): String {
+    return when (message.type) {
+        MessageType.TEXT -> message.text
+        MessageType.AUDIO -> "[Ghi âm]"
+        MessageType.IMAGE -> "[Hình ảnh]"
+        MessageType.VIDEO -> "[Video]"
+        MessageType.DOCUMENT -> "[Tài liệu] ${message.fileName ?: ""}".trim()
+        MessageType.EMOTION -> "${message.emotion ?: "😊"} [Nhãn dán]"
+    }
+}
 
 data class ChatItem(
     val id: String,
@@ -43,8 +59,16 @@ data class ChatItem(
     val lastMessage: String,
     val time: String,
     val unreadCount: Int = 0,
-    val avatarBgColor: Color = Color(0xFFE5E5EA)
-)
+    val avatarBgColor: Color = Color(0xFFE5E5EA),
+    val isGroup: Boolean = false,
+    val members: List<String>? = emptyList()
+) {
+    val safeMembers: List<String>
+        get() = members ?: emptyList()
+
+    val safeAvatarBgColor: Color
+        get() = avatarBgColor ?: Color(0xFFE5E5EA)
+}
 
 // ==========================================
 // 2. HÀM XỬ LÝ JSON - CHAT HISTORY (Per-chat)
@@ -59,7 +83,13 @@ fun loadMessagesFromJson(context: Context, chatId: String): List<Message> {
     val file = File(context.filesDir, getChatHistoryFileName(chatId))
     if (!file.exists()) return emptyList()
     val type = object : TypeToken<List<Message>>() {}.type
-    return Gson().fromJson(file.readText(), type) ?: emptyList()
+    val rawList: List<Message> = Gson().fromJson(file.readText(), type) ?: emptyList()
+    return rawList.map { msg ->
+        msg.copy(
+            type = msg.type ?: MessageType.TEXT,
+            text = msg.text ?: ""
+        )
+    }
 }
 
 fun getOrInitChatHistory(context: Context, chatId: String, chatName: String): List<Message> {
@@ -73,7 +103,8 @@ fun getOrInitChatHistory(context: Context, chatId: String, chatName: String): Li
 
     if (chatItem == null) {
         val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2))
-        val randomColor = colors[(chatId.toIntOrNull() ?: 0) % colors.size]
+        val colorIndex = (chatId.hashCode().let { if (it < 0) -it else it }) % colors.size
+        val randomColor = colors[colorIndex]
         chatItem = ChatItem(
             id = chatId,
             name = chatName,
@@ -110,7 +141,15 @@ fun loadChatListFromJson(context: Context): List<ChatItem> {
         return defaultList
     }
     val type = object : TypeToken<List<ChatItem>>() {}.type
-    return Gson().fromJson(file.readText(), type) ?: emptyList()
+    val rawList: List<ChatItem> = Gson().fromJson(file.readText(), type) ?: emptyList()
+    return rawList.map { item ->
+        item.copy(
+            name = item.name ?: "",
+            lastMessage = item.lastMessage ?: "",
+            time = item.time ?: "",
+            members = item.members ?: emptyList()
+        )
+    }
 }
 
 fun syncChatListWithHistory(context: Context) {
@@ -122,7 +161,7 @@ fun syncChatListWithHistory(context: Context) {
         val messages = loadMessagesFromJson(context, chat.id)
         if (messages.isNotEmpty()) {
             val lastMsg = messages.last()
-            val textContent = lastMsg.text
+            val textContent = getPreviewTextForMessage(lastMsg)
             val timeContent = lastMsg.timestamp ?: chat.time
             if (chat.lastMessage != textContent) {
                 chatList[i] = chat.copy(lastMessage = textContent, time = timeContent)
@@ -347,6 +386,7 @@ fun CreateGroupDialog(
                         val groupId = "group_${System.currentTimeMillis()}"
                         val groupName = groupNameInput.trim()
                         val selectedMemberNames = friendList.value.filter { selectedFriends[it.id] == true }.map { it.name }
+                        val allMembers = listOf("Bạn (Tôi)") + selectedMemberNames
                         val membersDescription = if (selectedMemberNames.isNotEmpty()) {
                             "Thành viên: ${selectedMemberNames.joinToString(", ")}"
                         } else {
@@ -362,7 +402,9 @@ fun CreateGroupDialog(
                             lastMessage = membersDescription,
                             time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
                             unreadCount = 0,
-                            avatarBgColor = randomColor
+                            avatarBgColor = randomColor,
+                            isGroup = true,
+                            members = allMembers
                         )
 
                         val currentChats = loadChatListFromJson(context).toMutableList()
@@ -386,6 +428,44 @@ fun CreateGroupDialog(
             }
         }
     )
+}
+
+fun updateGroupMembers(context: Context, groupId: String, newMembers: List<String>) {
+    val chatList = loadChatListFromJson(context).toMutableList()
+    val index = chatList.indexOfFirst { it.id == groupId }
+    if (index != -1) {
+        val updated = chatList[index].copy(members = newMembers)
+        chatList[index] = updated
+        saveChatListToJson(context, chatList)
+    }
+}
+
+// ==========================================
+// 6. HÀM XỬ LÝ JSON - USER PROFILE
+// ==========================================
+data class UserProfile(
+    val name: String = "Người dùng Zalo",
+    val phone: String = "0901234567",
+    val password: String = "123456",
+    val avatarBgColorHex: Long = 0xFF38C7FF,
+    val avatarUri: String? = null
+)
+
+const val USER_PROFILE_FILE = "user_profile.json"
+
+fun saveUserProfileToJson(context: Context, profile: UserProfile) {
+    File(context.filesDir, USER_PROFILE_FILE).writeText(Gson().toJson(profile))
+}
+
+fun loadUserProfileFromJson(context: Context): UserProfile {
+    val file = File(context.filesDir, USER_PROFILE_FILE)
+    if (!file.exists()) {
+        val defaultProfile = UserProfile()
+        saveUserProfileToJson(context, defaultProfile)
+        return defaultProfile
+    }
+    val type = object : TypeToken<UserProfile>() {}.type
+    return Gson().fromJson(file.readText(), type) ?: UserProfile()
 }
 
 

@@ -15,6 +15,7 @@ import com.example.zaloclone.ui.screens.ChattingScreen
 import com.example.zaloclone.ui.screens.FriendsScreen
 import com.example.zaloclone.ui.screens.LoginScreen
 import com.example.zaloclone.ui.screens.RegisterScreen
+import com.example.zaloclone.ui.screens.SettingsScreen
 import com.example.zaloclone.ui.screens.WelcomeScreen
 import com.example.zaloclone.ui.theme.ZaloCyan
 
@@ -66,6 +67,7 @@ fun MainAppNavigation() {
         )
         "chat_list" -> ChatListScreen(
             onNavigateToFriends = { currentScreen = "friends" },
+            onNavigateToSettings = { currentScreen = "settings" },
             onChatItemClick = { chatId, chatName ->
                 selectedChatId = chatId
                 selectedChatName = chatName
@@ -74,6 +76,7 @@ fun MainAppNavigation() {
         )
         "friends" -> FriendsScreen(
             onNavigateToChats = { currentScreen = "chat_list" },
+            onNavigateToSettings = { currentScreen = "settings" },
             onFriendSelect = { friend ->
                 selectedChatId = friend.id
                 selectedChatName = friend.name
@@ -84,6 +87,11 @@ fun MainAppNavigation() {
             chatId = selectedChatId,
             chatName = selectedChatName,
             onNavigateBack = { currentScreen = "chat_list" } // Nút Back trở về danh sách
+        )
+        "settings" -> SettingsScreen(
+            onNavigateToChats = { currentScreen = "chat_list" },
+            onNavigateToFriends = { currentScreen = "friends" },
+            onLogout = { currentScreen = "welcome" }
         )
     }
 }

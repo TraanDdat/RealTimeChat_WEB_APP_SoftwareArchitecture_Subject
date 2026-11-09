@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 fun ChatListScreen(
     onChatItemClick: (String, String) -> Unit = { _, _ -> },
     onNavigateToFriends: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     onGroupCreated: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
@@ -127,7 +128,7 @@ fun ChatListScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { },
+                    onClick = { onNavigateToSettings() },
                     icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                     label = { Text("Settings") },
                     colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
@@ -187,11 +188,11 @@ fun ChatItemRow(
             modifier = Modifier
                 .size(52.dp)
                 .clip(CircleShape)
-                .background(chat.avatarBgColor),
+                .background(chat.safeAvatarBgColor),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = chat.name.take(1),
+                text = (chat.name ?: "").take(1),
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp,
                 color = Color.White

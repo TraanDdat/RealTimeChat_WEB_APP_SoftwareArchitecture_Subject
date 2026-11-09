@@ -34,6 +34,7 @@ import java.util.Locale
 fun FriendsScreen(
     onFriendSelect: (FriendItem) -> Unit = {},
     onNavigateToChats: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     onGroupCreated: (String, String) -> Unit = { _, _ -> }
 ) {
     val context = LocalContext.current
@@ -183,7 +184,7 @@ fun FriendsScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { },
+                    onClick = { onNavigateToSettings() },
                     icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
                     label = { Text("Settings") },
                     colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
@@ -387,6 +388,18 @@ fun FriendsScreen(
                 TextButton(onClick = { showRequestsDialog = false }) {
                     Text("Đóng")
                 }
+            }
+        )
+    }
+
+    // Dialog Tạo nhóm chat
+    if (showCreateGroupDialog) {
+        CreateGroupDialog(
+            context = context,
+            onDismiss = { showCreateGroupDialog = false },
+            onGroupCreated = { chatId, chatName ->
+                showCreateGroupDialog = false
+                onGroupCreated(chatId, chatName)
             }
         )
     }
