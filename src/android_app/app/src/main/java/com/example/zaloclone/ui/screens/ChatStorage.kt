@@ -1,21 +1,19 @@
 package com.example.zaloclone.ui.screens
 
 import android.content.Context
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.zaloclone.ui.components.UserAvatar
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
@@ -61,7 +59,8 @@ data class ChatItem(
     val unreadCount: Int = 0,
     val avatarBgColor: Color = Color(0xFFE5E5EA),
     val isGroup: Boolean = false,
-    val members: List<String>? = emptyList()
+    val members: List<String>? = emptyList(),
+    val avatarUri: String? = null
 ) {
     val safeMembers: List<String>
         get() = members ?: emptyList()
@@ -152,7 +151,39 @@ fun loadChatListFromJson(context: Context): List<ChatItem> {
     }
 }
 
+fun syncChatListWithFriends(context: Context) {
+    val friendList = loadFriendListFromJson(context)
+    val chatList = loadChatListFromJson(context).toMutableList()
+    var modified = false
+
+    val friendMap = friendList.associateBy { it.id }
+
+    for (i in chatList.indices) {
+        val chat = chatList[i]
+        val friend = friendMap[chat.id] ?: friendList.find { it.name == chat.name }
+        if (friend != null && !chat.isGroup) {
+            val friendBgColor = friend.safeAvatarBgColor
+            val friendAvatarUri = friend.avatarUri
+            val displayName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
+
+            if (chat.safeAvatarBgColor != friendBgColor || chat.avatarUri != friendAvatarUri || chat.name != displayName) {
+                chatList[i] = chat.copy(
+                    name = displayName,
+                    avatarBgColor = friendBgColor,
+                    avatarUri = friendAvatarUri
+                )
+                modified = true
+            }
+        }
+    }
+
+    if (modified) {
+        saveChatListToJson(context, chatList)
+    }
+}
+
 fun syncChatListWithHistory(context: Context) {
+    syncChatListWithFriends(context)
     val chatList = loadChatListFromJson(context).toMutableList()
     var modified = false
 
@@ -184,8 +215,13 @@ data class FriendItem(
     val status: String,
     val isOnline: Boolean = false,
     val phone: String = "",
-    val avatarBgColor: Color = Color(0xFFD1E3FF)
-)
+    val avatarBgColor: Color = Color(0xFFD1E3FF),
+    val avatarUri: String? = null,
+    val nickname: String = ""
+) {
+    val safeAvatarBgColor: Color
+        get() = avatarBgColor ?: Color(0xFFD1E3FF)
+}
 
 const val FRIEND_LIST_FILE = "friend_list.json"
 
@@ -198,21 +234,29 @@ fun loadFriendListFromJson(context: Context): List<FriendItem> {
     if (!file.exists()) {
         val defaultList = listOf(
             FriendItem("1", "Anny Peter", "Online", true, "0901234567", Color(0xFFE2C4B1)),
-            FriendItem("2", "Arnold Peter", "Last seen at 6:20 PM", false, "0902345678", Color(0xFFE0C1C6)),
-            FriendItem("3", "Dann Jazmyn", "Last seen at 6:20 PM", false, "0903456789", Color(0xFFE5E5EA)),
-            FriendItem("4", "Duane Brodie", "Online", true, "0904567890", Color(0xFFD7BDE2)),
-            FriendItem("5", "Damion Gage", "Last seen at 6:20 PM", false, "0905678901", Color(0xFFBDC3C7)),
-            FriendItem("6", "Demarcus Jazmyn", "Online", true, "0906789012", Color(0xFFD0D3D4)),
-            FriendItem("7", "Emmalee Alivia", "Last seen at 6:20 PM", false, "0907890123", Color(0xFFE5E5EA)),
-            FriendItem("8", "Esha Chikere", "Last seen at 6:20 PM", false, "0908901234", Color(0xFFE0C1C6)),
-            FriendItem("9", "Mariam Rowan", "Last seen at 6:20 PM", false, "0909012345", Color(0xFFD1E3FF)),
-            FriendItem("10", "Piety Candi", "Online", true, "0910123456", Color(0xFFBDC3C7))
+            FriendItem("2", "John Doe", "Online", true, "0902345678", Color(0xFFD1E3FF)),
+            FriendItem("3", "Arnold Peter", "Last seen at 6:20 PM", false, "0903456789", Color(0xFFE0C1C6)),
+            FriendItem("4", "Dann Jazmyn", "Last seen at 6:20 PM", false, "0904567890", Color(0xFFE5E5EA)),
+            FriendItem("5", "Duane Brodie", "Online", true, "0905678901", Color(0xFFD7BDE2)),
+            FriendItem("6", "Damion Gage", "Last seen at 6:20 PM", false, "0906789012", Color(0xFFBDC3C7)),
+            FriendItem("7", "Demarcus Jazmyn", "Online", true, "0907890123", Color(0xFFD0D3D4)),
+            FriendItem("8", "Emmalee Alivia", "Last seen at 6:20 PM", false, "0908901234", Color(0xFFE5E5EA)),
+            FriendItem("9", "Esha Chikere", "Last seen at 6:20 PM", false, "0909012345", Color(0xFFE0C1C6)),
+            FriendItem("10", "Mariam Rowan", "Last seen at 6:20 PM", false, "0910123456", Color(0xFFD1E3FF))
         )
         saveFriendListToJson(context, defaultList)
         return defaultList
     }
     val type = object : TypeToken<List<FriendItem>>() {}.type
-    return Gson().fromJson(file.readText(), type) ?: emptyList()
+    val rawList: List<FriendItem> = Gson().fromJson(file.readText(), type) ?: emptyList()
+    return rawList.map { friend ->
+        friend.copy(
+            name = friend.name ?: "",
+            status = friend.status ?: "",
+            phone = friend.phone ?: "",
+            nickname = friend.nickname ?: ""
+        )
+    }
 }
 
 fun deleteChat(context: Context, chatId: String) {
@@ -243,7 +287,8 @@ data class FriendRequestItem(
     val name: String,
     val phone: String,
     val message: String = "Xin chào, mình muốn kết bạn với bạn.",
-    val avatarBgColor: Color = Color(0xFFD1E3FF)
+    val avatarBgColor: Color = Color(0xFFD1E3FF),
+    val avatarUri: String? = null
 )
 
 const val FRIEND_REQUESTS_FILE = "friend_requests.json"
@@ -266,7 +311,14 @@ fun loadFriendRequestsFromJson(context: Context): List<FriendRequestItem> {
     return Gson().fromJson(file.readText(), type) ?: emptyList()
 }
 
-fun addFriendAndChat(context: Context, id: String, name: String, phone: String, avatarBgColor: Color) {
+fun addFriendAndChat(
+    context: Context,
+    id: String,
+    name: String,
+    phone: String,
+    avatarBgColor: Color,
+    avatarUri: String? = null
+) {
     val friendList = loadFriendListFromJson(context).toMutableList()
     if (friendList.none { it.id == id }) {
         val newFriend = FriendItem(
@@ -275,7 +327,8 @@ fun addFriendAndChat(context: Context, id: String, name: String, phone: String, 
             status = "Online",
             isOnline = true,
             phone = phone,
-            avatarBgColor = avatarBgColor
+            avatarBgColor = avatarBgColor,
+            avatarUri = avatarUri
         )
         friendList.add(0, newFriend)
         saveFriendListToJson(context, friendList)
@@ -289,7 +342,8 @@ fun addFriendAndChat(context: Context, id: String, name: String, phone: String, 
             lastMessage = "Let's chat!",
             time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
             unreadCount = 0,
-            avatarBgColor = avatarBgColor
+            avatarBgColor = avatarBgColor,
+            avatarUri = avatarUri
         )
         chatList.add(0, newChat)
         saveChatListToJson(context, chatList)
@@ -318,7 +372,7 @@ fun CreateGroupDialog(
                 OutlinedTextField(
                     value = groupNameInput,
                     onValueChange = { groupNameInput = it },
-                    label = { Text("Tên nhóm") },
+                    label = { Text("Tên nhóm (để trống sẽ lấy tên thành viên)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -353,20 +407,13 @@ fun CreateGroupDialog(
                                 }
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(friend.avatarBgColor),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = friend.name.take(1),
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    fontSize = 14.sp
-                                )
-                            }
+                            UserAvatar(
+                                name = friend.name,
+                                avatarBgColor = friend.safeAvatarBgColor,
+                                avatarUri = friend.avatarUri,
+                                modifier = Modifier.size(36.dp),
+                                fontSize = 14.sp
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = friend.name,
@@ -382,16 +429,16 @@ fun CreateGroupDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (groupNameInput.isNotBlank()) {
+                    val selectedMemberNames = friendList.value.filter { selectedFriends[it.id] == true }.map { it.name }
+                    if (selectedMemberNames.isNotEmpty()) {
                         val groupId = "group_${System.currentTimeMillis()}"
-                        val groupName = groupNameInput.trim()
-                        val selectedMemberNames = friendList.value.filter { selectedFriends[it.id] == true }.map { it.name }
-                        val allMembers = listOf("Bạn (Tôi)") + selectedMemberNames
-                        val membersDescription = if (selectedMemberNames.isNotEmpty()) {
-                            "Thành viên: ${selectedMemberNames.joinToString(", ")}"
+                        val groupName = if (groupNameInput.isBlank()) {
+                            selectedMemberNames.joinToString(", ")
                         } else {
-                            "Nhóm mới"
+                            groupNameInput.trim()
                         }
+                        val allMembers = listOf("Bạn (Tôi)") + selectedMemberNames
+                        val membersDescription = "Thành viên: ${selectedMemberNames.joinToString(", ")}"
 
                         val colors = listOf(Color(0xFF38C7FF), Color(0xFF5B61F4), Color(0xFF34C759), Color(0xFFFF9500), Color(0xFFAF52DE))
                         val randomColor = colors[groupId.hashCode().let { if (it < 0) -it else it } % colors.size]
@@ -414,7 +461,7 @@ fun CreateGroupDialog(
                         onGroupCreated(groupId, groupName)
                     }
                 },
-                enabled = groupNameInput.isNotBlank()
+                enabled = selectedFriends.any { it.value }
             ) {
                 Text("Create")
             }
@@ -430,6 +477,32 @@ fun CreateGroupDialog(
     )
 }
 
+fun updateGroupName(context: Context, groupId: String, newName: String) {
+    val chatList = loadChatListFromJson(context).toMutableList()
+    val index = chatList.indexOfFirst { it.id == groupId }
+    if (index != -1) {
+        chatList[index] = chatList[index].copy(name = newName)
+        saveChatListToJson(context, chatList)
+    }
+}
+
+fun updateFriendNickname(context: Context, friendId: String, newNickname: String) {
+    val friendList = loadFriendListFromJson(context).toMutableList()
+    val index = friendList.indexOfFirst { it.id == friendId }
+    if (index != -1) {
+        val updated = friendList[index].copy(nickname = newNickname)
+        friendList[index] = updated
+        saveFriendListToJson(context, friendList)
+
+        val chatList = loadChatListFromJson(context).toMutableList()
+        val chatIndex = chatList.indexOfFirst { it.id == friendId }
+        if (chatIndex != -1) {
+            val displayName = if (newNickname.isNotBlank()) newNickname else updated.name
+            chatList[chatIndex] = chatList[chatIndex].copy(name = displayName)
+            saveChatListToJson(context, chatList)
+        }
+    }
+}
 fun updateGroupMembers(context: Context, groupId: String, newMembers: List<String>) {
     val chatList = loadChatListFromJson(context).toMutableList()
     val index = chatList.indexOfFirst { it.id == groupId }
@@ -467,9 +540,3 @@ fun loadUserProfileFromJson(context: Context): UserProfile {
     val type = object : TypeToken<UserProfile>() {}.type
     return Gson().fromJson(file.readText(), type) ?: UserProfile()
 }
-
-
-
-
-
-

@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
@@ -25,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.zaloclone.ui.components.UserAvatar
 
 @Composable
 fun ChatListScreen(
@@ -114,16 +114,9 @@ fun ChatListScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Call, contentDescription = "Calls") },
-                    label = { Text("Calls") },
-                    colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
-                )
-                NavigationBarItem(
-                    selected = false,
                     onClick = { onNavigateToFriends() },
                     icon = { Icon(Icons.Default.Person, contentDescription = "Friends") },
-                    label = { Text("Friends") },
+                    label = { Text("Contacts") },
                     colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
                 )
                 NavigationBarItem(
@@ -183,21 +176,14 @@ fun ChatItemRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar tròn dạng Placeholder
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(chat.safeAvatarBgColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = (chat.name ?: "").take(1),
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = Color.White
-            )
-        }
+        // Avatar tròn dạng UserAvatar
+        UserAvatar(
+            name = chat.name,
+            avatarBgColor = chat.safeAvatarBgColor,
+            avatarUri = chat.avatarUri,
+            modifier = Modifier.size(52.dp),
+            fontSize = 20.sp
+        )
 
         Spacer(modifier = Modifier.width(12.dp))
 

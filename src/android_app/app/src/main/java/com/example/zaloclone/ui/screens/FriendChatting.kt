@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
@@ -26,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.zaloclone.ui.components.UserAvatar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -52,6 +52,7 @@ fun FriendsScreen(
 
     // Load friends and requests from JSON database on start
     LaunchedEffect(Unit) {
+        syncChatListWithFriends(context)
         val loaded = loadFriendListFromJson(context)
         friendList.clear()
         friendList.addAll(loaded)
@@ -165,17 +166,10 @@ fun FriendsScreen(
                     colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
                 )
                 NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Call, contentDescription = "Calls") },
-                    label = { Text("Calls") },
-                    colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
-                )
-                NavigationBarItem(
                     selected = true,
                     onClick = { },
                     icon = { Icon(Icons.Default.Person, contentDescription = "Friends") },
-                    label = { Text("Friends") },
+                    label = { Text("Contacts") },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = navActiveColor,
                         selectedTextColor = navActiveColor,
@@ -328,19 +322,13 @@ fun FriendsScreen(
                                     .padding(vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(req.avatarBgColor),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = req.name.take(1),
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
+                                UserAvatar(
+                                    name = req.name,
+                                    avatarBgColor = req.avatarBgColor,
+                                    avatarUri = req.avatarUri,
+                                    modifier = Modifier.size(40.dp),
+                                    fontSize = 16.sp
+                                )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(text = req.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
@@ -412,6 +400,7 @@ fun FriendItemRow(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val displayName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -419,21 +408,14 @@ fun FriendItemRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar tròn
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(friend.avatarBgColor),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = friend.name.take(1),
-                fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
-                color = Color.White
-            )
-        }
+        // Avatar tròn dạng UserAvatar
+        UserAvatar(
+            name = displayName,
+            avatarBgColor = friend.safeAvatarBgColor,
+            avatarUri = friend.avatarUri,
+            modifier = Modifier.size(48.dp),
+            fontSize = 18.sp
+        )
 
         Spacer(modifier = Modifier.width(16.dp))
 
@@ -442,12 +424,19 @@ fun FriendItemRow(
             modifier = Modifier.weight(1f)
         ) {
             Text(
-                text = friend.name,
+                text = displayName,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 color = Color.Black
             )
             Spacer(modifier = Modifier.height(2.dp))
+            if (friend.nickname.isNotBlank()) {
+                Text(
+                    text = "Tên gốc: ${friend.name}",
+                    fontSize = 11.sp,
+                    color = Color.Gray
+                )
+            }
             if (friend.phone.isNotBlank()) {
                 Text(
                     text = "SĐT: ${friend.phone}",

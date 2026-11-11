@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.zaloclone.ui.components.UserAvatar
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
@@ -60,6 +61,9 @@ fun ChattingScreen(
     val messages = remember { mutableStateListOf<Message>() }
 
     var chatItem by remember { mutableStateOf<ChatItem?>(null) }
+    var currentChatName by remember { mutableStateOf(chatName) }
+    var showChangeGroupNameDialog by remember { mutableStateOf(false) }
+    var showIndividualSettingsDialog by remember { mutableStateOf(false) }
     val groupMembers = remember { mutableStateListOf<String>() }
     var showGroupInfoDialog by remember { mutableStateOf(false) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
@@ -179,10 +183,21 @@ fun ChattingScreen(
         val index = chatList.indexOfFirst { it.id == chatId }
         if (index != -1) {
             chatItem = chatList[index]
+            currentChatName = chatList[index].name
             if (chatList[index].unreadCount > 0) {
                 chatList[index] = chatList[index].copy(unreadCount = 0)
                 saveChatListToJson(context, chatList)
             }
+        } else if (!chatId.startsWith("group_")) {
+            val friendList = loadFriendListFromJson(context)
+            val friend = friendList.find { it.id == chatId }
+            if (friend != null) {
+                currentChatName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
+            } else {
+                currentChatName = chatName
+            }
+        } else {
+            currentChatName = chatName
         }
 
         groupMembers.clear()
@@ -202,7 +217,7 @@ fun ChattingScreen(
         modifier = Modifier.imePadding(),
         topBar = {
             ChatTopBar(
-                name = chatName,
+                name = currentChatName,
                 status = if (isGroup) "${groupMembers.size} thành viên" else "Online",
                 isGroup = isGroup,
                 memberCount = groupMembers.size,
@@ -210,6 +225,8 @@ fun ChattingScreen(
                 onInfoClick = {
                     if (isGroup) {
                         showGroupInfoDialog = true
+                    } else {
+                        showIndividualSettingsDialog = true
                     }
                 }
             )
@@ -320,11 +337,39 @@ fun ChattingScreen(
 
     if (showGroupInfoDialog && isGroup) {
         GroupInfoDialog(
-            groupName = chatName,
+            groupName = currentChatName,
             members = groupMembers,
             onDismiss = { showGroupInfoDialog = false },
             onAddMemberClick = {
                 showAddMemberDialog = true
+            },
+            onChangeGroupNameClick = {
+                showChangeGroupNameDialog = true
+            }
+        )
+    }
+
+    if (showChangeGroupNameDialog && isGroup) {
+        ChangeGroupNameDialog(
+            currentName = currentChatName,
+            onDismiss = { showChangeGroupNameDialog = false },
+            onSave = { newName ->
+                showChangeGroupNameDialog = false
+                currentChatName = newName
+                updateGroupName(context, chatId, newName)
+            }
+        )
+    }
+
+    if (showIndividualSettingsDialog && !isGroup) {
+        IndividualChatSettingsDialog(
+            context = context,
+            friendId = chatId,
+            friendName = chatName,
+            onDismiss = { showIndividualSettingsDialog = false },
+            onNicknameUpdated = { newDisplayName ->
+                showIndividualSettingsDialog = false
+                currentChatName = newDisplayName
             }
         )
     }
@@ -984,9 +1029,6 @@ fun ChatTopBar(
                 }
             }
             Row {
-                IconButton(onClick = { }) {
-                    Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = Color.Gray)
-                }
                 IconButton(onClick = { onInfoClick() }) {
                     Icon(
                         imageVector = Icons.Default.MoreHoriz,
@@ -1004,7 +1046,8 @@ fun GroupInfoDialog(
     groupName: String,
     members: List<String>,
     onDismiss: () -> Unit,
-    onAddMemberClick: () -> Unit
+    onAddMemberClick: () -> Unit,
+    onChangeGroupNameClick: () -> Unit
 ) {
     val colors = listOf(
         Color(0xFF38C7FF), Color(0xFF5B61F4), Color(0xFF34C759),
@@ -1033,12 +1076,26 @@ fun GroupInfoDialog(
                     )
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = groupName,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = groupName,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    IconButton(onClick = onChangeGroupNameClick, modifier = Modifier.size(24.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Group Name",
+                            tint = Color(0xFF5B61F4),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
                 Text(
                     text = "${members.size} thành viên",
                     fontSize = 13.sp,
@@ -1198,19 +1255,13 @@ fun AddMemberDialog(
                                     onCheckedChange = { selected[friend.id] = it }
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(friend.avatarBgColor),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = friend.name.take(1),
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White
-                                    )
-                                }
+                                UserAvatar(
+                                    name = friend.name,
+                                    avatarBgColor = friend.safeAvatarBgColor,
+                                    avatarUri = friend.avatarUri,
+                                    modifier = Modifier.size(36.dp),
+                                    fontSize = 14.sp
+                                )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = friend.name,
@@ -1390,4 +1441,96 @@ fun ChatInputBar(
             }
         }
     }
+}
+
+@Composable
+fun ChangeGroupNameDialog(
+    currentName: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit
+) {
+    var nameInput by remember { mutableStateOf(currentName) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Đổi tên nhóm", fontWeight = FontWeight.Bold) },
+        text = {
+            OutlinedTextField(
+                value = nameInput,
+                onValueChange = { nameInput = it },
+                label = { Text("Tên nhóm mới") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (nameInput.isNotBlank()) {
+                        onSave(nameInput.trim())
+                    }
+                },
+                enabled = nameInput.isNotBlank()
+            ) {
+                Text("Lưu")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy")
+            }
+        }
+    )
+}
+
+@Composable
+fun IndividualChatSettingsDialog(
+    context: Context,
+    friendId: String,
+    friendName: String,
+    onDismiss: () -> Unit,
+    onNicknameUpdated: (String) -> Unit
+) {
+    val friendList = loadFriendListFromJson(context)
+    val friend = friendList.find { it.id == friendId }
+    var nicknameInput by remember { mutableStateOf(friend?.nickname ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Cài đặt cá nhân & Biệt danh", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(text = "Tên gốc: $friendName", fontSize = 14.sp, color = Color.Gray)
+                if (friend?.phone?.isNotBlank() == true) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = "SĐT: ${friend.phone}", fontSize = 14.sp, color = Color.Gray)
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = nicknameInput,
+                    onValueChange = { nicknameInput = it },
+                    label = { Text("Biệt danh") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    updateFriendNickname(context, friendId, nicknameInput.trim())
+                    onNicknameUpdated(nicknameInput.trim().ifBlank { friendName })
+                }
+            ) {
+                Text("Lưu")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Hủy")
+            }
+        }
+    )
 }

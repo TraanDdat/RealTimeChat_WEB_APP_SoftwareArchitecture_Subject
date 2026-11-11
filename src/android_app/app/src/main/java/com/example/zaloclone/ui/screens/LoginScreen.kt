@@ -9,15 +9,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaloclone.ui.components.PrimaryButton
+import com.example.zaloclone.ui.components.SecondaryButton
 import com.example.zaloclone.ui.components.ZaloTextField
 import com.example.zaloclone.ui.theme.TextGray
 import com.example.zaloclone.ui.theme.ZaloCyan
 
 @Composable
-fun LoginScreen(onLoginClick: () -> Unit) {
+fun LoginScreen(
+    onLoginClick: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit,
+    onNavigateToWelcome: () -> Unit
+) {
     var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
@@ -46,16 +52,21 @@ fun LoginScreen(onLoginClick: () -> Unit) {
         ZaloTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Mật khẩu"
+            placeholder = "Mật khẩu",
+            visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(modifier = Modifier.height(30.dp))
 
         PrimaryButton(text = "Đăng nhập", onClick = onLoginClick)
 
-        Spacer(modifier = Modifier.height(30.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        TextButton(onClick = { /* Handle Forgot Password */ }) {
+        SecondaryButton(text = "Quay lại", onClick = onNavigateToWelcome)
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        TextButton(onClick = onNavigateToForgotPassword) {
             Text(text = "Quên mật khẩu", color = TextGray, fontSize = 16.sp)
         }
     }

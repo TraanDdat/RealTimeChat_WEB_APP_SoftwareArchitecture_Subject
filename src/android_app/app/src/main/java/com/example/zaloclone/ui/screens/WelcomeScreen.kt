@@ -19,7 +19,8 @@ import com.example.zaloclone.ui.theme.ZaloCyan
 @Composable
 fun WelcomeScreen(
     onNavigateToLogin: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onNavigateToRegister: () -> Unit,
+    onNavigateToForgotPassword: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -45,7 +46,7 @@ fun WelcomeScreen(
         
         Spacer(modifier = Modifier.height(40.dp))
         
-        TextButton(onClick = { /* Handle Forgot Password */ }) {
+        TextButton(onClick = onNavigateToForgotPassword) {
             Text(text = "Quên mật khẩu", color = TextGray, fontSize = 16.sp)
         }
     }

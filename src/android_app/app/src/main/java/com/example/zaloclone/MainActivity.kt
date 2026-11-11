@@ -12,6 +12,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import com.example.zaloclone.ui.screens.ChatListScreen
 import com.example.zaloclone.ui.screens.ChattingScreen
+import com.example.zaloclone.ui.screens.ForgotPasswordScreen
 import com.example.zaloclone.ui.screens.FriendsScreen
 import com.example.zaloclone.ui.screens.LoginScreen
 import com.example.zaloclone.ui.screens.RegisterScreen
@@ -51,19 +52,27 @@ fun MainAppNavigation() {
     when (currentScreen) {
         "welcome" -> WelcomeScreen(
             onNavigateToLogin = { currentScreen = "login" },
-            onNavigateToRegister = { currentScreen = "register" }
+            onNavigateToRegister = { currentScreen = "register" },
+            onNavigateToForgotPassword = { currentScreen = "forgot_password" }
         )
         "login" -> LoginScreen(
             onLoginClick = {
                 // Khi nhấn Đăng Nhập -> Chuyển sang ChatListScreen
                 currentScreen = "chat_list"
-            }
+            },
+            onNavigateToForgotPassword = { currentScreen = "forgot_password" },
+            onNavigateToWelcome = { currentScreen = "welcome" }
+        )
+        "forgot_password" -> ForgotPasswordScreen(
+            onNavigateToWelcome = { currentScreen = "welcome" },
+            onPasswordResetSuccess = { currentScreen = "login" }
         )
         "register" -> RegisterScreen(
             onRegisterClick = {
-                // Khi nhấn Đăng Ký -> Chuyển sang ChatListScreen
-                currentScreen = "chat_list"
-            }
+                // Sau khi đăng ký -> Quay lại trang đăng nhập
+                currentScreen = "login"
+            },
+            onNavigateToWelcome = { currentScreen = "welcome" }
         )
         "chat_list" -> ChatListScreen(
             onNavigateToFriends = { currentScreen = "friends" },
@@ -79,7 +88,7 @@ fun MainAppNavigation() {
             onNavigateToSettings = { currentScreen = "settings" },
             onFriendSelect = { friend ->
                 selectedChatId = friend.id
-                selectedChatName = friend.name
+                selectedChatName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
                 currentScreen = "chatting"
             }
         )

@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
@@ -103,16 +102,9 @@ fun SettingsScreen(
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Call, contentDescription = "Calls") },
-                    label = { Text("Calls") },
-                    colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
-                )
-                NavigationBarItem(
-                    selected = false,
                     onClick = { onNavigateToFriends() },
                     icon = { Icon(Icons.Default.Person, contentDescription = "Friends") },
-                    label = { Text("Friends") },
+                    label = { Text("Contacts") },
                     colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
                 )
                 NavigationBarItem(
