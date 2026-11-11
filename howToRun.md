@@ -1,4 +1,24 @@
+## Chạy backend và frontend
 
+Trước khi chạy, cấu hình `.env` ở thư mục gốc và cài dependencies (`uv sync --extra dev`). Mở hai terminal PowerShell riêng tại thư mục gốc repository.
+
+Terminal 1 - backend:
+
+```powershell
+uv run uvicorn zalo_backend.main:app --app-dir backend/src --host 127.0.0.1 --port 8000 --reload
+```
+
+Chờ tới khi thấy `Application startup complete`. Giữ terminal này mở. Tài liệu API nằm tại http://127.0.0.1:8000/docs.
+
+Terminal 2 - frontend:
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Mở http://localhost:5173. Sau lần cài đầu tiên, có thể bỏ qua `npm install` ở các lần chạy sau. Dừng mỗi server bằng `Ctrl+C` trong terminal tương ứng.
 
 ##  Đăng ký, đăng nhập và chat
 
