@@ -7,9 +7,9 @@ from zalo_backend.schemas.user import RegisterRequest
 
 def create_user(db: Session, data: RegisterRequest):
     user_instance = User(
-        username=data.username,
+        username=data.fullName,
         email=data.email,
-        password=hash_password(data.password),
+        password_hash=hash_password(data.password),
     )
     
     db.add(user_instance)
@@ -54,6 +54,15 @@ def update_user(
         db.commit()
         db.refresh(user_queryset)
     return user_queryset
+
+
+def update_profile_pic(db: Session, user_id: int, profile_pic: str):
+    user = _find_user(db, user_id=user_id)
+    if user:
+        user.profile_pic = profile_pic
+        db.commit()
+        db.refresh(user)
+    return user
 
 
 def remove_user(db: Session, user_id: int | None = None, email: str | None = None):
