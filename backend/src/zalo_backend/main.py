@@ -11,9 +11,11 @@ from zalo_backend.database.l_postgres import create_tables, close_postgres, chec
 
 
 from zalo_backend.message_service.realtime import sio
-from zalo_backend.routes import login
-from zalo_backend.routes import messages
-from zalo_backend.routes import register
+from zalo_backend.routers import login
+from zalo_backend.routers import messages
+from zalo_backend.routers import register
+from zalo_backend.routers import addfriend
+from zalo_backend.routers import auth
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -32,7 +34,8 @@ bkend = FastAPI(title="UI zalo chat demo", lifespan=lifespan)
 # configure CORS (credentials require explicit origins, not "*")
 bkend.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL],
+    allow_origins=[],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,7 +62,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # add router
 bkend.include_router(login.login_router, prefix=settings.AUTH_URL)
 bkend.include_router(register.register_router, prefix=settings.AUTH_URL)
+bkend.include_router(auth.auth_router, prefix=settings.AUTH_URL)
 bkend.include_router(messages.messages_router, prefix=settings.MESSAGES_URL)
+bkend.include_router(addfriend.addfriend_router, prefix=settings.USER_ADDFRIEND_URL)
 
 # ASGI entry point: Socket.IO on /socket.io, everything else goes to FastAPI
 app = socketio.ASGIApp(sio, other_asgi_app=bkend)

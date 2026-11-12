@@ -12,7 +12,7 @@ from zalo_backend.models.mongodb.msg import Message
 
 
 logger = logging.getLogger(__name__)
-sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins=[settings.FRONTEND_URL])
+sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 
 # user_id -> socket ids (process-local)
 online_users: dict[int, set[str]] = {}

@@ -1,1 +1,1 @@
-"""Initialize file for routes package"""
+"""Initialize file for routers package"""

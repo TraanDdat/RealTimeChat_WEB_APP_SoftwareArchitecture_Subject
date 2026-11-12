@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta, timezone
-
 import jwt
-from fastapi import Response
 from pwdlib import PasswordHash
-
+from fastapi import Request, Response, HTTPException, Depends, status
+from sqlalchemy.orm import Session
+from fastapi import Depends
 from zalo_backend.core.config import settings
+from zalo_backend.database.l_postgres import get_db
 
 password_hash = PasswordHash.recommended()
 
@@ -48,3 +49,28 @@ def set_auth_cookie(response: Response, user_id: int):
 
 def clear_auth_cookie(response: Response):
     response.delete_cookie(AUTH_COOKIE, httponly=True, samesite="strict", secure=settings.COOKIE_SECURE)
+
+def get_current_user(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    from zalo_backend.user_service.service import get_user_by_id
+    token = request.cookies.get(AUTH_COOKIE)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    user_id = decode_access_token(token)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+        )
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    return user

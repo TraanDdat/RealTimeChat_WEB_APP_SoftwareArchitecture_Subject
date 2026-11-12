@@ -8,10 +8,12 @@ class Settings:
     # URL
     HOST = os.getenv("HOST", "127.0.0.1")
     PORT = int(os.getenv("PORT", 8000))
-    FRONTEND_URL = os.getenv("REACT_APP_API_URL", "http://localhost:5173")
+    FRONTEND_URL = os.getenv("REACT_APP_API_URL", "http://127.0.0.1:5173")
 
     # API
     AUTH_URL = os.getenv("AUTH","/api/auth")
+    USER_URL = os.getenv("USER","/api/user")
+    USER_ADDFRIEND_URL = os.getenv("USER_ADDFRIEND","/api/user/addfriend")
     MESSAGES_URL = "/api/messages"
 
     # Auth: without JWT_SECRET a random one is used, so sessions reset on restart
@@ -24,7 +26,7 @@ class Settings:
     
     # MongoDB
     MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "chat_db")
-    MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+    MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://127.0.0.1:27017")
 
     CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
 

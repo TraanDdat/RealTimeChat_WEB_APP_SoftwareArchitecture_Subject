@@ -17,6 +17,13 @@ class MessageCreate(BaseModel):
         return self
 
 
+class PublicUser(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: int = Field(gt=0)
+    email: Optional[str] = None
+
+
 class Message(BaseModel):
     id: str = Field(alias="_id")
     senderId: int
