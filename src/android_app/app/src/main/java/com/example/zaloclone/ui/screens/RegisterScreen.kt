@@ -17,8 +17,10 @@ import com.example.zaloclone.ui.components.PrimaryButton
 import com.example.zaloclone.ui.components.SecondaryButton
 import com.example.zaloclone.ui.components.ZaloTextField
 import com.example.zaloclone.ui.theme.ZaloCyan
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 
 @Composable
+<<<<<<< HEAD
 fun RegisterScreen(
     onRegisterClick: () -> Unit,
     onNavigateToWelcome: () -> Unit
@@ -26,6 +28,10 @@ fun RegisterScreen(
     val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
+=======
+fun RegisterScreen(onRegisterClick: (String, String, String, String) -> Unit) {
+    var email by remember { mutableStateOf("") }
+>>>>>>> feature/lan-with-android
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
@@ -38,7 +44,7 @@ fun RegisterScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Đăng ký",
+            text = "Register",
             fontSize = 32.sp,
             color = ZaloCyan,
             fontWeight = FontWeight.Bold,
@@ -48,34 +54,37 @@ fun RegisterScreen(
         )
 
         ZaloTextField(
-            value = name,
-            onValueChange = { name = it },
-            placeholder = "Tên"
-        )
-        
-        ZaloTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
-            placeholder = "Số điện thoại"
+            value = email,
+            onValueChange = { email = it },
+            placeholder = "Email"
         )
         
         ZaloTextField(
             value = password,
             onValueChange = { password = it },
+<<<<<<< HEAD
             placeholder = "Mật khẩu",
+=======
+            placeholder = "Password",
+>>>>>>> feature/lan-with-android
             visualTransformation = PasswordVisualTransformation()
         )
         
         ZaloTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
+<<<<<<< HEAD
             placeholder = "Nhập lại mật khẩu",
+=======
+            placeholder = "confirm Password",
+>>>>>>> feature/lan-with-android
             visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(modifier = Modifier.height(30.dp))
 
         PrimaryButton(
+<<<<<<< HEAD
             text = "Đăng ký", 
             onClick = {
                 when {
@@ -97,6 +106,10 @@ fun RegisterScreen(
         SecondaryButton(
             text = "Quay lại",
             onClick = onNavigateToWelcome,
+=======
+            text = "Register",
+            onClick = {onRegisterClick(email, password, confirmPassword, "User")},
+>>>>>>> feature/lan-with-android
             modifier = Modifier.padding(horizontal = 20.dp)
         )
     }

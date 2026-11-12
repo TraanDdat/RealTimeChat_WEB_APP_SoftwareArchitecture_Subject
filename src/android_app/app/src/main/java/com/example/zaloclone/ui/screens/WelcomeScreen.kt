@@ -38,16 +38,21 @@ fun WelcomeScreen(
             modifier = Modifier.padding(bottom = 80.dp)
         )
 
-        PrimaryButton(text = "ĐĂNG NHẬP", onClick = onNavigateToLogin)
+        PrimaryButton(text = "LOG IN", onClick = onNavigateToLogin)
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        SecondaryButton(text = "ĐĂNG KÝ", onClick = onNavigateToRegister)
+        SecondaryButton(text = "REGISTER", onClick = onNavigateToRegister)
         
         Spacer(modifier = Modifier.height(40.dp))
         
+<<<<<<< HEAD
         TextButton(onClick = onNavigateToForgotPassword) {
             Text(text = "Quên mật khẩu", color = TextGray, fontSize = 16.sp)
+=======
+        TextButton(onClick = { /* Handle Forgot Password */ }) {
+            Text(text = "Forgot Password", color = TextGray, fontSize = 16.sp)
+>>>>>>> feature/lan-with-android
         }
     }
 }

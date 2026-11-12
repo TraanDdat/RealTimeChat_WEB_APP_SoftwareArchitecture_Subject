@@ -25,6 +25,7 @@ import coil.compose.AsyncImage
 import com.example.zaloclone.ui.theme.ButtonGray
 import com.example.zaloclone.ui.theme.TextGray
 import com.example.zaloclone.ui.theme.ZaloCyan
+import androidx.compose.ui.text.input.VisualTransformation
 
 @Composable
 fun UserAvatar(
@@ -90,12 +91,16 @@ fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+<<<<<<< HEAD
 fun ZaloTextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
     visualTransformation: VisualTransformation = VisualTransformation.None
 ) {
+=======
+fun ZaloTextField(value: String, onValueChange: (String) -> Unit, placeholder: String, visualTransformation: VisualTransformation = VisualTransformation.None) {
+>>>>>>> feature/lan-with-android
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -109,6 +114,7 @@ fun ZaloTextField(
             focusedBorderColor = ZaloCyan,
             unfocusedBorderColor = ZaloCyan.copy(alpha = 0.5f)
         ),
-        singleLine = true
+        singleLine = true,
+        visualTransformation = visualTransformation
     )
 }
