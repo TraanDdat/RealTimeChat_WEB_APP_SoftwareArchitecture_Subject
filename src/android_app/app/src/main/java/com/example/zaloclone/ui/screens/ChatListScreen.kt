@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Group
@@ -111,6 +112,13 @@ fun ChatListScreen(
                         selectedTextColor = navActiveColor,
                         indicatorColor = Color.Transparent
                     )
+                )
+                NavigationBarItem(
+                    selected = false,
+                    onClick = { },
+                    icon = { Icon(Icons.Default.Call, contentDescription = "Calls") },
+                    label = { Text("Calls") },
+                    colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
                 )
                 NavigationBarItem(
                     selected = false,
