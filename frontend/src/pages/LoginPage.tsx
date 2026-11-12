@@ -27,7 +27,7 @@ function LoginPage() {
             alert(`Welcome ${data.email}, logged in as ${data.role}`);
             // Navigate based on user role
             if (data.role === "User" || data.role === "Admin") {
-                navigate(`/user/${encodeURIComponent(data.email.split("@")[0])}/${encodeURIComponent(data.username)}`);
+                navigate("/chat");
             }
         }
     }

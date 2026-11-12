@@ -5,8 +5,6 @@ import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 
-const BASE_URL = "/";
-
 interface AuthUser {
   _id: number;
   username: string;
