@@ -13,7 +13,7 @@ backend/
 		user_service/              # Users; PostgreSQL via SQLAlchemy
 				__init__.py
 				main.py                # FastAPI application and router registration
-				routes.py              # HTTP endpoints
+				routers.py              # HTTP endpoints
 				service.py             # User CRUD operations
 				schemas.py             # Request/response contracts
 				models.py              # SQLAlchemy table mappings
@@ -22,7 +22,7 @@ backend/
 		message_service/           # Messages; MongoDB via PyMongo
 				__init__.py
 				main.py                # ASGI app, lifespan, middleware, error handlers
-				routes.py              # HTTP endpoints
+				routers.py              # HTTP endpoints
 				service.py             # Conversations, persistence and image uploads
 				schemas.py             # Request/response contracts and document mapping
 				database.py            # MongoDB client, collection and indexes
@@ -135,10 +135,10 @@ Socket.IO clients connect to port 8001 with `auth: {user_id: 1}` and listen for
 `newMessage`, which contains the same message object returned by the send API.
 The server checks user existence at connection time and joins that user's room.
 
-If embedding the user routes into an existing FastAPI app:
+If embedding the user routers into an existing FastAPI app:
 
 ```python
-from backend.user_service.routes import router as user_router
+from backend.user_service.routers import router as user_router
 
 app.include_router(user_router)
 ```

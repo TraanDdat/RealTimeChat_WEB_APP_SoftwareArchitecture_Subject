@@ -57,7 +57,7 @@ Sau đó chạy:
 
 ```sql
 SELECT id, username, email, profile_pic,
-       LEFT(password_hash, 20) AS password_hash_preview
+       LEFT(password, 20) AS password_hash_preview
 FROM users
 ORDER BY id;
 ```
