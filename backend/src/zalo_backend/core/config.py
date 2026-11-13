@@ -12,9 +12,8 @@ class Settings:
 
     # API
     AUTH_URL = os.getenv("AUTH","/api/auth")
-    USER_URL = os.getenv("USER","/api/user")
     USER_ADDFRIEND_URL = os.getenv("USER_ADDFRIEND","/api/user/addfriend")
-    MESSAGES_URL = "/api/messages"
+    MESSAGES_URL = os.getenv("MESSAGES_URL","/api/messages")
 
     # Auth: without JWT_SECRET a random one is used, so sessions reset on restart
     JWT_SECRET = os.getenv("JWT_SECRET") or secrets.token_urlsafe(32)

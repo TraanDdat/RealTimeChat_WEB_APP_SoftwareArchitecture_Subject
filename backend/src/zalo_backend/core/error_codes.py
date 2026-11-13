@@ -32,8 +32,6 @@ class ErrorCode(str, Enum):
     # ==========================================
     PERM_ACCESS_DENIED = "PERM_001"
     PERM_INSUFFICIENT_PRIVILEGES = "PERM_002"
-    PERM_ROLE_NOT_FOUND = "PERM_003"
-    PERM_ROLE_NOT_ALLOWED = "PERM_004"
     PERM_RESOURCE_ACCESS_DENIED = "PERM_005"
 
     # ==========================================

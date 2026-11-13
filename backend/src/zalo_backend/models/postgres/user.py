@@ -8,5 +8,4 @@ class User(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(50), nullable=False)
     password = Column(String(255), nullable=False)
-    role = Column(String(255))
     profile_pic = Column(String(500), nullable=True)

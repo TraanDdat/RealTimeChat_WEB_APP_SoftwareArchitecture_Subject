@@ -6,8 +6,10 @@ from sqlalchemy.orm import Session
 from fastapi import Depends
 from zalo_backend.core.config import settings
 from zalo_backend.database.l_postgres import get_db
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 password_hash = PasswordHash.recommended()
+security = HTTPBearer() # use Bearer token for Android authenticate
 
 AUTH_COOKIE = "jwt"
 _JWT_ALGORITHM = "HS256"
@@ -55,22 +57,33 @@ def get_current_user(
     db: Session = Depends(get_db),
 ):
     from zalo_backend.user_service.service import get_user_by_id
-    token = request.cookies.get(AUTH_COOKIE)
+    auth_header = request.headers.get("Authorization")
+
+    token = None
+
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ", 1)[1]
+
+    if not token:
+        token = request.cookies.get(AUTH_COOKIE)
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
         )
     user_id = decode_access_token(token)
+
     if user_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
+
     user = get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
+
     return user

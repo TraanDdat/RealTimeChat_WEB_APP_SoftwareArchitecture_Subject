@@ -43,18 +43,6 @@ async def addfriend_request(request: AddFriendRequest, db: Session = Depends(get
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error)
         )
-    # send real-time notification to target user
-    await ws_manager.send_notification(
-        targ_user.id,
-        {
-            "type": "friend_request",
-            "request_id": friendship_create.id,
-            "sender_id": curr_user.id,
-            "sender_email": curr_user.email,
-            "sender_username": curr_user.username,
-            "message": f"{curr_user.username} sent you a friend request"
-        }
-    )
     # response of add friend request
     addfriend_res = AddFriendResponse(
         id=friendship_create.id,
