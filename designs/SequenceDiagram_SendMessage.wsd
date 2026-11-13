@@ -1,0 +1,30 @@
+@startuml
+
+title RealTimeChat - Send Message Sequence
+
+actor UserA as "User A"
+participant ClientA as "Web / Android A"
+participant ChatServer as "Chat Server"
+database DB as "Database"
+participant ClientB as "Web / Android B"
+actor UserB as "User B"
+
+UserA -> ClientA : Type message
+UserA -> ClientA : Click Send
+
+ClientA -> ChatServer : WebSocket.send(message)
+
+ChatServer -> ChatServer : Authenticate user
+ChatServer -> ChatServer : Validate message
+
+ChatServer -> DB : Save message
+DB --> ChatServer : Message saved
+
+ChatServer -> ClientB : WebSocket(message)
+
+ClientB -> UserB : Display message
+
+ChatServer -> ClientA : Message delivered
+ClientA -> UserA : Update status
+
+@enduml
