@@ -26,9 +26,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaloclone.ui.components.UserAvatar
+import com.example.zaloclone.ui.viewModel.ChatViewModel
 
 @Composable
 fun ChatListScreen(
+    chatViewModel: ChatViewModel? = null,
     onChatItemClick: (String, String) -> Unit = { _, _ -> },
     onNavigateToFriends: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -39,15 +41,39 @@ fun ChatListScreen(
     var isEditing by remember { mutableStateOf(false) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
 
-    // Tải dữ liệu từ JSON file khi khởi tạo màn hình
-    LaunchedEffect(Unit) {
-        syncChatListWithHistory(context)
-        val savedList = loadChatListFromJson(context)
-        // Chỉ lấy những chat item có lastMessage không bị rỗng
-        val filteredList = savedList.filter { it.lastMessage.isNotBlank() }
+    val chatState = chatViewModel?.state?.collectAsState()
 
-        chatList.clear()
-        chatList.addAll(filteredList)
+    // Tải danh sách cuộc trò chuyện từ MongoDB Database thông qua ChatViewModel / Retrofit API
+    LaunchedEffect(chatState?.value?.chats) {
+        if (chatViewModel != null) {
+            chatViewModel.getMyChatPartners()
+        }
+    }
+
+    LaunchedEffect(chatState?.value?.chats) {
+        val mongoChats = chatState?.value?.chats
+        if (!mongoChats.isNullOrEmpty()) {
+            val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2), Color(0xFF38C7FF))
+            val items = mongoChats.mapIndexed { index, user ->
+                ChatItem(
+                    id = user.id.toString(),
+                    name = user.username,
+                    lastMessage = "Nhấp để trò chuyện",
+                    time = "",
+                    unreadCount = 0,
+                    avatarBgColor = colors[index % colors.size],
+                    avatarUri = user.profilePic
+                )
+            }
+            chatList.clear()
+            chatList.addAll(items)
+        } else if (chatViewModel == null) {
+            syncChatListWithHistory(context)
+            val savedList = loadChatListFromJson(context)
+            val filteredList = savedList.filter { it.lastMessage.isNotBlank() }
+            chatList.clear()
+            chatList.addAll(filteredList)
+        }
     }
 
     val cyanHeaderColor = Color(0xFF38C7FF)
@@ -112,13 +138,6 @@ fun ChatListScreen(
                         selectedTextColor = navActiveColor,
                         indicatorColor = Color.Transparent
                     )
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Call, contentDescription = "Calls") },
-                    label = { Text("Calls") },
-                    colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
                 )
                 NavigationBarItem(
                     selected = false,
