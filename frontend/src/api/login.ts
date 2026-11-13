@@ -1,6 +1,6 @@
 import { API_BASE_URL, API_AUTH_LOGIN } from "../../config";
 import { apiRequest } from "./api_client";
-import type { LoginRequest, LoginResponse } from "../contexts/LoginContext"
+import type { LoginRequest, LoginResponse } from "../contexts/login"
 
 export async function react_login_request({
     email,

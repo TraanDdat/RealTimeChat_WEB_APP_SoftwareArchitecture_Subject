@@ -1,36 +1,10 @@
 import axios from "axios";
 import { create } from "zustand";
 import type { Socket } from "socket.io-client";
-import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
-import { io } from "socket.io-client";
-
-interface AuthUser {
-  _id: number;
-  username: string;
-  email: string;
-  profilePic: string | null;
-}
-
-interface SignUpData {
-  username: string;
-  email: string;
-  password: string;
-}
-
-interface LoginData {
-  email: string;
-  password: string;
-  role: string;
-}
-
-interface UpdateProfileData {
-  profilePic: string;
-}
-
-interface ApiErrorBody {
-  message?: string;
-}
+import { createSocket } from "../socket/socketClient";
+import { authApi } from "../api/auth";
+import type { AuthUser, SignUpData, LoginData, UpdateProfileData, ApiErrorBody } from "../types/auth";
 
 interface AuthStore {
   authUser: AuthUser | null;
@@ -65,7 +39,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   checkAuth: async () => {
     try {
-      const res = await axiosInstance.get<AuthUser>("/auth/check");
+      const res = await authApi.checkAuth();
       set({ authUser: res.data });
       get().connectSocket();
     } catch (error) {
@@ -79,7 +53,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   signup: async (data) => {
     set({ isSigningUp: true });
     try {
-      const res = await axiosInstance.post<AuthUser>("/auth/signup", data);
+      const res = await authApi.signup(data);
       set({ authUser: res.data });
 
       toast.success("Account created successfully!");
@@ -94,7 +68,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
-      const res = await axiosInstance.post<AuthUser>("/auth/login", data);
+      const res = await authApi.login(data);
       set({ authUser: res.data });
 
       toast.success("Logged in successfully");
@@ -108,7 +82,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   logout: async () => {
     try {
-      await axiosInstance.post("/auth/logout");
+      await authApi.logout();
       set({ authUser: null });
       toast.success("Logged out successfully");
       get().disconnectSocket();
@@ -120,7 +94,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   updateProfile: async (data) => {
     try {
-      const res = await axiosInstance.put<AuthUser>("/auth/update-profile", data);
+      const res = await authApi.updateProfile(data);
       set({ authUser: res.data });
       toast.success("Profile updated successfully");
     } catch (error) {
@@ -130,32 +104,35 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   },
 
   connectSocket: () => {
-      const { authUser } = get();
-
+      const { authUser, socket } = get();
       if (!authUser || get().socket?.connected) return;
-
-      const socket = io("/", {
-          path: "/socket.io",
-          withCredentials: true,
-          transports: ["websocket", "polling"]
+      if (socket)
+        {
+          socket.connect();
+          return;
+        };
+      const newSocket = createSocket();
+      newSocket.on("connect", () => {
+          console.log("Socket connected:", newSocket.id);
       });
-
-      socket.on("connect", () => {
-          console.log("Socket connected:", socket.id);
-      });
-
-      socket.on("connect_error", (error) => {
+      newSocket.on("connect_error", (error) => {
           console.error("Socket connection error:", error.message);
       });
-
-      socket.on("getOnlineUsers", (userIds: number[]) => {
+      newSocket.on("getOnlineUsers", (userIds: number[]) => {
           set({ onlineUsers: userIds });
       });
-
       set({ socket });
   },
 
   disconnectSocket: () => {
-    if (get().socket?.connected) get().socket?.disconnect();
+    const socket = get().socket;
+    if (socket) {
+      socket.removeAllListeners();
+      socket.disconnect();
+      set({
+        socket: null,
+        onlineUsers: [],
+      });
+    }
   },
 }));
