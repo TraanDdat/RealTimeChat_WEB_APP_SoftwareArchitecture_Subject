@@ -34,6 +34,7 @@ function ChatContainer() {
   }, [messages]);
 
   if (!selectedUser || !authUser) return null;
+  const currentUserId = String(authUser._id);
 
   return (
     <>
@@ -41,14 +42,16 @@ function ChatContainer() {
       <div className="flex-1 px-6 overflow-y-auto py-8">
         {messages.length > 0 && !isMessagesLoading ? (
           <div className="max-w-3xl mx-auto space-y-6">
-            {messages.map((msg) => (
+            {messages.map((msg) => {
+              const isSender = String(msg.senderId) === currentUserId;
+              return (
               <div
                 key={msg._id}
-                className={`chat ${msg.senderId === authUser._id ? "chat-end" : "chat-start"}`}
+                className={`flex w-full ${isSender ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`chat-bubble relative ${
-                    msg.senderId === authUser._id
+                  className={`relative max-w-[80%] min-w-0 break-words rounded-lg px-4 py-2 ${
+                    isSender
                       ? "bg-cyan-600 text-white"
                       : "bg-slate-800 text-slate-200"
                   }`}
@@ -65,7 +68,8 @@ function ChatContainer() {
                   </p>
                 </div>
               </div>
-            ))}
+              );
+            })}
             <div ref={messageEndRef} />
           </div>
         ) : isMessagesLoading ? (

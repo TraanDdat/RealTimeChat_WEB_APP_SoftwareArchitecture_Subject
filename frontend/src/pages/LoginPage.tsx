@@ -2,39 +2,14 @@ import { useState, type FormEvent } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
 import { MessageCircleIcon, MailIcon, LoaderIcon, LockIcon } from "lucide-react";
-import { Link, useNavigate } from "react-router";
-import type { LoginRequest, LoginResponse } from "../contexts/login";
-import { react_login_request } from "../api/login";
+import { Link } from "react-router";
 
 function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "", role: "User" });
   const { login, isLoggingIn } = useAuthStore();
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>, role: string) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    try {
-        const request: LoginRequest = {
-            email: formData.email,
-            password: formData.password,
-            role: role
-        };
-        const data: LoginResponse = await react_login_request(request);
-        if (data) {
-            // Set authentication context
-            login(formData);
-            console.log("Access token =", data.access_token);
-            alert(`Welcome ${data.email}, logged in as ${data.role}`);
-            // Navigate based on user role
-            if (data.role === "User" || data.role === "Admin") {
-                navigate("/chat");
-            }
-        }
-    }
-    catch (err) {
-        console.error("Login request error:", err);
-        alert("Login failed. Please check your credentials.");
-    }
+    await login(formData);
   };
 
   return (
@@ -53,7 +28,7 @@ function LoginPage() {
                 </div>
 
                 {/* FORM */}
-                <form onSubmit={(e) => handleSubmit(e, "User")} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   {/* EMAIL INPUT */}
                   <div>
                     <label className="auth-input-label">Email</label>

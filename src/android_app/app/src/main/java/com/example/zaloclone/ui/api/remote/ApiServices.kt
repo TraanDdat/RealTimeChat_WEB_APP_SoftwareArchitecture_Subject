@@ -1,26 +1,32 @@
 package com.example.zaloclone.ui.api.remote
 
-import com.example.zaloclone.ApiConfig
-import retrofit2.http.POST
 import retrofit2.http.Body
+import retrofit2.http.GET
+import retrofit2.http.POST
+import retrofit2.http.Path
 
-interface AuthApiServices {
-    @POST(ApiConfig.API_ATH_LOGIN)
-    suspend fun loginUser(
-        @Body request : LoginRequest
-    ): LoginResponse
-}
+interface ApiServices {
+    @POST("api/auth/login")
+    suspend fun login(@Body request: LoginRequest): AuthEnvelope
 
-interface RegisterApiServices {
-    @POST(ApiConfig.API_AUTH_REGISTER)
-    suspend fun register(
-        @Body request : RegisterRequest
-    ): RegisterResponse
-}
+    @POST("api/auth/register")
+    suspend fun register(@Body request: RegisterRequest): AuthEnvelope
 
-interface ResetPasswordApiServices {
-    @POST(ApiConfig.API_AUTH_RESETPW)
-    suspend fun resetPw(
-        @Body request : ResetpwRequest
-    ): ResetpwResponse
+    @GET("api/auth/check")
+    suspend fun checkAuth(): ChatUser
+
+    @GET("api/messages/contacts")
+    suspend fun contacts(): List<ChatUser>
+
+    @GET("api/messages/chats")
+    suspend fun chats(): List<ChatUser>
+
+    @GET("api/messages/{partnerId}")
+    suspend fun messages(@Path("partnerId") partnerId: Long): List<ChatMessage>
+
+    @POST("api/messages/send/{receiverId}")
+    suspend fun send(
+        @Path("receiverId") receiverId: Long,
+        @Body request: SendMessageRequest
+    ): ChatMessage
 }

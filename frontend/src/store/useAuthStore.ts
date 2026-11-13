@@ -68,7 +68,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
-      const res = await authApi.login(data);
+      await authApi.login(data);
+      const res = await authApi.checkAuth();
       set({ authUser: res.data });
 
       toast.success("Logged in successfully");
@@ -121,7 +122,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       newSocket.on("getOnlineUsers", (userIds: number[]) => {
           set({ onlineUsers: userIds });
       });
-      set({ socket });
+      set({ socket: newSocket });
   },
 
   disconnectSocket: () => {
