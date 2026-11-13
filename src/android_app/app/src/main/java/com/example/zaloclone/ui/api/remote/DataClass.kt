@@ -1,4 +1,4 @@
-package com.example.zaloclone.ui.data.remote
+package com.example.zaloclone.ui.api.remote
 
 interface Userbase {
     val email: String

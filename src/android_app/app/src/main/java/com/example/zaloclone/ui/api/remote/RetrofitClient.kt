@@ -1,4 +1,4 @@
-package com.example.zaloclone.ui.data.remote
+package com.example.zaloclone.ui.api.remote
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory

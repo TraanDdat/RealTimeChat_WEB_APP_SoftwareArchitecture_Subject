@@ -25,10 +25,10 @@ import com.example.zaloclone.ui.screens.WelcomeScreen
 import com.example.zaloclone.ui.theme.ZaloCyan
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
-import com.example.zaloclone.ui.data.remote.loginUser
-import com.example.zaloclone.ui.data.remote.LoginRequest
-import com.example.zaloclone.ui.data.remote.handleRegister
-import com.example.zaloclone.ui.data.remote.RegisterConfirmRequest
+import com.example.zaloclone.ui.api.remote.loginUser
+import com.example.zaloclone.ui.api.remote.LoginRequest
+import com.example.zaloclone.ui.api.remote.handleRegister
+import com.example.zaloclone.ui.api.remote.RegisterConfirmRequest
 
 private val LightColorScheme = lightColorScheme(
     primary = ZaloCyan,

@@ -1,4 +1,4 @@
-package com.example.zaloclone.ui.data.remote
+package com.example.zaloclone.ui.api.remote
 
 import com.example.zaloclone.ApiConfig
 import retrofit2.http.POST
