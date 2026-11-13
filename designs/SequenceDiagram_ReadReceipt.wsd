@@ -1,0 +1,30 @@
+@startuml
+
+title RealTimeChat - Message Delivery and Read
+
+actor UserA
+participant ClientA
+participant Server
+database DB
+participant ClientB
+actor UserB
+
+UserA -> ClientA : Send message
+
+ClientA -> Server : WebSocket.send()
+
+Server -> DB : Save message
+DB --> Server : OK
+
+Server -> ClientB : New message
+ClientB -> UserB : Display message
+
+ClientB -> Server : MessageRead(messageId)
+
+Server -> DB : Update status = READ
+DB --> Server : OK
+
+Server -> ClientA : MessageRead
+ClientA -> UserA : ✓✓ Read
+
+@enduml

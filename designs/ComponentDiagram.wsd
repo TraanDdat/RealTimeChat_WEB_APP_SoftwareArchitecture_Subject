@@ -1,0 +1,58 @@
+@startuml
+
+title RealTimeChat - Component Architecture
+
+package "Web Application" {
+    component "Web UI" as WebUI
+}
+
+package "Android Application" {
+    component "Android UI" as AndroidUI
+}
+
+package "Backend Server" {
+
+    component "REST API" as REST
+
+    component "WebSocket Gateway" as WS
+
+    component "Auth Service" as Auth
+
+    component "User Service" as User
+
+    component "Chat Service" as Chat
+
+    component "Notification Service" as Notification
+}
+
+database "PostgreSQL" as PostgreSQL
+
+component "Redis" as Redis
+
+component "Firebase Cloud Messaging" as FCM
+
+
+WebUI --> REST : HTTPS / REST
+WebUI --> WS : WebSocket
+
+AndroidUI --> REST : HTTPS / REST
+AndroidUI --> WS : WebSocket
+
+REST --> Auth
+REST --> User
+
+WS --> Chat
+
+Auth --> PostgreSQL
+User --> PostgreSQL
+Chat --> PostgreSQL
+
+Chat --> Redis
+
+Chat --> Notification
+
+Notification --> FCM
+
+FCM --> AndroidUI : Push Notification
+
+@enduml
