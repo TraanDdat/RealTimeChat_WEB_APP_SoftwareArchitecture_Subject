@@ -13,19 +13,21 @@ data class LoginRequest (
 ) : Userbase
 
 data class LoginResponse(
-    val email: String,
-    val role: String,
-    val access_token: String
+    val access_token: String,
+    val token_type: String = "bearer",
+    val email: String
 )
 
 data class RegisterRequest (
     override val email: String,
+    val username: String,
     override val password: String,
     override val role: String
 ) : Userbase
 
 data class RegisterConfirmRequest (
     override val email: String,
+    val username: String,
     override val password: String,
     override val role: String,
     val confirmPassword: String

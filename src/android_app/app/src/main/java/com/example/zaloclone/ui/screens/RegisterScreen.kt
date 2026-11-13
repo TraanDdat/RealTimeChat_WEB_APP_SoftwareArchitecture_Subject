@@ -20,12 +20,13 @@ import com.example.zaloclone.ui.theme.ZaloCyan
 
 @Composable
 fun RegisterScreen(
-    onRegisterClick: () -> Unit,
+    onRegisterClick: (String, String, String, String, String) -> Unit,
     onNavigateToWelcome: () -> Unit
 ) {
     val context = LocalContext.current
     var name by remember { mutableStateOf("") }
-    var phoneNumber by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
 
@@ -38,7 +39,7 @@ fun RegisterScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Đăng ký",
+            text = "Register",
             fontSize = 32.sp,
             color = ZaloCyan,
             fontWeight = FontWeight.Bold,
@@ -48,54 +49,43 @@ fun RegisterScreen(
         )
 
         ZaloTextField(
-            value = name,
-            onValueChange = { name = it },
-            placeholder = "Tên"
+            value = email,
+            onValueChange = { email = it },
+            placeholder = "Email"
         )
-        
+
         ZaloTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
-            placeholder = "Số điện thoại"
+            value = username,
+            onValueChange = { username = it },
+            placeholder = "Place your username"
         )
-        
+
         ZaloTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Mật khẩu",
+            placeholder = "Password",
             visualTransformation = PasswordVisualTransformation()
         )
         
         ZaloTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
-            placeholder = "Nhập lại mật khẩu",
+            placeholder = "confirm Password",
             visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(modifier = Modifier.height(30.dp))
 
         PrimaryButton(
-            text = "Đăng ký", 
-            onClick = {
-                when {
-                    name.isBlank() -> Toast.makeText(context, "Vui lòng nhập tên", Toast.LENGTH_SHORT).show()
-                    phoneNumber.isBlank() -> Toast.makeText(context, "Vui lòng nhập số điện thoại", Toast.LENGTH_SHORT).show()
-                    password.isBlank() -> Toast.makeText(context, "Vui lòng nhập mật khẩu", Toast.LENGTH_SHORT).show()
-                    password != confirmPassword -> Toast.makeText(context, "Mật khẩu xác nhận không khớp", Toast.LENGTH_SHORT).show()
-                    else -> {
-                        Toast.makeText(context, "Đăng ký thành công! Vui lòng đăng nhập.", Toast.LENGTH_SHORT).show()
-                        onRegisterClick()
-                    }
-                }
-            },
+            text = "Register",
+            onClick = {onRegisterClick(email, username, password, confirmPassword, "User")},
             modifier = Modifier.padding(horizontal = 20.dp)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         SecondaryButton(
-            text = "Quay lại",
+            text = "Back",
             onClick = onNavigateToWelcome,
             modifier = Modifier.padding(horizontal = 20.dp)
         )

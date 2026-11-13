@@ -28,5 +28,5 @@ suspend fun handleRegister(request: RegisterConfirmRequest): Result<RegisterResp
     {
         return Result.failure(Exception("Password do not match"))
     }
-    return register(RegisterRequest(email = request.email, password = request.password, role = request.role))
+    return register(RegisterRequest(email = request.email, username = request.username, password = request.password, role = request.role))
 }

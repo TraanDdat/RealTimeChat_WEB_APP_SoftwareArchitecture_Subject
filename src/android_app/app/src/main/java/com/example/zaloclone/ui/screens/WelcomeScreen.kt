@@ -38,16 +38,16 @@ fun WelcomeScreen(
             modifier = Modifier.padding(bottom = 80.dp)
         )
 
-        PrimaryButton(text = "ĐĂNG NHẬP", onClick = onNavigateToLogin)
+        PrimaryButton(text = "LOG IN", onClick = onNavigateToLogin)
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        SecondaryButton(text = "ĐĂNG KÝ", onClick = onNavigateToRegister)
+        SecondaryButton(text = "REGISTER", onClick = onNavigateToRegister)
         
         Spacer(modifier = Modifier.height(40.dp))
         
         TextButton(onClick = onNavigateToForgotPassword) {
-            Text(text = "Quên mật khẩu", color = TextGray, fontSize = 16.sp)
+            Text(text = "Forgot Password", color = TextGray, fontSize = 16.sp)
         }
     }
 }

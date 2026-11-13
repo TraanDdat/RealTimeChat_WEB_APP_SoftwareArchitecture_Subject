@@ -20,12 +20,14 @@ import com.example.zaloclone.ui.theme.ZaloCyan
 
 @Composable
 fun LoginScreen(
-    onLoginClick: () -> Unit,
+    onLoginClick: (String, String, String) -> Unit,
     onNavigateToForgotPassword: () -> Unit,
     onNavigateToWelcome: () -> Unit
 ) {
-    var phoneNumber by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+
+    // Kotlin, API connect backend
 
     Column(
         modifier = Modifier
@@ -36,7 +38,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Đăng nhập Zalo",
+            text = "Welcome to Zalo",
             fontSize = 32.sp,
             color = ZaloCyan,
             fontWeight = FontWeight.Bold,
@@ -44,21 +46,21 @@ fun LoginScreen(
         )
 
         ZaloTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
-            placeholder = "Số điện thoại"
+            value = email,
+            onValueChange = { email = it },
+            placeholder = "Email"
         )
         
         ZaloTextField(
             value = password,
             onValueChange = { password = it },
-            placeholder = "Mật khẩu",
+            placeholder = "password",
             visualTransformation = PasswordVisualTransformation()
         )
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        PrimaryButton(text = "Đăng nhập", onClick = onLoginClick)
+        PrimaryButton(text = "Login", onClick = {onLoginClick(email, password, "User")})
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -67,7 +69,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         TextButton(onClick = onNavigateToForgotPassword) {
-            Text(text = "Quên mật khẩu", color = TextGray, fontSize = 16.sp)
+            Text(text = "Forgot password", color = TextGray, fontSize = 16.sp)
         }
     }
 }

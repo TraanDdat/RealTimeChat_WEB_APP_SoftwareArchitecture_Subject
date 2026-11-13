@@ -81,7 +81,7 @@ fun MainAppNavigation() {
                     result.onSuccess { response ->
                         val token = response.access_token
                         val email = response.email
-                        val role = response.role
+                        val token_type = response.token_type
                         currentScreen = "chat_list"
                         }.onFailure { error -> println("Login failed") 
                     }
