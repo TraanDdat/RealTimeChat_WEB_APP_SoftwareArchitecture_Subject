@@ -42,7 +42,7 @@ fun WelcomeScreen(
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        SecondaryButton(text = "REGISTER", onClick = onNavigateToRegister)
+        SecondaryButton(text = "SIGNUP", onClick = onNavigateToRegister)
         
         Spacer(modifier = Modifier.height(40.dp))
         

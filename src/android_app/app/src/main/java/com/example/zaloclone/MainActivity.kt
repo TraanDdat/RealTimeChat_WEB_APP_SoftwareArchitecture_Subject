@@ -11,9 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.example.zaloclone.ui.screens.ChatListScreen
 import com.example.zaloclone.ui.screens.ChattingScreen
 import com.example.zaloclone.ui.screens.ForgotPasswordScreen
@@ -25,10 +23,19 @@ import com.example.zaloclone.ui.screens.WelcomeScreen
 import com.example.zaloclone.ui.theme.ZaloCyan
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
-import com.example.zaloclone.ui.api.remote.loginUser
-import com.example.zaloclone.ui.api.remote.LoginRequest
-import com.example.zaloclone.ui.api.remote.handleRegister
-import com.example.zaloclone.ui.api.remote.RegisterConfirmRequest
+import com.example.zaloclone.api.model.LoginRequest
+import com.example.zaloclone.api.remote.handleRegister
+import com.example.zaloclone.api.model.RegisterConfirmRequest
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.zaloclone.api.datastore.TokenManager
+import com.example.zaloclone.ui.viewModel.AuthViewModel
+import com.example.zaloclone.ui.viewModel.AuthViewModelFactory
+import com.example.zaloclone.api.repository.AuthRepository
+import com.example.zaloclone.socket.socketClient
+import com.example.zaloclone.socket.socketService
+import com.example.zaloclone.api.repository.ChatRepository
+import com.example.zaloclone.ui.viewModel.ChatViewModel
+import com.example.zaloclone.ui.viewModel.ChatViewModelFactory
 
 private val LightColorScheme = lightColorScheme(
     primary = ZaloCyan,
@@ -60,32 +67,56 @@ fun MainAppNavigation() {
     val context = LocalContext.current
     var selectedChatId by remember { mutableStateOf("1") }
     var selectedChatName by remember { mutableStateOf("Anny Peter") }
+    val authViewModel: AuthViewModel = viewModel(
+        factory = AuthViewModelFactory(
+            repository = AuthRepository(),
+            tokenManager = TokenManager(context.applicationContext),
+            socketClient = socketClient,
+            socketService = socketService
+        )
+    )
+    val authState by authViewModel.state.collectAsState()
+    val chatViewModel: ChatViewModel = viewModel(
+        factory = ChatViewModelFactory (
+            repository = ChatRepository(),
+            socketClient = socketClient
+        )
+    )
 
-    when (currentScreen) {
+    LaunchedEffect(Unit) {
+        authViewModel.AuthCheck()
+    }
+
+    LaunchedEffect(authState.authUser) {
+        if (authState.authUser != null) {
+            currentScreen = "chat_list"
+        }
+    }
+
+    LaunchedEffect(authState.errorMessage) {
+        authState.errorMessage?.let { message ->
+            Toast.makeText(
+                context,
+                message,
+                Toast.LENGTH_SHORT
+            ).show()
+
+            authViewModel.clearMessages()
+        }
+    }
+
+    when (currentScreen) {    
         "welcome" -> WelcomeScreen(
             onNavigateToLogin = { currentScreen = "login" },
-            onNavigateToRegister = { currentScreen = "register" },
+            onNavigateToRegister = { currentScreen = "signup" },
             onNavigateToForgotPassword = { currentScreen = "forgot_password" }
         )
 
         "login" -> LoginScreen(
-            onLoginClick = { email, password, role ->
-                scope.launch {
-                    val result = loginUser(
-                        LoginRequest(
-                            email = email,
-                            password = password,
-                            role = role
-                        )
-                    )
-                    result.onSuccess { response ->
-                        val token = response.access_token
-                        val email = response.email
-                        val token_type = response.token_type
-                        currentScreen = "chat_list"
-                        }.onFailure { error -> println("Login failed") 
-                    }
-                }
+            onLoginClick = { email, password ->
+                authViewModel.login(
+                    LoginRequest( email = email, password = password )
+                )
             },
             onNavigateToForgotPassword = { currentScreen = "forgot_password" },
             onNavigateToWelcome = { currentScreen = "welcome" }
@@ -94,26 +125,25 @@ fun MainAppNavigation() {
             onNavigateToWelcome = { currentScreen = "welcome" },
             onPasswordResetSuccess = { currentScreen = "login" }
         )
-        "register" -> RegisterScreen(
-            onRegisterClick = { email, username, password, confirmPassword, role ->
+        "signup" -> RegisterScreen(
+            onRegisterClick = { email, username, password, confirmPassword ->
                 scope.launch {
                     val result = handleRegister(
                         RegisterConfirmRequest(
                             email = email,
                             username = username,
                             password = password,
-                            confirmPassword = confirmPassword,
-                            role = role
+                            confirmPassword = confirmPassword
                         )
                     )
-                    result.onSuccess { response ->
-                        println("Register success")
-                        currentScreen = "login"
-                        Toast.makeText(context, "Register successful", Toast.LENGTH_SHORT).show()
-                    }.onFailure { error -> 
-                                    println("Register failed")
-                                    Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
-                    }
+//                    result.onSuccess { response ->
+//                        println("Signup success")
+//                        currentScreen = "login"
+//                        Toast.makeText(context, "Signup successful", Toast.LENGTH_SHORT).show()
+//                    }.onFailure { error ->
+//                                    println("Signup failed")
+//                                    Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
+//                    }
                 }
             },
             onNavigateToWelcome = { currentScreen = "welcome" }
@@ -130,12 +160,12 @@ fun MainAppNavigation() {
         "friends" -> FriendsScreen(
             onNavigateToChats = { currentScreen = "chat_list" },
             onNavigateToSettings = { currentScreen = "settings" },
+            chatViewModel = chatViewModel,
             onFriendSelect = { friend ->
-                selectedChatId = friend.id
-                selectedChatName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
+                selectedChatId = friend.id.toString()
+                selectedChatName = friend.username
                 currentScreen = "chatting"
-            }
-        )
+        })
         "chatting" -> ChattingScreen(
             chatId = selectedChatId,
             chatName = selectedChatName,
@@ -144,7 +174,9 @@ fun MainAppNavigation() {
         "settings" -> SettingsScreen(
             onNavigateToChats = { currentScreen = "chat_list" },
             onNavigateToFriends = { currentScreen = "friends" },
-            onLogout = { currentScreen = "welcome" }
+            onLogout = { 
+                authViewModel.logout()
+                currentScreen = "welcome" }
         )
     }
 }
