@@ -70,74 +70,51 @@ data class ChatItem(
 }
 
 // ==========================================
-// 2. HÀM XỬ LÝ JSON - CHAT HISTORY (Per-chat)
+// 2. XỬ LÝ LỊCH SỬ TIN NHẮN (DATABASE MONGODB ATLAS & API)
 // ==========================================
-fun getChatHistoryFileName(chatId: String): String = "chat_history_$chatId.json"
+// Dữ liệu tin nhắn hiện được lưu trữ và truy xuất từ MongoDB Atlas Database
+// thông qua Backend API (`ChatRepository` / `ChatViewModel`).
+
+private val inMemoryMessagesMap = mutableMapOf<String, MutableList<Message>>()
 
 fun saveMessagesToJson(context: Context, chatId: String, messages: List<Message>) {
-    File(context.filesDir, getChatHistoryFileName(chatId)).writeText(Gson().toJson(messages))
+    // Lưu vào bộ nhớ tạm thời của Session thay vì ghi file JSON cục bộ.
+    // Việc lưu dữ liệu dài hạn do MongoDB Atlas đảm nhận khi gửi tin nhắn qua API.
+    inMemoryMessagesMap[chatId] = messages.toMutableList()
 }
 
 fun loadMessagesFromJson(context: Context, chatId: String): List<Message> {
-    val file = File(context.filesDir, getChatHistoryFileName(chatId))
-    if (!file.exists()) return emptyList()
-    val type = object : TypeToken<List<Message>>() {}.type
-    val rawList: List<Message> = Gson().fromJson(file.readText(), type) ?: emptyList()
-    return rawList.map { msg ->
-        msg.copy(
-            type = msg.type ?: MessageType.TEXT,
-            text = msg.text ?: ""
-        )
-    }
+    // Trả về danh sách trong bộ nhớ tạm thời nếu có
+    return inMemoryMessagesMap[chatId] ?: emptyList()
 }
 
 fun getOrInitChatHistory(context: Context, chatId: String, chatName: String): List<Message> {
-    val savedMessages = loadMessagesFromJson(context, chatId)
-    if (savedMessages.isNotEmpty()) {
-        return savedMessages
-    }
-
-    val chatList = loadChatListFromJson(context).toMutableList()
-    var chatItem = chatList.find { it.id == chatId }
-
-    if (chatItem == null) {
-        val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2))
-        val colorIndex = (chatId.hashCode().let { if (it < 0) -it else it }) % colors.size
-        val randomColor = colors[colorIndex]
-        chatItem = ChatItem(
-            id = chatId,
-            name = chatName,
-            lastMessage = "",
-            time = "",
-            unreadCount = 0,
-            avatarBgColor = randomColor
-        )
-        chatList.add(0, chatItem)
-        saveChatListToJson(context, chatList)
-    }
-
-    return emptyList()
+    return loadMessagesFromJson(context, chatId)
 }
 
 // ==========================================
-// 3. HÀM XỬ LÝ JSON - CHAT LIST
+// 3. XỬ LÝ CHAT LIST (DATABASE MONGODB ATLAS & API)
 // ==========================================
+// Dữ liệu danh sách trò chuyện hiện được lưu trữ và truy xuất từ MongoDB Atlas Database
+// thông qua Backend API (`ChatRepository` / `ChatViewModel`).
+
 const val CHAT_LIST_FILE = "chat_list.json"
+private var inMemoryChatList: MutableList<ChatItem> = mutableListOf()
 
 fun saveChatListToJson(context: Context, chatList: List<ChatItem>) {
-    File(context.filesDir, CHAT_LIST_FILE).writeText(Gson().toJson(chatList))
+    // Lưu vào bộ nhớ tạm thời của Session thay vì ghi file JSON cục bộ.
+    // Việc lưu dữ liệu dài hạn do MongoDB Atlas đảm nhận khi gửi tin nhắn/tạo nhóm qua API.
+    inMemoryChatList = chatList.toMutableList()
 }
 
 fun loadChatListFromJson(context: Context): List<ChatItem> {
+    // Trả về danh sách trong bộ nhớ tạm thời nếu đã được khởi tạo
+    if (inMemoryChatList.isNotEmpty()) {
+        return inMemoryChatList
+    }
     val file = File(context.filesDir, CHAT_LIST_FILE)
     if (!file.exists()) {
-        val defaultList = listOf(
-            ChatItem("1", "Anny Peter", "Why didn't you reply to me? 😔", "15:08", 0, Color(0xFFE2C4B1)),
-            ChatItem("2", "John Doe", "Hey, are we still meeting today?", "Yesterday", 2, Color(0xFFD1E3FF)),
-            ChatItem("3", "Arnold Peter", "See you tomorrow!", "Mon", 0, Color(0xFFE0C1C6))
-        )
-        saveChatListToJson(context, defaultList)
-        return defaultList
+        return emptyList()
     }
     val type = object : TypeToken<List<ChatItem>>() {}.type
     val rawList: List<ChatItem> = Gson().fromJson(file.readText(), type) ?: emptyList()
@@ -214,6 +191,7 @@ data class FriendItem(
     val name: String,
     val status: String,
     val isOnline: Boolean = false,
+    val email: String = "",
     val phone: String = "",
     val avatarBgColor: Color = Color(0xFFD1E3FF),
     val avatarUri: String? = null,
@@ -233,16 +211,16 @@ fun loadFriendListFromJson(context: Context): List<FriendItem> {
     val file = File(context.filesDir, FRIEND_LIST_FILE)
     if (!file.exists()) {
         val defaultList = listOf(
-            FriendItem("1", "Anny Peter", "Online", true, "0901234567", Color(0xFFE2C4B1)),
-            FriendItem("2", "John Doe", "Online", true, "0902345678", Color(0xFFD1E3FF)),
-            FriendItem("3", "Arnold Peter", "Last seen at 6:20 PM", false, "0903456789", Color(0xFFE0C1C6)),
-            FriendItem("4", "Dann Jazmyn", "Last seen at 6:20 PM", false, "0904567890", Color(0xFFE5E5EA)),
-            FriendItem("5", "Duane Brodie", "Online", true, "0905678901", Color(0xFFD7BDE2)),
-            FriendItem("6", "Damion Gage", "Last seen at 6:20 PM", false, "0906789012", Color(0xFFBDC3C7)),
-            FriendItem("7", "Demarcus Jazmyn", "Online", true, "0907890123", Color(0xFFD0D3D4)),
-            FriendItem("8", "Emmalee Alivia", "Last seen at 6:20 PM", false, "0908901234", Color(0xFFE5E5EA)),
-            FriendItem("9", "Esha Chikere", "Last seen at 6:20 PM", false, "0909012345", Color(0xFFE0C1C6)),
-            FriendItem("10", "Mariam Rowan", "Last seen at 6:20 PM", false, "0910123456", Color(0xFFD1E3FF))
+            FriendItem("1", "Anny Peter", "Online", true, "annypeter@gmail.com", "0901234567", Color(0xFFE2C4B1)),
+            FriendItem("2", "John Doe", "Online", true, "johndoe@gmail.com", "0902345678", Color(0xFFD1E3FF)),
+            FriendItem("3", "Arnold Peter", "Last seen at 6:20 PM", false, "arnoldpeter@gmail.com", "0903456789", Color(0xFFE0C1C6)),
+            FriendItem("4", "Dann Jazmyn", "Last seen at 6:20 PM", false, "dannjazmyn@gmail.com", "0904567890", Color(0xFFE5E5EA)),
+            FriendItem("5", "Duane Brodie", "Online", true, "duanebrodie@gmail.com", "0905678901", Color(0xFFD7BDE2)),
+            FriendItem("6", "Damion Gage", "Last seen at 6:20 PM", false, "damiongage@gmail.com", "0906789012", Color(0xFFBDC3C7)),
+            FriendItem("7", "Demarcus Jazmyn", "Online", true, "demarcus@gmail.com", "0907890123", Color(0xFFD0D3D4)),
+            FriendItem("8", "Emmalee Alivia", "Last seen at 6:20 PM", false, "emmalee@gmail.com", "0908901234", Color(0xFFE5E5EA)),
+            FriendItem("9", "Esha Chikere", "Last seen at 6:20 PM", false, "eshachikere@gmail.com", "0909012345", Color(0xFFE0C1C6)),
+            FriendItem("10", "Mariam Rowan", "Last seen at 6:20 PM", false, "mariamrowan@gmail.com", "0910123456", Color(0xFFD1E3FF))
         )
         saveFriendListToJson(context, defaultList)
         return defaultList
@@ -253,6 +231,7 @@ fun loadFriendListFromJson(context: Context): List<FriendItem> {
         friend.copy(
             name = friend.name ?: "",
             status = friend.status ?: "",
+            email = friend.email ?: "",
             phone = friend.phone ?: "",
             nickname = friend.nickname ?: ""
         )
@@ -264,10 +243,7 @@ fun deleteChat(context: Context, chatId: String) {
     chatList.removeAll { it.id == chatId }
     saveChatListToJson(context, chatList)
 
-    val file = File(context.filesDir, getChatHistoryFileName(chatId))
-    if (file.exists()) {
-        file.delete()
-    }
+    inMemoryMessagesMap.remove(chatId)
 }
 
 fun deleteFriend(context: Context, friendId: String) {
@@ -285,7 +261,8 @@ fun deleteFriend(context: Context, friendId: String) {
 data class FriendRequestItem(
     val id: String,
     val name: String,
-    val phone: String,
+    val email: String = "",
+    val phone: String = "",
     val message: String = "Xin chào, mình muốn kết bạn với bạn.",
     val avatarBgColor: Color = Color(0xFFD1E3FF),
     val avatarUri: String? = null
@@ -301,8 +278,8 @@ fun loadFriendRequestsFromJson(context: Context): List<FriendRequestItem> {
     val file = File(context.filesDir, FRIEND_REQUESTS_FILE)
     if (!file.exists()) {
         val defaultList = listOf(
-            FriendRequestItem("req_1", "Sarah Connor", "0912345678", "Xin chào, kết bạn nhé!", Color(0xFFE2C4B1)),
-            FriendRequestItem("req_2", "Michael Scofield", "0987654321", "Cho mình làm quen với nhé!", Color(0xFFD1E3FF))
+            FriendRequestItem("req_1", "Sarah Connor", "sarah.connor@gmail.com", "0912345678", "Xin chào, kết bạn nhé!", Color(0xFFE2C4B1)),
+            FriendRequestItem("req_2", "Michael Scofield", "m.scofield@gmail.com", "0987654321", "Cho mình làm quen với nhé!", Color(0xFFD1E3FF))
         )
         saveFriendRequestsFromJson(context, defaultList)
         return defaultList
@@ -315,7 +292,8 @@ fun addFriendAndChat(
     context: Context,
     id: String,
     name: String,
-    phone: String,
+    email: String = "",
+    phone: String = "",
     avatarBgColor: Color,
     avatarUri: String? = null
 ) {
@@ -326,6 +304,7 @@ fun addFriendAndChat(
             name = name,
             status = "Online",
             isOnline = true,
+            email = email,
             phone = phone,
             avatarBgColor = avatarBgColor,
             avatarUri = avatarUri
@@ -518,6 +497,7 @@ fun updateGroupMembers(context: Context, groupId: String, newMembers: List<Strin
 // ==========================================
 data class UserProfile(
     val name: String = "Người dùng Zalo",
+    val email: String = "user@gmail.com",
     val phone: String = "0901234567",
     val password: String = "123456",
     val avatarBgColorHex: Long = 0xFF38C7FF,

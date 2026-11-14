@@ -149,6 +149,7 @@ fun MainAppNavigation() {
             onNavigateToWelcome = { currentScreen = "welcome" }
         )
         "chat_list" -> ChatListScreen(
+            chatViewModel = chatViewModel,
             onNavigateToFriends = { currentScreen = "friends" },
             onNavigateToSettings = { currentScreen = "settings" },
             onChatItemClick = { chatId, chatName ->
@@ -169,6 +170,7 @@ fun MainAppNavigation() {
         "chatting" -> ChattingScreen(
             chatId = selectedChatId,
             chatName = selectedChatName,
+            chatViewModel = chatViewModel,
             onNavigateBack = { currentScreen = "chat_list" } // Nút Back trở về danh sách
         )
         "settings" -> SettingsScreen(

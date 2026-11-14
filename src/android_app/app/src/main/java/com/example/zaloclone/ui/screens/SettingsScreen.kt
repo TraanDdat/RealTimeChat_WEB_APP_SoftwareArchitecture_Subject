@@ -201,7 +201,7 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "SĐT: ${userProfile.phone}",
+                            text = "Gmail: ${userProfile.email}",
                             fontSize = 14.sp,
                             color = Color.Gray
                         )

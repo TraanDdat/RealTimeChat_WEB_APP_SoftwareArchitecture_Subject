@@ -26,7 +26,7 @@ fun ForgotPasswordScreen(
     onPasswordResetSuccess: () -> Unit
 ) {
     val context = LocalContext.current
-    var phoneNumber by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var otpCode by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -51,7 +51,7 @@ fun ForgotPasswordScreen(
         )
 
         Text(
-            text = "Nhập số điện thoại đăng ký để nhận mã OTP xác thực và tạo mật khẩu mới.",
+            text = "Nhập Gmail đăng ký để nhận mã OTP xác thực và tạo mật khẩu mới.",
             fontSize = 14.sp,
             color = TextGray,
             modifier = Modifier
@@ -60,9 +60,9 @@ fun ForgotPasswordScreen(
         )
 
         ZaloTextField(
-            value = phoneNumber,
-            onValueChange = { phoneNumber = it },
-            placeholder = "Số điện thoại"
+            value = email,
+            onValueChange = { email = it },
+            placeholder = "Gmail"
         )
 
         Row(
@@ -88,11 +88,11 @@ fun ForgotPasswordScreen(
             }
             Button(
                 onClick = {
-                    if (phoneNumber.isBlank()) {
-                        Toast.makeText(context, "Vui lòng nhập số điện thoại trước", Toast.LENGTH_SHORT).show()
+                    if (email.isBlank()) {
+                        Toast.makeText(context, "Vui lòng nhập Gmail trước", Toast.LENGTH_SHORT).show()
                     } else {
                         isOtpSent = true
-                        Toast.makeText(context, "Đã gửi mã OTP đến $phoneNumber (Mã mẫu: 123456)", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "Đã gửi mã OTP đến $email (Mã mẫu: 123456)", Toast.LENGTH_LONG).show()
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = ZaloCyan),
@@ -123,8 +123,8 @@ fun ForgotPasswordScreen(
             text = "Xác nhận đổi mật khẩu",
             onClick = {
                 when {
-                    phoneNumber.isBlank() -> {
-                        Toast.makeText(context, "Vui lòng nhập số điện thoại", Toast.LENGTH_SHORT).show()
+                    email.isBlank() -> {
+                        Toast.makeText(context, "Vui lòng nhập Gmail", Toast.LENGTH_SHORT).show()
                     }
                     otpCode.isBlank() -> {
                         Toast.makeText(context, "Vui lòng nhập mã OTP", Toast.LENGTH_SHORT).show()

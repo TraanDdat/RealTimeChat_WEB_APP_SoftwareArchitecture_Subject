@@ -39,6 +39,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.zaloclone.ui.components.UserAvatar
+import com.example.zaloclone.ui.viewModel.ChatViewModel
+import com.example.zaloclone.api.model.ChatUser
+import com.example.zaloclone.api.model.SendMessageRequest
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
@@ -51,6 +54,7 @@ import java.util.Locale
 fun ChattingScreen(
     chatId: String,
     chatName: String,
+    chatViewModel: ChatViewModel? = null,
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
@@ -59,9 +63,16 @@ fun ChattingScreen(
 
     var messageText by remember { mutableStateOf("") }
     val messages = remember { mutableStateListOf<Message>() }
+    val chatState = chatViewModel?.state?.collectAsState()
 
     var chatItem by remember { mutableStateOf<ChatItem?>(null) }
     var currentChatName by remember { mutableStateOf(chatName) }
+
+    LaunchedEffect(chatName) {
+        if (chatName.isNotBlank()) {
+            currentChatName = chatName
+        }
+    }
     var showChangeGroupNameDialog by remember { mutableStateOf(false) }
     var showIndividualSettingsDialog by remember { mutableStateOf(false) }
     val groupMembers = remember { mutableStateListOf<String>() }
@@ -76,7 +87,51 @@ fun ChattingScreen(
         chatId.startsWith("group_") || (chatItem?.isGroup == true)
     }
 
-    // Helper hàm gửi tin nhắn đa phương tiện
+    // Tải tin nhắn từ MongoDB Atlas Database khi thay đổi chatId
+    LaunchedEffect(chatId) {
+        val targetUserId = chatId.toIntOrNull()
+        if (targetUserId != null && chatViewModel != null) {
+            val targetUser = ChatUser(id = targetUserId, username = chatName, email = "", profilePic = null)
+            chatViewModel.setSelectedUser(targetUser)
+        } else {
+            messages.clear()
+            val savedMessages = getOrInitChatHistory(context, chatId, chatName)
+            messages.addAll(savedMessages)
+        }
+    }
+
+    // Lắng nghe dữ liệu tin nhắn từ MongoDB Atlas Database qua ChatViewModel
+    LaunchedEffect(chatState?.value?.messages) {
+        val dbMessages = chatState?.value?.messages
+        if (dbMessages != null && chatViewModel != null) {
+            val mappedMessages = dbMessages.map { chatMsg ->
+                val currentUserId = 1
+                val isMe = (chatMsg.senderId == currentUserId)
+                val timeStr = try {
+                    if (chatMsg.createdAt.length >= 16) chatMsg.createdAt.substring(11, 16) else chatMsg.createdAt
+                } catch (e: Exception) {
+                    ""
+                }
+                Message(
+                    id = chatMsg.id.toString(),
+                    text = chatMsg.text ?: "",
+                    isMe = isMe,
+                    type = if (!chatMsg.image.isNullOrBlank()) MessageType.IMAGE else MessageType.TEXT,
+                    timestamp = timeStr,
+                    mediaUrl = chatMsg.image
+                )
+            }
+            messages.clear()
+            messages.addAll(mappedMessages)
+            if (messages.isNotEmpty()) {
+                coroutineScope.launch {
+                    listState.animateScrollToItem(messages.size - 1)
+                }
+            }
+        }
+    }
+
+    // Gửi tin nhắn trực tiếp lên MongoDB Atlas Database qua Backend API / WebSocket
     fun sendMediaMessage(
         type: MessageType,
         text: String = "",
@@ -85,46 +140,28 @@ fun ChattingScreen(
         fileSize: String? = null,
         emotion: String? = null
     ) {
-        val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-        val newMessage = Message(
-            id = System.currentTimeMillis().toString(),
-            text = text,
-            isMe = true,
-            type = type,
-            timestamp = currentTime,
-            mediaUrl = mediaUrl,
-            fileName = fileName,
-            fileSize = fileSize,
-            emotion = emotion
-        )
-        messages.add(newMessage)
-        saveMessagesToJson(context, chatId, messages.toList())
-
-        val previewText = getPreviewTextForMessage(newMessage)
-        val chatList = loadChatListFromJson(context).toMutableList()
-        val existingIndex = chatList.indexOfFirst { it.id == chatId }
-
-        if (existingIndex != -1) {
-            val updatedChat = chatList[existingIndex].copy(
-                lastMessage = previewText,
-                time = currentTime,
-                unreadCount = 0
+        if (chatViewModel != null && chatId.toIntOrNull() != null) {
+            val sendReq = SendMessageRequest(
+                text = text.ifBlank { null },
+                image = mediaUrl
             )
-            chatList[existingIndex] = updatedChat
+            chatViewModel.sendMessage(sendReq, currentUserId = 1)
         } else {
-            chatList.add(
-                ChatItem(
-                    id = chatId,
-                    name = chatName,
-                    lastMessage = previewText,
-                    time = currentTime,
-                    unreadCount = 0,
-                    isGroup = isGroup,
-                    members = groupMembers.toList()
-                )
+            val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
+            val newMessage = Message(
+                id = System.currentTimeMillis().toString(),
+                text = text,
+                isMe = true,
+                type = type,
+                timestamp = currentTime,
+                mediaUrl = mediaUrl,
+                fileName = fileName,
+                fileSize = fileSize,
+                emotion = emotion
             )
+            messages.add(newMessage)
+            saveMessagesToJson(context, chatId, messages.toList())
         }
-        saveChatListToJson(context, chatList)
 
         coroutineScope.launch {
             if (messages.isNotEmpty()) {
@@ -179,11 +216,17 @@ fun ChattingScreen(
         val savedMessages = getOrInitChatHistory(context, chatId, chatName)
         messages.addAll(savedMessages)
 
+        if (chatName.isNotBlank()) {
+            currentChatName = chatName
+        }
+
         val chatList = loadChatListFromJson(context).toMutableList()
         val index = chatList.indexOfFirst { it.id == chatId }
         if (index != -1) {
             chatItem = chatList[index]
-            currentChatName = chatList[index].name
+            if (chatName.isBlank()) {
+                currentChatName = chatList[index].name
+            }
             if (chatList[index].unreadCount > 0) {
                 chatList[index] = chatList[index].copy(unreadCount = 0)
                 saveChatListToJson(context, chatList)
@@ -192,12 +235,18 @@ fun ChattingScreen(
             val friendList = loadFriendListFromJson(context)
             val friend = friendList.find { it.id == chatId }
             if (friend != null) {
-                currentChatName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
+                if (chatName.isBlank()) {
+                    currentChatName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
+                }
             } else {
-                currentChatName = chatName
+                if (chatName.isNotBlank()) {
+                    currentChatName = chatName
+                }
             }
         } else {
-            currentChatName = chatName
+            if (chatName.isNotBlank()) {
+                currentChatName = chatName
+            }
         }
 
         groupMembers.clear()
@@ -1503,9 +1552,12 @@ fun IndividualChatSettingsDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = "Tên gốc: $friendName", fontSize = 14.sp, color = Color.Gray)
-                if (friend?.phone?.isNotBlank() == true) {
+                if (friend?.email?.isNotBlank() == true) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "SĐT: ${friend.phone}", fontSize = 14.sp, color = Color.Gray)
+                    Text(text = "Gmail: ${friend.email}", fontSize = 14.sp, color = Color.Gray)
+                } else if (friend?.phone?.isNotBlank() == true) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = "Gmail: ${friend.phone}", fontSize = 14.sp, color = Color.Gray)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(

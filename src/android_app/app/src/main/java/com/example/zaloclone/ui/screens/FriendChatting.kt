@@ -105,7 +105,7 @@ fun FriendsScreen(
                     onValueChange = { searchQuery = it },
                     placeholder = {
                         Text(
-                            "Search by name or email",
+                            "Tìm kiếm theo tên hoặc Gmail",
                             color = Color.White.copy(alpha = 0.8f)
                         )
                     },
@@ -265,12 +265,12 @@ fun FriendsScreen(
                 showAddDialog = false
             },
             title = {
-                Text("Add Friend")
+                Text("Thêm bạn bè")
             },
             text = {
                 Column {
                     Text(
-                        text = "Enter the user's email or username:",
+                        text = "Nhập địa chỉ Gmail của người dùng:",
                         fontSize = 14.sp,
                         color = Color.Gray
                     )
@@ -281,7 +281,7 @@ fun FriendsScreen(
                         value = friendInput,
                         onValueChange = { friendInput = it },
                         label = {
-                            Text("Email or username")
+                            Text("Gmail")
                         },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -297,7 +297,7 @@ fun FriendsScreen(
                         friendInput = ""
                     }
                 ) {
-                    Text("Add")
+                    Text("Thêm")
                 }
             },
             dismissButton = {
@@ -306,7 +306,7 @@ fun FriendsScreen(
                         showAddDialog = false
                     }
                 ) {
-                    Text("Cancel")
+                    Text("Hủy")
                 }
             }
         )
