@@ -216,7 +216,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "TÀI KHOẢN & BẢO MẬT",
+                text = "Account Settings",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Gray,
@@ -235,7 +235,7 @@ fun SettingsScreen(
                     SettingsMenuItem(
                         icon = Icons.Default.Person,
                         iconBgColor = Color(0xFF4A90E2),
-                        title = "Đổi tên hiển thị",
+                        title = "Change nickname",
                         subtitle = userProfile.name,
                         onClick = { showChangeNameDialog = true }
                     )
@@ -244,8 +244,8 @@ fun SettingsScreen(
                     SettingsMenuItem(
                         icon = Icons.Default.CameraAlt,
                         iconBgColor = Color(0xFF9013FE),
-                        title = "Đổi avatar",
-                        subtitle = "Cập nhật ảnh đại diện",
+                        title = "Change avatar",
+                        subtitle = "",
                         onClick = { showChangeAvatarDialog = true }
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = Color(0xFFF0F0F0))
@@ -253,8 +253,8 @@ fun SettingsScreen(
                     SettingsMenuItem(
                         icon = Icons.Default.Lock,
                         iconBgColor = Color(0xFFF5A623),
-                        title = "Đổi mật khẩu",
-                        subtitle = "Bảo mật tài khoản",
+                        title = "Change password",
+                        subtitle = "",
                         onClick = { showChangePasswordDialog = true }
                     )
                 }
@@ -263,7 +263,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "HỆ THỐNG",
+                text = "System",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.Gray,
@@ -281,9 +281,9 @@ fun SettingsScreen(
                 SettingsMenuItem(
                     icon = Icons.AutoMirrored.Filled.Logout,
                     iconBgColor = Color(0xFFFF3B30),
-                    title = "Đăng xuất",
+                    title = "Log out",
                     titleColor = Color(0xFFFF3B30),
-                    subtitle = "Thoát tài khoản khỏi ứng dụng",
+                    subtitle = "",
                     onClick = { showLogoutConfirmDialog = true }
                 )
             }

@@ -64,7 +64,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        SecondaryButton(text = "Quay lại", onClick = onNavigateToWelcome)
+        SecondaryButton(text = "Back", onClick = onNavigateToWelcome)
 
         Spacer(modifier = Modifier.height(20.dp))
 

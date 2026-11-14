@@ -26,6 +26,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaloclone.ui.components.UserAvatar
+import android.widget.Toast
+import androidx.compose.material.icons.outlined.Notifications
+import com.example.zaloclone.ui.components.NotificationDialog
 import com.example.zaloclone.ui.viewModel.ChatViewModel
 
 @Composable
@@ -40,10 +43,10 @@ fun ChatListScreen(
     val chatList = remember { mutableStateListOf<ChatItem>() }
     var isEditing by remember { mutableStateOf(false) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
+    var showNotificationDialog by remember { mutableStateOf(false) }
 
     val chatState = chatViewModel?.state?.collectAsState()
 
-    // Tải danh sách cuộc trò chuyện từ MongoDB Database thông qua ChatViewModel / Retrofit API
     LaunchedEffect(chatState?.value?.chats) {
         if (chatViewModel != null) {
             chatViewModel.getMyChatPartners()
@@ -58,7 +61,7 @@ fun ChatListScreen(
                 ChatItem(
                     id = user.id.toString(),
                     name = user.username,
-                    lastMessage = "Nhấp để trò chuyện",
+                    lastMessage = "Press to chat",
                     time = "",
                     unreadCount = 0,
                     avatarBgColor = colors[index % colors.size],
@@ -81,7 +84,6 @@ fun ChatListScreen(
 
     Scaffold(
         topBar = {
-            // Thanh Tiêu đề Xanh Cyan
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -102,6 +104,34 @@ fun ChatListScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (chatViewModel != null) {
+                            val currentState = chatViewModel.state.collectAsState().value
+                            Box {
+                                IconButton(
+                                    onClick = { showNotificationDialog = true }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Notifications,
+                                        contentDescription = "Notifications",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                                val totalUnread = currentState.friendRequests.size + currentState.unreadNotifications.size
+                                if (totalUnread > 0) {
+                                    Badge(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = (-4).dp, y = 4.dp),
+                                        containerColor = Color.Red,
+                                        contentColor = Color.White
+                                    ) {
+                                        Text(text = totalUnread.toString(), fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
+
                         IconButton(onClick = { showCreateGroupDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Group,
@@ -184,6 +214,27 @@ fun ChatListScreen(
                 showCreateGroupDialog = false
                 onGroupCreated(chatId, chatName)
                 onChatItemClick(chatId, chatName)
+            }
+        )
+    }
+
+    if (showNotificationDialog && chatViewModel != null) {
+        val chatState = chatViewModel.state.collectAsState().value
+        NotificationDialog(
+            chatState = chatState,
+            onDismiss = { showNotificationDialog = false },
+            onAcceptFriend = { req ->
+                chatViewModel.acceptFriendRequest(req)
+                Toast.makeText(context, "Đã chấp nhận lời mời kết bạn từ ${req.name}. Kết bạn thành công!", Toast.LENGTH_SHORT).show()
+            },
+            onRejectFriend = { req ->
+                chatViewModel.rejectFriendRequest(req)
+                Toast.makeText(context, "Đã từ chối lời mời kết bạn (không cập nhật cơ sở dữ liệu).", Toast.LENGTH_SHORT).show()
+            },
+            onNotificationMessageClick = { notif ->
+                chatViewModel.clearNotificationsForUser(notif.senderId)
+                showNotificationDialog = false
+                onChatItemClick(notif.senderId.toString(), notif.senderName)
             }
         )
     }

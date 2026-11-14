@@ -1,15 +1,16 @@
 package com.example.zaloclone.ui.components
+
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,9 +22,12 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.example.zaloclone.ui.model.FriendRequestItem
 import com.example.zaloclone.ui.theme.ButtonGray
 import com.example.zaloclone.ui.theme.TextGray
 import com.example.zaloclone.ui.theme.ZaloCyan
+import com.example.zaloclone.ui.viewModel.ChatState
+import com.example.zaloclone.ui.viewModel.MessageNotification
 
 @Composable
 fun UserAvatar(
@@ -109,5 +113,189 @@ fun ZaloTextField(
             unfocusedBorderColor = ZaloCyan.copy(alpha = 0.5f)
         ),
         singleLine = true
+    )
+}
+
+@Composable
+fun NotificationDialog(
+    chatState: ChatState,
+    onDismiss: () -> Unit,
+    onAcceptFriend: (FriendRequestItem) -> Unit,
+    onRejectFriend: (FriendRequestItem) -> Unit,
+    onNotificationMessageClick: (MessageNotification) -> Unit
+) {
+    var selectedTab by remember { mutableStateOf(0) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(text = "Notifications", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close")
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 400.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    TextButton(onClick = { selectedTab = 0 }) {
+                        Text(
+                            text = "Friend Requests (${chatState.friendRequests.size})",
+                            color = if (selectedTab == 0) Color(0xFF00BCD4) else Color.Gray,
+                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                    TextButton(onClick = { selectedTab = 1 }) {
+                        Text(
+                            text = "Message (${chatState.unreadNotifications.size})",
+                            color = if (selectedTab == 1) Color(0xFF00BCD4) else Color.Gray,
+                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                ) {
+                    if (selectedTab == 0) {
+                        if (chatState.friendRequests.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("No friend requests", color = Color.Gray)
+                                }
+                            }
+                        } else {
+                            items(chatState.friendRequests, key = { it.id }) { req ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F7)),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Surface(
+                                                modifier = Modifier.size(40.dp),
+                                                shape = CircleShape,
+                                                color = Color(0xFF00BCD4)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        text = req.name.firstOrNull()?.uppercase() ?: "?",
+                                                        color = Color.White,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(text = req.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                                Text(text = req.email, fontSize = 12.sp, color = Color.Gray)
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Text(text = req.message, fontSize = 13.sp, color = Color.DarkGray)
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            OutlinedButton(
+                                                onClick = { onRejectFriend(req) },
+                                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
+                                                modifier = Modifier.height(36.dp)
+                                            ) {
+                                                Text("Reject", fontSize = 13.sp)
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Button(
+                                                onClick = { onAcceptFriend(req) },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4)),
+                                                modifier = Modifier.height(36.dp)
+                                            ) {
+                                                Text("Accept", fontSize = 13.sp, color = Color.White)
+                                            }
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    } else {
+                        if (chatState.unreadNotifications.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("No unseen message", color = Color.Gray)
+                                }
+                            }
+                        } else {
+                            items(chatState.unreadNotifications, key = { it.id }) { notif ->
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { onNotificationMessageClick(notif) },
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F7FA)),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            modifier = Modifier.size(40.dp),
+                                            shape = CircleShape,
+                                            color = Color(0xFF00ACC1)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text(
+                                                    text = notif.senderName.firstOrNull()?.uppercase() ?: "?",
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(text = notif.senderName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                            Text(text = notif.text, fontSize = 13.sp, color = Color.DarkGray, maxLines = 1)
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {}
     )
 }

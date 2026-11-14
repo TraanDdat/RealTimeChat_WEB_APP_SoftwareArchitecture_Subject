@@ -33,7 +33,7 @@ fun CreateGroupDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Tạo nhóm chat mới", fontWeight = FontWeight.Bold) },
+        title = { Text("Create new group", fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier
@@ -43,13 +43,13 @@ fun CreateGroupDialog(
                 OutlinedTextField(
                     value = groupNameInput,
                     onValueChange = { groupNameInput = it },
-                    label = { Text("Tên nhóm (để trống sẽ lấy tên thành viên)") },
+                    label = { Text("Group name (Optional)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "Chọn thành viên (${selectedFriends.count { it.value }} đã chọn):",
+                    text = "Select (${selectedFriends.count { it.value }} selected):",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
@@ -108,8 +108,8 @@ fun CreateGroupDialog(
                         } else {
                             groupNameInput.trim()
                         }
-                        val allMembers = listOf("Bạn (Tôi)") + selectedMemberNames
-                        val membersDescription = "Thành viên: ${selectedMemberNames.joinToString(", ")}"
+                        val allMembers = listOf("Me") + selectedMemberNames
+                        val membersDescription = "Member: ${selectedMemberNames.joinToString(", ")}"
 
                         val colors = listOf(Color(0xFF38C7FF), Color(0xFF5B61F4), Color(0xFF34C759), Color(0xFFFF9500), Color(0xFFAF52DE))
                         val randomColor = colors[groupId.hashCode().let { if (it < 0) -it else it } % colors.size]

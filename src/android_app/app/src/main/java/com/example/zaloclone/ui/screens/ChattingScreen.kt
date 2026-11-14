@@ -258,7 +258,7 @@ fun ChattingScreen(
         if (membersFromItem.isNotEmpty()) {
             groupMembers.addAll(membersFromItem)
         } else if (isGroup) {
-            groupMembers.add("Bạn (Tôi)")
+            groupMembers.add("Me")
         }
 
         if (messages.isNotEmpty()) {
@@ -271,7 +271,7 @@ fun ChattingScreen(
         topBar = {
             ChatTopBar(
                 name = currentChatName,
-                status = if (isGroup) "${groupMembers.size} thành viên" else "Online",
+                status = if (isGroup) "${groupMembers.size} Members" else "Online",
                 isGroup = isGroup,
                 memberCount = groupMembers.size,
                 onBackClick = onNavigateBack,
@@ -437,7 +437,7 @@ fun ChattingScreen(
                 updateGroupMembers(context, chatId, groupMembers.toList())
 
                 val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-                val noticeText = "Đã thêm ${newNames.joinToString(", ")} vào nhóm"
+                val noticeText = "Added ${newNames.joinToString(", ")} to the group."
                 val noticeMsg = Message(
                     id = System.currentTimeMillis().toString(),
                     text = noticeText,
