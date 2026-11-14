@@ -3,14 +3,14 @@ package com.example.zaloclone.ui.viewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zaloclone.api.model.*
-import com.example.zaloclone.api.repository.ChatRepository
+import com.example.zaloclone.api.repository.IChatRepository
+import com.example.zaloclone.socket.ISocketClient
 import io.socket.emitter.Emitter
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.example.zaloclone.socket.SocketClient
 
 enum class ActiveTab {
     CHATS,
@@ -30,8 +30,8 @@ data class ChatState(
 )
 
 class ChatViewModel(
-    private val repository: ChatRepository,
-    private val socketClient: SocketClient
+    private val repository: IChatRepository,
+    private val socketClient: ISocketClient
 ) : ViewModel() {
     private val _state = MutableStateFlow(ChatState())
     val state: StateFlow<ChatState> = _state.asStateFlow()

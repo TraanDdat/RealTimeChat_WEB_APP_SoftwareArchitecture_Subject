@@ -2,11 +2,11 @@ package com.example.zaloclone.ui.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.zaloclone.api.datastore.TokenManager
+import com.example.zaloclone.api.datastore.ITokenManager
 import com.example.zaloclone.api.model.*
-import com.example.zaloclone.api.repository.AuthRepository
-import com.example.zaloclone.socket.SocketClient
-import com.example.zaloclone.socket.SocketService
+import com.example.zaloclone.api.repository.IAuthRepository
+import com.example.zaloclone.socket.ISocketClient
+import com.example.zaloclone.socket.ISocketService
 import com.example.zaloclone.socket.SocketCallbacks
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,10 +24,10 @@ data class AuthState(
 )
 
 class AuthViewModel(
-    private val repository: AuthRepository,
-    private val tokenManager: TokenManager,
-    private val socketClient: SocketClient,
-    private val socketService: SocketService
+    private val repository: IAuthRepository,
+    private val tokenManager: ITokenManager,
+    private val socketClient: ISocketClient,
+    private val socketService: ISocketService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthState())

@@ -7,12 +7,17 @@ data class SocketCallbacks (
     val onOnlineUsers: ((List<Int>) -> Unit)? = null
 )
 
+interface ISocketService {
+    fun listenEvents(callbacks: SocketCallbacks)
+    fun removeListeners()
+}
+
 class SocketService (
-    private val socketClient: SocketClient
-) {
+    private val socketClient: ISocketClient
+) : ISocketService {
     private var socket: Socket? = null
 
-    fun listenEvents (
+    override fun listenEvents (
         callbacks: SocketCallbacks
     ) {
         socket = socketClient.getSocket()
@@ -30,10 +35,10 @@ class SocketService (
         }
     }
 
-    fun removeListeners () {
+    override fun removeListeners () {
         socket?.off("onlineUsers")
         socket = null
     }
 }
 
-val socketService = SocketService(socketClient)
+val socketService: ISocketService = SocketService(socketClient)

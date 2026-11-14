@@ -1,16 +1,19 @@
 package com.example.zaloclone.api.repository
 
 import com.example.zaloclone.api.remote.RetrofitClient
+import com.example.zaloclone.api.remote.ChatApiServices
 import com.example.zaloclone.api.model.ChatUser
 import com.example.zaloclone.api.model.ChatMessage
 import com.example.zaloclone.api.model.SendMessageRequest
 
-class ChatRepository {
-    suspend fun getContacts(): List<ChatUser> { return RetrofitClient.ChatApi.getContacts() }
+class ChatRepository(
+    private val chatApi: ChatApiServices = RetrofitClient.ChatApi
+) : IChatRepository {
+    override suspend fun getContacts(): List<ChatUser> = chatApi.getContacts()
 
-    suspend fun getChatPartners(): List<ChatUser> { return RetrofitClient.ChatApi.getChatPartners() }
+    override suspend fun getChatPartners(): List<ChatUser> = chatApi.getChatPartners()
 
-    suspend fun getMessages(userId: Int): List<ChatMessage> { return RetrofitClient.ChatApi.getMessages(userId) }
+    override suspend fun getMessages(userId: Int): List<ChatMessage> = chatApi.getMessages(userId)
 
-    suspend fun sendMessage( receiverId: Int, data: SendMessageRequest ): ChatMessage { return RetrofitClient.ChatApi.sendMessage(receiverId, data) }
+    override suspend fun sendMessage(receiverId: Int, data: SendMessageRequest): ChatMessage = chatApi.sendMessage(receiverId, data)
 }

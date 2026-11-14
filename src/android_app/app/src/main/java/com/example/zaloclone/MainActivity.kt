@@ -27,15 +27,11 @@ import com.example.zaloclone.api.model.LoginRequest
 import com.example.zaloclone.api.remote.handleRegister
 import com.example.zaloclone.api.model.RegisterConfirmRequest
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.zaloclone.api.datastore.TokenManager
 import com.example.zaloclone.ui.viewModel.AuthViewModel
 import com.example.zaloclone.ui.viewModel.AuthViewModelFactory
-import com.example.zaloclone.api.repository.AuthRepository
-import com.example.zaloclone.socket.socketClient
-import com.example.zaloclone.socket.socketService
-import com.example.zaloclone.api.repository.ChatRepository
 import com.example.zaloclone.ui.viewModel.ChatViewModel
 import com.example.zaloclone.ui.viewModel.ChatViewModelFactory
+import com.example.zaloclone.di.AppContainer
 
 private val LightColorScheme = lightColorScheme(
     primary = ZaloCyan,
@@ -46,13 +42,14 @@ private val LightColorScheme = lightColorScheme(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val appContainer = (application as ZaloApplication).container
         setContent {
             MaterialTheme(colorScheme = LightColorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainAppNavigation()
+                    MainAppNavigation(appContainer)
                 }
             }
         }
@@ -60,8 +57,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainAppNavigation() {
-    // Mặc định xuất phát từ màn hình "welcome"
+fun MainAppNavigation(appContainer: AppContainer) {
     var currentScreen by remember { mutableStateOf("welcome") }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -69,17 +65,17 @@ fun MainAppNavigation() {
     var selectedChatName by remember { mutableStateOf("Anny Peter") }
     val authViewModel: AuthViewModel = viewModel(
         factory = AuthViewModelFactory(
-            repository = AuthRepository(),
-            tokenManager = TokenManager(context.applicationContext),
-            socketClient = socketClient,
-            socketService = socketService
+            repository = appContainer.authRepository,
+            tokenManager = appContainer.tokenManager,
+            socketClient = appContainer.socketClientInstance,
+            socketService = appContainer.socketServiceInstance
         )
     )
     val authState by authViewModel.state.collectAsState()
     val chatViewModel: ChatViewModel = viewModel(
         factory = ChatViewModelFactory (
-            repository = ChatRepository(),
-            socketClient = socketClient
+            repository = appContainer.chatRepository,
+            socketClient = appContainer.socketClientInstance
         )
     )
 
@@ -136,14 +132,6 @@ fun MainAppNavigation() {
                             confirmPassword = confirmPassword
                         )
                     )
-//                    result.onSuccess { response ->
-//                        println("Signup success")
-//                        currentScreen = "login"
-//                        Toast.makeText(context, "Signup successful", Toast.LENGTH_SHORT).show()
-//                    }.onFailure { error ->
-//                                    println("Signup failed")
-//                                    Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
-//                    }
                 }
             },
             onNavigateToWelcome = { currentScreen = "welcome" }
@@ -171,7 +159,7 @@ fun MainAppNavigation() {
             chatId = selectedChatId,
             chatName = selectedChatName,
             chatViewModel = chatViewModel,
-            onNavigateBack = { currentScreen = "chat_list" } // Nút Back trở về danh sách
+            onNavigateBack = { currentScreen = "chat_list" }
         )
         "settings" -> SettingsScreen(
             onNavigateToChats = { currentScreen = "chat_list" },

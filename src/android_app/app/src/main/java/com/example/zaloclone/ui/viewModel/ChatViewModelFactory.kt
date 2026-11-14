@@ -2,12 +2,12 @@ package com.example.zaloclone.ui.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.zaloclone.api.repository.ChatRepository
-import com.example.zaloclone.socket.SocketClient
+import com.example.zaloclone.api.repository.IChatRepository
+import com.example.zaloclone.socket.ISocketClient
 
 class ChatViewModelFactory(
-    private val repository: ChatRepository,
-    private val socketClient: SocketClient
+    private val repository: IChatRepository,
+    private val socketClient: ISocketClient
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(
