@@ -8,6 +8,8 @@ import com.example.zaloclone.api.repository.IAuthRepository
 import com.example.zaloclone.socket.ISocketClient
 import com.example.zaloclone.socket.ISocketService
 import com.example.zaloclone.socket.SocketCallbacks
+import com.example.zaloclone.ui.model.PresenceStatus
+import com.example.zaloclone.ui.model.UserPresence
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +21,8 @@ data class AuthState(
     val isSigningUp: Boolean = false,
     val isLoggingIn: Boolean = false,
     val onlineUsers: List<Int> = emptyList(),
+    val userPresences: Map<Int, UserPresence> = emptyMap(),
+    val myPresenceStatus: PresenceStatus = PresenceStatus.ONLINE,
     val errorMessage: String? = null,
     val successMessage: String? = null
 )
@@ -125,13 +129,14 @@ class AuthViewModel(
         viewModelScope.launch {
             try {
                 repository.logout()
-            } catch (e: Exception) {
+            } catch (_: Exception) {
             } finally {
                 tokenManager.clearToken()
                 disconnectSocket()
                 _state.value = _state.value.copy(
                     authUser = null,
                     onlineUsers = emptyList(),
+                    userPresences = emptyMap(),
                     successMessage = "Logged out successfully"
                 )
             }
@@ -154,13 +159,32 @@ class AuthViewModel(
         }
     }
 
+    fun updateMyPresenceStatus(status: PresenceStatus) {
+        _state.value = _state.value.copy(myPresenceStatus = status)
+        socketService.updatePresenceStatus(status)
+    }
+
     private fun connectSocket(token: String) {
         val socket = socketClient.create(token)
         socketService.listenEvents(
             SocketCallbacks(
                 onOnlineUsers = { userIds ->
+                    val updatedPresences = _state.value.userPresences.toMutableMap()
+                    userIds.forEach { userId ->
+                        if (!updatedPresences.containsKey(userId)) {
+                            updatedPresences[userId] = UserPresence(userId = userId, status = PresenceStatus.ONLINE)
+                        }
+                    }
                     _state.value = _state.value.copy(
-                        onlineUsers = userIds
+                        onlineUsers = userIds,
+                        userPresences = updatedPresences
+                    )
+                },
+                onPresenceChanged = { presence ->
+                    val updatedPresences = _state.value.userPresences.toMutableMap()
+                    updatedPresences[presence.userId] = presence
+                    _state.value = _state.value.copy(
+                        userPresences = updatedPresences
                     )
                 }
             )
@@ -169,14 +193,18 @@ class AuthViewModel(
         if (!socket.connected()) {
             socket.connect()
         }
+
+        socketService.startHeartbeat(viewModelScope)
     }
 
     private fun disconnectSocket() {
+        socketService.stopHeartbeat()
         socketService.removeListeners()
         socketClient.disconnect()
 
         _state.value = _state.value.copy(
-            onlineUsers = emptyList()
+            onlineUsers = emptyList(),
+            userPresences = emptyMap()
         )
     }
 

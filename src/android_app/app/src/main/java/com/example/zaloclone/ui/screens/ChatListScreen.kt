@@ -31,6 +31,9 @@ import androidx.compose.material.icons.outlined.Notifications
 import com.example.zaloclone.ui.components.NotificationDialog
 import com.example.zaloclone.ui.viewModel.ChatViewModel
 
+import com.example.zaloclone.ui.model.ChatItem
+import com.example.zaloclone.ui.model.PresenceStatus
+
 @Composable
 fun ChatListScreen(
     chatViewModel: ChatViewModel? = null,
@@ -46,6 +49,7 @@ fun ChatListScreen(
     var showNotificationDialog by remember { mutableStateOf(false) }
 
     val chatState = chatViewModel?.state?.collectAsState()
+    val userPresences = chatState?.value?.userPresences ?: emptyMap()
 
     LaunchedEffect(chatState?.value?.chats) {
         if (chatViewModel != null) {
@@ -53,19 +57,22 @@ fun ChatListScreen(
         }
     }
 
-    LaunchedEffect(chatState?.value?.chats) {
+    LaunchedEffect(chatState?.value?.chats, userPresences) {
         val mongoChats = chatState?.value?.chats
         if (!mongoChats.isNullOrEmpty()) {
             val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2), Color(0xFF38C7FF))
             val items = mongoChats.mapIndexed { index, user ->
+                val presence = userPresences[user.id]
                 ChatItem(
                     id = user.id.toString(),
                     name = user.username,
                     lastMessage = "Press to chat",
-                    time = "",
+                    time = presence?.lastSeen ?: "",
                     unreadCount = 0,
                     avatarBgColor = colors[index % colors.size],
-                    avatarUri = user.profilePic
+                    avatarUri = user.profilePic,
+                    presenceStatus = presence?.status ?: PresenceStatus.OFFLINE,
+                    lastSeen = presence?.lastSeen
                 )
             }
             chatList.clear()
@@ -259,6 +266,7 @@ fun ChatItemRow(
             name = chat.name,
             avatarBgColor = chat.safeAvatarBgColor,
             avatarUri = chat.avatarUri,
+            presenceStatus = chat.presenceStatus,
             modifier = Modifier.size(52.dp),
             fontSize = 20.sp
         )

@@ -17,6 +17,8 @@ import java.util.Locale
 import java.util.TimeZone
 
 import com.example.zaloclone.ui.model.FriendRequestItem
+import com.example.zaloclone.ui.model.PresenceStatus
+import com.example.zaloclone.ui.model.UserPresence
 
 enum class ActiveTab {
     CHATS,
@@ -40,6 +42,7 @@ data class ChatState(
         FriendRequestItem(id = "101", name = "Nguyen Van A", email = "vana@gmail.com", message = "Xin chào, kết bạn nhé!")
     ),
     val unreadNotifications: List<MessageNotification> = emptyList(),
+    val userPresences: Map<Int, UserPresence> = emptyMap(),
     val activeTab: ActiveTab = ActiveTab.CHATS,
     val selectedUser: ChatUser? = null,
     val selectedConversation: Conversation? = null,
@@ -61,6 +64,10 @@ class ChatViewModel(
 
     init {
         startGlobalSocketListener()
+    }
+
+    fun updateUserPresences(presences: Map<Int, UserPresence>) {
+        _state.value = _state.value.copy(userPresences = presences)
     }
 
     fun startGlobalSocketListener() {

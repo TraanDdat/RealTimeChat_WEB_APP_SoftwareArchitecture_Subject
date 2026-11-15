@@ -4,6 +4,28 @@ import androidx.compose.ui.graphics.Color
 
 enum class MessageType { TEXT, AUDIO, IMAGE, VIDEO, DOCUMENT, EMOTION }
 
+enum class PresenceStatus {
+    ONLINE,
+    OFFLINE,
+    AWAY,
+    BUSY;
+
+    fun getDisplayName(): String {
+        return when (this) {
+            ONLINE -> "Đang hoạt động"
+            OFFLINE -> "Ngoại tuyến"
+            AWAY -> "Vắng mặt"
+            BUSY -> "Đang bận"
+        }
+    }
+}
+
+data class UserPresence(
+    val userId: Int,
+    val status: PresenceStatus = PresenceStatus.OFFLINE,
+    val lastSeen: String? = null
+)
+
 data class Message(
     val id: String,
     val text: String = "",
@@ -38,7 +60,9 @@ data class ChatItem(
     val avatarBgColor: Color = Color(0xFFE5E5EA),
     val isGroup: Boolean = false,
     val members: List<String>? = emptyList(),
-    val avatarUri: String? = null
+    val avatarUri: String? = null,
+    val presenceStatus: PresenceStatus = PresenceStatus.OFFLINE,
+    val lastSeen: String? = null
 ) {
     val safeMembers: List<String>
         get() = members ?: emptyList()
@@ -56,7 +80,9 @@ data class FriendItem(
     val phone: String = "",
     val avatarBgColor: Color = Color(0xFFD1E3FF),
     val avatarUri: String? = null,
-    val nickname: String = ""
+    val nickname: String = "",
+    val presenceStatus: PresenceStatus = PresenceStatus.OFFLINE,
+    val lastSeen: String? = null
 ) {
     val safeAvatarBgColor: Color
         get() = avatarBgColor ?: Color(0xFFD1E3FF)

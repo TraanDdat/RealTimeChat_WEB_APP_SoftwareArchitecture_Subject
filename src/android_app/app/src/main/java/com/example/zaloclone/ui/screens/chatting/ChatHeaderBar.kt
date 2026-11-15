@@ -13,6 +13,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.zaloclone.ui.components.PresenceBadge
+import com.example.zaloclone.ui.model.PresenceStatus
 
 @Composable
 fun ChatTopBar(
@@ -20,6 +22,7 @@ fun ChatTopBar(
     status: String,
     isGroup: Boolean = false,
     memberCount: Int = 0,
+    presenceStatus: PresenceStatus? = null,
     onBackClick: () -> Unit,
     onInfoClick: () -> Unit = {}
 ) {
@@ -47,6 +50,10 @@ fun ChatTopBar(
             ) {
                 Text(text = name, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (!isGroup && presenceStatus != null) {
+                        PresenceBadge(status = presenceStatus, size = 10.dp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
                     Text(
                         text = if (isGroup) "$memberCount thành viên" else status,
                         fontSize = 12.sp,

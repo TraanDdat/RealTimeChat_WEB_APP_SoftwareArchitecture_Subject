@@ -22,12 +22,36 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.foundation.border
+import androidx.compose.ui.unit.Dp
 import com.example.zaloclone.ui.model.FriendRequestItem
+import com.example.zaloclone.ui.model.PresenceStatus
 import com.example.zaloclone.ui.theme.ButtonGray
 import com.example.zaloclone.ui.theme.TextGray
 import com.example.zaloclone.ui.theme.ZaloCyan
 import com.example.zaloclone.ui.viewModel.ChatState
 import com.example.zaloclone.ui.viewModel.MessageNotification
+
+@Composable
+fun PresenceBadge(
+    status: PresenceStatus,
+    modifier: Modifier = Modifier,
+    size: Dp = 14.dp
+) {
+    val color = when (status) {
+        PresenceStatus.ONLINE -> Color(0xFF4CAF50)
+        PresenceStatus.AWAY -> Color(0xFFFFC107)
+        PresenceStatus.BUSY -> Color(0xFFF44336)
+        PresenceStatus.OFFLINE -> Color(0xFF9E9E9E)
+    }
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .background(color, CircleShape)
+            .border(2.dp, Color.White, CircleShape)
+    )
+}
 
 @Composable
 fun UserAvatar(
@@ -36,28 +60,38 @@ fun UserAvatar(
     modifier: Modifier = Modifier,
     avatarUri: String? = null,
     fontSize: TextUnit = 18.sp,
+    presenceStatus: PresenceStatus? = null
 ) {
-    Box(
-        modifier = modifier
-            .clip(CircleShape)
-            .background(avatarBgColor),
-        contentAlignment = Alignment.Center
-    ) {
-        if (!avatarUri.isNullOrBlank()) {
-            AsyncImage(
-                model = avatarUri,
-                contentDescription = "Avatar",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-        } else {
-            Text(
-                text = name.ifBlank { " " }.take(1).uppercase(),
-                fontWeight = FontWeight.Bold,
-                fontSize = fontSize,
-                color = Color.White
+    Box(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(CircleShape)
+                .background(avatarBgColor),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!avatarUri.isNullOrBlank()) {
+                AsyncImage(
+                    model = avatarUri,
+                    contentDescription = "Avatar",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(
+                    text = name.ifBlank { " " }.take(1).uppercase(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fontSize,
+                    color = Color.White
+                )
+            }
+        }
+        if (presenceStatus != null) {
+            PresenceBadge(
+                status = presenceStatus,
+                modifier = Modifier.align(Alignment.BottomEnd)
             )
         }
     }
