@@ -22,7 +22,7 @@ class Settings:
     COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
     
     # Postgres
-    DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL", "postgresql://pla2hc:bichlan1999@localhost:5432/pla2hc_uizalo_db")
+    DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL", "postgresql://postgres:postgres@database-1.ct4couyucvfp.ap-southeast-2.rds.amazonaws.com:5432/zalo_db")
     
     # MongoDB
     MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "chat_db")

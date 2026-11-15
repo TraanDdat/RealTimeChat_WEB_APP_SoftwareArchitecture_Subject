@@ -2,8 +2,8 @@ import { useState, type FormEvent } from "react";
 import { useAuthStore } from "../store/useAuthStore";
 import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
 import { MessageCircleIcon, MailIcon, LoaderIcon, LockIcon } from "lucide-react";
-import { Link, useNavigate } from "react-router";
-import type { LoginRequest, LoginResponse } from "../contexts/login";
+import { Link, useNavigate } from "react-router-dom";
+import type { LoginRequest, LoginResponse } from "../types/login";
 import { react_login_request } from "../api/login";
 
 function LoginPage() {

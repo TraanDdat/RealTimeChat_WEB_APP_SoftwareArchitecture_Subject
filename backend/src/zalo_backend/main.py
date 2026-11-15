@@ -16,6 +16,7 @@ from zalo_backend.routers import messages
 from zalo_backend.routers import register
 from zalo_backend.routers import addfriend
 from zalo_backend.routers import auth
+from zalo_backend.routers import groups
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -65,6 +66,7 @@ bkend.include_router(register.register_router, prefix=settings.AUTH_URL)
 bkend.include_router(auth.auth_router, prefix=settings.AUTH_URL)
 bkend.include_router(messages.messages_router, prefix=settings.MESSAGES_URL)
 bkend.include_router(addfriend.addfriend_router, prefix=settings.USER_ADDFRIEND_URL)
+bkend.include_router(groups.groups_router, prefix="/api/groups")
 
 # ASGI entry point: Socket.IO on /socket.io, everything else goes to FastAPI
 app = socketio.ASGIApp(sio, other_asgi_app=bkend)
