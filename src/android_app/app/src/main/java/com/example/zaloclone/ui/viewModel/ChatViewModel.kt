@@ -49,7 +49,8 @@ data class ChatState(
     val isUsersLoading: Boolean = false,
     val isMessagesLoading: Boolean = false,
     val isSoundEnabled: Boolean = false,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val currentUserId: Int? = null
 )
 
 class ChatViewModel(
@@ -88,7 +89,7 @@ class ChatViewModel(
                 val isCurrentChat = if (selectedConversation != null) {
                     newMessage.conversationId == selectedConversation.id
                 } else if (selectedUser != null) {
-                    newMessage.senderId == selectedUser.id.toInt()
+                    newMessage.senderId == selectedUser.id
                 } else {
                     false
                 }
@@ -102,13 +103,13 @@ class ChatViewModel(
                 } else {
                     val senderId = newMessage.senderId
                     val existingNotifs = currentState.unreadNotifications
-                    if (!existingNotifs.any { it.id == newMessage.id }) {
+                    if (!existingNotifs.any { it.id == newMessage.id.toInt() }) {
                         val senderContact = currentState.allContacts.find { it.id == senderId }
                             ?: currentState.chats.find { it.id == senderId }
                         val senderName = senderContact?.username ?: "Người dùng #$senderId"
 
                         val notif = MessageNotification(
-                            id = newMessage.id,
+                            id = newMessage.id.toInt(),
                             senderId = senderId,
                             senderName = senderName,
                             text = newMessage.text ?: "[Hình ảnh]",
@@ -187,7 +188,7 @@ class ChatViewModel(
             isMessagesLoading = user != null
         )
         if (user != null) {
-            getMessagesByUserId(user.id.toInt())
+            getMessagesByUserId(user.id)
             subscribeToMessages()
         }
     }
@@ -346,9 +347,9 @@ class ChatViewModel(
         if (selectedConversation != null) {
             val convId = selectedConversation.id
             viewModelScope.launch {
-                val tempId = -System.currentTimeMillis()
+                val tempId = "temp_${System.currentTimeMillis()}"
                 val optimisticMessage = ChatMessage(
-                    id = tempId.toInt(),
+                    id = tempId,
                     senderId = currentUserId,
                     receiverId = null,
                     conversationId = convId,
@@ -360,7 +361,7 @@ class ChatViewModel(
                     ).apply {
                         timeZone = TimeZone.getTimeZone("UTC")
                     }.format(Date()),
-                    updateAt = null,
+                    updatedAt = null,
                     isOptimistic = true
                 )
                 _state.value = _state.value.copy(
@@ -372,7 +373,7 @@ class ChatViewModel(
                         return@launch
                     }
                     val updatedMessages = _state.value.messages.filter {
-                        it.id != tempId.toInt() && it.id != response.id
+                        it.id != tempId && it.id != response.id
                     } + response
                     _state.value = _state.value.copy(
                         messages = updatedMessages
@@ -380,18 +381,18 @@ class ChatViewModel(
                 } catch (e: Exception) {
                     if (_state.value.selectedConversation?.id == convId) {
                         _state.value = _state.value.copy(
-                            messages = _state.value.messages.filter { it.id != tempId.toInt() },
+                            messages = _state.value.messages.filter { it.id != tempId },
                             errorMessage = e.localizedMessage ?: "Unable to send message"
                         )
                     }
                 }
             }
         } else if (selectedUser != null) {
-            val receiverId = selectedUser.id.toInt()
+            val receiverId = selectedUser.id
             viewModelScope.launch {
-                val tempId = -System.currentTimeMillis()
+                val tempId = "temp_${System.currentTimeMillis()}"
                 val optimisticMessage = ChatMessage(
-                    id = tempId.toInt(),
+                    id = tempId,
                     senderId = currentUserId,
                     receiverId = receiverId,
                     conversationId = null,
@@ -403,7 +404,7 @@ class ChatViewModel(
                     ).apply {
                         timeZone = TimeZone.getTimeZone("UTC")
                     }.format(Date()),
-                    updateAt = null,
+                    updatedAt = null,
                     isOptimistic = true
                 )
                 _state.value = _state.value.copy(
@@ -415,7 +416,7 @@ class ChatViewModel(
                         return@launch
                     }
                     val updatedMessages = _state.value.messages.filter {
-                        it.id != tempId.toInt() && it.id != response.id
+                        it.id != tempId && it.id != response.id
                     } + response
                     _state.value = _state.value.copy(
                         messages = updatedMessages
@@ -423,7 +424,7 @@ class ChatViewModel(
                 } catch (e: Exception) {
                     if (_state.value.selectedUser?.id?.toInt() == receiverId) {
                         _state.value = _state.value.copy(
-                            messages = _state.value.messages.filter { it.id != tempId.toInt() },
+                            messages = _state.value.messages.filter { it.id != tempId },
                             errorMessage = e.localizedMessage ?: "Unable to send message"
                         )
                     }
@@ -504,5 +505,15 @@ class ChatViewModel(
     override fun onCleared() {
         unsubscribeFromMessages()
         super.onCleared()
+    }
+
+    fun getCurrentUserId(): Int? {
+        return _state.value.currentUserId
+    }
+
+    fun setCurrentUserId(userId: Int) {
+        _state.value = _state.value.copy(
+            currentUserId = userId
+        )
     }
 }

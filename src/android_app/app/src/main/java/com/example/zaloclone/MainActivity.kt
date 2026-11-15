@@ -32,6 +32,9 @@ import com.example.zaloclone.ui.viewModel.AuthViewModelFactory
 import com.example.zaloclone.ui.viewModel.ChatViewModel
 import com.example.zaloclone.ui.viewModel.ChatViewModelFactory
 import com.example.zaloclone.di.AppContainer
+import com.example.zaloclone.api.model.LoginResponse
+import com.example.zaloclone.api.model.LoginData
+import com.example.zaloclone.ui.viewModel.ChatState
 
 private val LightColorScheme = lightColorScheme(
     primary = ZaloCyan,
@@ -78,6 +81,12 @@ fun MainAppNavigation(appContainer: AppContainer) {
             socketClient = appContainer.socketClientInstance
         )
     )
+
+    LaunchedEffect(authState.userId) {
+        authState.userId?.let { userId ->
+            chatViewModel.setCurrentUserId(userId)
+        }
+    }
 
     LaunchedEffect(Unit) {
         authViewModel.AuthCheck()
@@ -153,6 +162,7 @@ fun MainAppNavigation(appContainer: AppContainer) {
             onFriendSelect = { friend ->
                 selectedChatId = friend.id.toString()
                 selectedChatName = friend.username
+                chatViewModel.setSelectedUser(friend)
                 currentScreen = "chatting"
         })
         "chatting" -> ChattingScreen(
