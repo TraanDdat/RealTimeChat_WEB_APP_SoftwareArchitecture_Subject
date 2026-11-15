@@ -10,6 +10,7 @@ client = MongoClient(
 db = client[settings.MONGODB_DATABASE]
 
 collection = db["messages"]
+group_messages = db["group_messages"]
 
 
 def create_indexes():
@@ -17,6 +18,8 @@ def create_indexes():
         [("senderId", ASCENDING), ("receiverId", ASCENDING), ("createdAt", ASCENDING)],
     )
     collection.create_index([("receiverId", ASCENDING), ("senderId", ASCENDING)])
+    group_messages.create_index([("groupId", ASCENDING), ("createdAt", ASCENDING)])
+    group_messages.create_index([("senderId", ASCENDING), ("createdAt", ASCENDING)])
 
 def close_mongodb():
     client.close()

@@ -8,7 +8,10 @@ from pymongo import ASCENDING
 from . import user_client
 from zalo_backend.core.config import settings
 from zalo_backend.database.l_mongodb import collection
+from zalo_backend.database.l_postgres import SessionLocal
 from zalo_backend.models.mongodb.msg import MessageCreate, message_data
+from zalo_backend.schemas.user import UserPublic
+from zalo_backend.user_service.addfr_service import get_friends
 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +28,9 @@ def upload_image(image: str) -> str:
 
 
 def get_contacts(user_id: int):
-    return [contact for contact in user_client.get_users() if contact.id != user_id]
+    with SessionLocal() as db:
+        friendships = get_friends(db, user_id)
+        return [UserPublic.from_user(friend) for _, friend in friendships]
 
 
 def get_chat_partners(user_id: int):

@@ -22,6 +22,14 @@ function ActiveTabSwitch() {
       >
         Contacts
       </button>
+      <button
+        onClick={() => setActiveTab("groups")}
+        className={`tab ${
+          activeTab === "groups" ? "bg-cyan-500/20 text-cyan-400" : "text-slate-400"
+        }`}
+      >
+        Groups
+      </button>
     </div>
   );
 }
