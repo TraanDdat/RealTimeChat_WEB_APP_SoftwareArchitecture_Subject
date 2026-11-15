@@ -9,8 +9,7 @@ def create_user(db: Session, data: RegisterRequest):
     user_instance = User(
         email=data.email,
         username=data.username,
-        password=hash_password(data.password),
-        role=data.role
+        password=hash_password(data.password)
     )
     
     db.add(user_instance)

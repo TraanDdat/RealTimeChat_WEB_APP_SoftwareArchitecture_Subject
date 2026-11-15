@@ -8,7 +8,7 @@ import type {
 } from "../types/auth";
 
 export const authApi = {
-  checkAuth: async () =>
+  AuthCheck: async () =>
     axiosInstance.get<AuthUser>("/auth/check"),
 
   signup: async (data: SignUpData) =>

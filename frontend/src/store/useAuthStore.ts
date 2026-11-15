@@ -2,8 +2,9 @@ import axios from "axios";
 import { create } from "zustand";
 import type { Socket } from "socket.io-client";
 import toast from "react-hot-toast";
-import { createSocket } from "../socket/socketClient";
-import { authApi } from "../api/auth";
+import { socketClient } from "../socket/socketClient";
+import { socketService } from "../socket/socketServices";
+import { authApi } from "../api/authApi";
 import type { AuthUser, SignUpData, LoginData, UpdateProfileData, ApiErrorBody } from "../types/auth";
 
 interface AuthStore {
@@ -13,9 +14,9 @@ interface AuthStore {
   isLoggingIn: boolean;
   socket: Socket | null;
   onlineUsers: number[];
-  checkAuth: () => Promise<void>;
+  AuthCheck: () => Promise<void>;
   signup: (data: SignUpData) => Promise<void>;
-  login: (data: LoginData) => Promise<void>;
+  login: (data: LoginData) => Promise<AuthUser | undefined>;
   logout: () => Promise<void>;
   updateProfile: (data: UpdateProfileData) => Promise<void>;
   connectSocket: () => void;
@@ -37,13 +38,13 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   socket: null,
   onlineUsers: [],
 
-  checkAuth: async () => {
+  AuthCheck: async () => {
     try {
-      const res = await authApi.checkAuth();
+      const res = await authApi.AuthCheck();
       set({ authUser: res.data });
       get().connectSocket();
     } catch (error) {
-      console.log("Error in authCheck:", error);
+      console.log("Error in AuthCheck:", error);
       set({ authUser: null });
     } finally {
       set({ isCheckingAuth: false });
@@ -55,7 +56,6 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     try {
       const res = await authApi.signup(data);
       set({ authUser: res.data });
-
       toast.success("Account created successfully!");
       get().connectSocket();
     } catch (error) {
@@ -68,11 +68,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   login: async (data) => {
     set({ isLoggingIn: true });
     try {
-      const res = await authApi.login(data);
+      await authApi.login(data);
+      const res = await authApi.AuthCheck();
       set({ authUser: res.data });
-
       toast.success("Logged in successfully");
       get().connectSocket();
+      return res.data;
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to log in"));
     } finally {
@@ -105,34 +106,35 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   connectSocket: () => {
       const { authUser, socket } = get();
-      if (!authUser || get().socket?.connected) return;
-      if (socket)
-        {
-          socket.connect();
-          return;
-        };
-      const newSocket = createSocket();
+      if (!authUser || socket?.connected) return;
+      const newSocket = socketClient.create();
+      // Listen to socket events before connecting
+      socketService.listenEvents({
+        onOnlineUsers: (user_id: number[]) => {
+          set({ onlineUsers: user_id });
+        } 
+      });
+      // Connect the socket if not already connected
       newSocket.on("connect", () => {
-          console.log("Socket connected:", newSocket.id);
+        console.log("Socket connected:", newSocket.id);
       });
+      // Handle socket connection errors
       newSocket.on("connect_error", (error) => {
-          console.error("Socket connection error:", error.message);
+        console.error("Socket connection error:", error.message);
       });
-      newSocket.on("getOnlineUsers", (userIds: number[]) => {
-          set({ onlineUsers: userIds });
-      });
-      set({ socket });
+      // Attempt to connect the socket if not already connected
+      if(!newSocket.connected) {
+        newSocket.connect();
+      }
+      set({ socket: newSocket });
   },
 
   disconnectSocket: () => {
-    const socket = get().socket;
-    if (socket) {
-      socket.removeAllListeners();
-      socket.disconnect();
-      set({
-        socket: null,
-        onlineUsers: [],
-      });
-    }
-  },
+    socketService.removeListeners();
+    socketClient.disconnect();
+    set({
+      socket: null,
+      onlineUsers: [],
+    });
+  }
 }));

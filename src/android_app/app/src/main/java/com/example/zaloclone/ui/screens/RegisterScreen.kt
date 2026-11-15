@@ -20,7 +20,7 @@ import com.example.zaloclone.ui.theme.ZaloCyan
 
 @Composable
 fun RegisterScreen(
-    onRegisterClick: (String, String, String, String, String) -> Unit,
+    onRegisterClick: (String, String, String, String) -> Unit,
     onNavigateToWelcome: () -> Unit
 ) {
     val context = LocalContext.current
@@ -39,7 +39,7 @@ fun RegisterScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Register",
+            text = "Signup",
             fontSize = 32.sp,
             color = ZaloCyan,
             fontWeight = FontWeight.Bold,
@@ -77,8 +77,8 @@ fun RegisterScreen(
         Spacer(modifier = Modifier.height(30.dp))
 
         PrimaryButton(
-            text = "Register",
-            onClick = {onRegisterClick(email, username, password, confirmPassword, "User")},
+            text = "Signup",
+            onClick = {onRegisterClick(email, username, password, confirmPassword)},
             modifier = Modifier.padding(horizontal = 20.dp)
         )
 

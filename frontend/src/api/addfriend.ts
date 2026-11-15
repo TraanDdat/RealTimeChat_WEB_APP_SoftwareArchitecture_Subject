@@ -1,6 +1,6 @@
 import { API_BASE_URL, API_USER_ADDFRIEND_ADD, API_USER_ADDFRIEND_REQUEST } from "../../config";
 import { apiRequest } from "./api_client";
-import type { AddFriendRequest, AddFriendResponse, FriendListRequest, FriendListResponse } from "../contexts/friend"
+import type { AddFriendRequest, AddFriendResponse, FriendListRequest, FriendListResponse } from "../types/friend"
 
 export async function react_addfriend_request({
     current_email,

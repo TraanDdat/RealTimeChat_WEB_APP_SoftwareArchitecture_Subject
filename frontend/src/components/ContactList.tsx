@@ -8,6 +8,7 @@ function ContactList() {
   const { onlineUsers } = useAuthStore();
 
   useEffect(() => {
+    // will be modify to only show list friend
     getAllContacts();
   }, [getAllContacts]);
 

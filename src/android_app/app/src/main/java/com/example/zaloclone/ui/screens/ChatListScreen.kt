@@ -26,9 +26,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaloclone.ui.components.UserAvatar
+import android.widget.Toast
+import androidx.compose.material.icons.outlined.Notifications
+import com.example.zaloclone.ui.components.NotificationDialog
+import com.example.zaloclone.ui.viewModel.ChatViewModel
+
+import com.example.zaloclone.ui.model.ChatItem
+import com.example.zaloclone.ui.model.PresenceStatus
 
 @Composable
 fun ChatListScreen(
+    chatViewModel: ChatViewModel? = null,
     onChatItemClick: (String, String) -> Unit = { _, _ -> },
     onNavigateToFriends: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -38,16 +46,44 @@ fun ChatListScreen(
     val chatList = remember { mutableStateListOf<ChatItem>() }
     var isEditing by remember { mutableStateOf(false) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
+    var showNotificationDialog by remember { mutableStateOf(false) }
 
-    // Tải dữ liệu từ JSON file khi khởi tạo màn hình
-    LaunchedEffect(Unit) {
-        syncChatListWithHistory(context)
-        val savedList = loadChatListFromJson(context)
-        // Chỉ lấy những chat item có lastMessage không bị rỗng
-        val filteredList = savedList.filter { it.lastMessage.isNotBlank() }
+    val chatState = chatViewModel?.state?.collectAsState()
+    val userPresences = chatState?.value?.userPresences ?: emptyMap()
 
-        chatList.clear()
-        chatList.addAll(filteredList)
+    LaunchedEffect(chatState?.value?.chats) {
+        if (chatViewModel != null) {
+            chatViewModel.getMyChatPartners()
+        }
+    }
+
+    LaunchedEffect(chatState?.value?.chats, userPresences) {
+        val mongoChats = chatState?.value?.chats
+        if (!mongoChats.isNullOrEmpty()) {
+            val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2), Color(0xFF38C7FF))
+            val items = mongoChats.mapIndexed { index, user ->
+                val presence = userPresences[user.id]
+                ChatItem(
+                    id = user.id.toString(),
+                    name = user.username,
+                    lastMessage = "Press to chat",
+                    time = presence?.lastSeen ?: "",
+                    unreadCount = 0,
+                    avatarBgColor = colors[index % colors.size],
+                    avatarUri = user.profilePic,
+                    presenceStatus = presence?.status ?: PresenceStatus.OFFLINE,
+                    lastSeen = presence?.lastSeen
+                )
+            }
+            chatList.clear()
+            chatList.addAll(items)
+        } else if (chatViewModel == null) {
+            syncChatListWithHistory(context)
+            val savedList = loadChatListFromJson(context)
+            val filteredList = savedList.filter { it.lastMessage.isNotBlank() }
+            chatList.clear()
+            chatList.addAll(filteredList)
+        }
     }
 
     val cyanHeaderColor = Color(0xFF38C7FF)
@@ -55,7 +91,6 @@ fun ChatListScreen(
 
     Scaffold(
         topBar = {
-            // Thanh Tiêu đề Xanh Cyan
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -76,6 +111,34 @@ fun ChatListScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (chatViewModel != null) {
+                            val currentState = chatViewModel.state.collectAsState().value
+                            Box {
+                                IconButton(
+                                    onClick = { showNotificationDialog = true }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Notifications,
+                                        contentDescription = "Notifications",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                }
+                                val totalUnread = currentState.friendRequests.size + currentState.unreadNotifications.size
+                                if (totalUnread > 0) {
+                                    Badge(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .offset(x = (-4).dp, y = 4.dp),
+                                        containerColor = Color.Red,
+                                        contentColor = Color.White
+                                    ) {
+                                        Text(text = totalUnread.toString(), fontSize = 10.sp)
+                                    }
+                                }
+                            }
+                        }
+
                         IconButton(onClick = { showCreateGroupDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Group,
@@ -112,13 +175,6 @@ fun ChatListScreen(
                         selectedTextColor = navActiveColor,
                         indicatorColor = Color.Transparent
                     )
-                )
-                NavigationBarItem(
-                    selected = false,
-                    onClick = { },
-                    icon = { Icon(Icons.Default.Call, contentDescription = "Calls") },
-                    label = { Text("Calls") },
-                    colors = NavigationBarItemDefaults.colors(unselectedIconColor = Color.Gray)
                 )
                 NavigationBarItem(
                     selected = false,
@@ -168,6 +224,27 @@ fun ChatListScreen(
             }
         )
     }
+
+    if (showNotificationDialog && chatViewModel != null) {
+        val chatState = chatViewModel.state.collectAsState().value
+        NotificationDialog(
+            chatState = chatState,
+            onDismiss = { showNotificationDialog = false },
+            onAcceptFriend = { req ->
+                chatViewModel.acceptFriendRequest(req)
+                Toast.makeText(context, "Đã chấp nhận lời mời kết bạn từ ${req.name}. Kết bạn thành công!", Toast.LENGTH_SHORT).show()
+            },
+            onRejectFriend = { req ->
+                chatViewModel.rejectFriendRequest(req)
+                Toast.makeText(context, "Đã từ chối lời mời kết bạn (không cập nhật cơ sở dữ liệu).", Toast.LENGTH_SHORT).show()
+            },
+            onNotificationMessageClick = { notif ->
+                chatViewModel.clearNotificationsForUser(notif.senderId)
+                showNotificationDialog = false
+                onChatItemClick(notif.senderId.toString(), notif.senderName)
+            }
+        )
+    }
 }
 
 @Composable
@@ -189,6 +266,7 @@ fun ChatItemRow(
             name = chat.name,
             avatarBgColor = chat.safeAvatarBgColor,
             avatarUri = chat.avatarUri,
+            presenceStatus = chat.presenceStatus,
             modifier = Modifier.size(52.dp),
             fontSize = 20.sp
         )
