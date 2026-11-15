@@ -4,10 +4,16 @@ import com.example.zaloclone.ApiConfig
 import io.socket.client.IO
 import io.socket.client.Socket
 
-class SocketClient ( private val baseUrl: String ) {
+interface ISocketClient {
+    fun create(token: String): Socket
+    fun getSocket(): Socket?
+    fun disconnect()
+}
+
+class SocketClient ( private val baseUrl: String ) : ISocketClient {
     private var socket: Socket? = null
 
-    fun create(token: String): Socket {
+    override fun create(token: String): Socket {
         if(socket == null) {
             val option = IO.Options.builder()
                 .setPath("/socket.io")
@@ -20,13 +26,13 @@ class SocketClient ( private val baseUrl: String ) {
         return socket!!
     }
 
-    fun getSocket(): Socket? { return socket}
+    override fun getSocket(): Socket? { return socket}
 
-    fun disconnect() {
+    override fun disconnect() {
         socket?.disconnect()
         socket?.off()
         socket = null
     }
 }
 
-val socketClient = SocketClient(ApiConfig.BASE_URL)
+val socketClient: ISocketClient = SocketClient(ApiConfig.BASE_URL)

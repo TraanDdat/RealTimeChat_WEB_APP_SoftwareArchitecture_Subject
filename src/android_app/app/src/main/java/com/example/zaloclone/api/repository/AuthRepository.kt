@@ -1,19 +1,23 @@
 package com.example.zaloclone.api.repository
 
 import com.example.zaloclone.api.remote.RetrofitClient
+import com.example.zaloclone.api.remote.AuthApiServices
+import com.example.zaloclone.api.model.AuthUser
 import com.example.zaloclone.api.model.LoginRequest
 import com.example.zaloclone.api.model.RegisterRequest
 import com.example.zaloclone.api.model.LoginResponse
 import com.example.zaloclone.api.model.UpdateProfileRequest
 
-class AuthRepository {
-    suspend fun AuthCheck() = RetrofitClient.AuthApi.AuthCheck()
+class AuthRepository(
+    private val authApi: AuthApiServices = RetrofitClient.AuthApi
+) : IAuthRepository {
+    override suspend fun AuthCheck(): AuthUser = authApi.AuthCheck()
 
-    suspend fun login(request: LoginRequest): LoginResponse = RetrofitClient.AuthApi.login(request)
-    
-    suspend fun signup(request: RegisterRequest) = RetrofitClient.AuthApi.signup(request)
+    override suspend fun login(request: LoginRequest): LoginResponse = authApi.login(request)
 
-    suspend fun logout() = RetrofitClient.AuthApi.logout()
+    override suspend fun signup(request: RegisterRequest): AuthUser = authApi.signup(request)
 
-    suspend fun updateProfile(request: UpdateProfileRequest) = RetrofitClient.AuthApi.updateProfile(request)
+    override suspend fun logout() = authApi.logout()
+
+    override suspend fun updateProfile(request: UpdateProfileRequest): AuthUser = authApi.updateProfile(request)
 }

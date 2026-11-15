@@ -3,14 +3,14 @@ package com.example.zaloclone.api.remote
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import com.example.zaloclone.ApiConfig
-import com.example.zaloclone.api.datastore.TokenManager
+import com.example.zaloclone.api.datastore.ITokenManager
 import okhttp3.OkHttpClient
 import kotlinx.coroutines.runBlocking
 import android.util.Log
 
 object RetrofitClient {
     private const val BASE_URL = ApiConfig.BASE_URL
-    lateinit var tokenManager: TokenManager
+    lateinit var tokenManager: ITokenManager
     
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
