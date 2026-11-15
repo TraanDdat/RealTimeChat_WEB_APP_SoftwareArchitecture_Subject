@@ -37,6 +37,18 @@ def create_friend_request(
     return friendship
 
 
+def get_pending_friend_requests(db: Session, user_id: int):
+    return (
+        db.query(Friendship, User)
+        .join(User, Friendship.requester_id == User.id)
+        .filter(
+            Friendship.addressee_id == user_id,
+            Friendship.status == "pending",
+        )
+        .all()
+    )
+
+
 def check_friendship(
     db: Session,
     user_id_1: int,

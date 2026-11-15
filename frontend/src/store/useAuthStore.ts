@@ -122,10 +122,9 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       newSocket.on("connect_error", (error) => {
         console.error("Socket connection error:", error.message);
       });
-      // Attempt to connect the socket if not already connected
-      if(!newSocket.connected) {
-        newSocket.connect();
-      }
+      newSocket.on("getOnlineUsers", (userIds: number[]) => {
+          set({ onlineUsers: userIds });
+      });
       set({ socket: newSocket });
   },
 
