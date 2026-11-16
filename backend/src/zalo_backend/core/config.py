@@ -25,7 +25,7 @@ class Settings:
     
     # MongoDB
     MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "chat_db")
-    MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://127.0.0.1:27017")
+    MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://dattranngoc09112000_db_user:0798277276@ac-7oq5sqt-shard-00-00.ubv1k1i.mongodb.net:27017,ac-7oq5sqt-shard-00-01.ubv1k1i.mongodb.net:27017,ac-7oq5sqt-shard-00-02.ubv1k1i.mongodb.net:27017/?ssl=true&replicaSet=atlas-14gq1i-shard-0&authSource=admin")
 
     CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
 

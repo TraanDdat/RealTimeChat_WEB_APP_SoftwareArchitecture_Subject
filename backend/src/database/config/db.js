@@ -12,11 +12,11 @@ dotenv.config({
 });
 
 const pool = new pg.Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    database: process.env.DB_NAME,
-    password: process.env.DB_PASSWORD,
+    host: "192.168.74.130",
+    port: 5432,
+    user: "tda5hc",
+    database: "tda5hc_db",
+    password: "0798277276",
     connectionTimeoutMillis: 5000,
     max: 10
 });
