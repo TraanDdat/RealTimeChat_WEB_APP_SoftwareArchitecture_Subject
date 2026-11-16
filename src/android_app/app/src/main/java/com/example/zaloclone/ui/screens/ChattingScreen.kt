@@ -82,7 +82,7 @@ fun ChattingScreen(
         val dbMessages = chatState?.value?.messages
         if (dbMessages != null && chatViewModel != null) {
             val mappedMessages = dbMessages.map { chatMsg ->
-                val currentUserId = 1
+                val currentUserId = chatViewModel?.getCurrentUserId()
                 val isMe = (chatMsg.senderId == currentUserId)
                 val timeStr = try {
                     if (chatMsg.createdAt.length >= 16) chatMsg.createdAt.substring(11, 16) else chatMsg.createdAt
@@ -121,7 +121,8 @@ fun ChattingScreen(
                 text = text.ifBlank { null },
                 image = mediaUrl
             )
-            chatViewModel.sendMessage(sendReq, currentUserId = 1)
+            val currentUserId = chatViewModel?.getCurrentUserId()
+            chatViewModel.sendMessage(sendReq, currentUserId!!.toInt())
         } else {
             val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
             val newMsg = Message(

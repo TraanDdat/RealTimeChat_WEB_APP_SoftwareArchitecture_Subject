@@ -25,14 +25,14 @@ data class ConversationParticipant(
 )
 
 data class ChatMessage(
-    @SerializedName("_id") val id: Int,
+    @SerializedName("_id") val id: String,
     val senderId: Int,
     val receiverId: Int?,
     val conversationId: String?,
     val text: String?,
     val image: String?,
     val createdAt: String,
-    val updateAt: String?,
+    val updatedAt: String?,
     val isOptimistic: Boolean?
 )
 
