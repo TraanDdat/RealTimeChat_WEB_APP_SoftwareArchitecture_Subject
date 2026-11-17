@@ -12,10 +12,10 @@ import PageLoader from './components/PageLoader';
 import { Toaster } from 'react-hot-toast';
 
 function AppContent() {
-  const { checkAuth, isCheckingAuth, authUser } = useAuthStore();
+  const { AuthCheck, isCheckingAuth, authUser } = useAuthStore();
   useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
+    AuthCheck();
+  }, [AuthCheck]);
 
   if (isCheckingAuth) return <PageLoader />;
   return (

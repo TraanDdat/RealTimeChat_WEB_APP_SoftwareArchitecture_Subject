@@ -4,15 +4,14 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 class UserBase(BaseModel):
     email: EmailStr
     password: str
-    role: str
 
 class LoginRequest(UserBase):
     pass
 
 class LoginResponse(BaseModel):
+    id: int
     email: EmailStr
     username: str
-    role: str
     access_token: str
 
 class RegisterRequest(UserBase):
@@ -22,7 +21,6 @@ class RegisterRequest(UserBase):
 class RegisterResponse(BaseModel):
     email: EmailStr
     username: str
-    role: str
 
 class ResetPwRequest(BaseModel):
     email: EmailStr
@@ -30,7 +28,6 @@ class ResetPwRequest(BaseModel):
 
 class ResetPwResponse(BaseModel):
     email: EmailStr
-    role: str
 
 class AddFriendRequest(BaseModel):
     current_email: EmailStr

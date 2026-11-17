@@ -8,14 +8,16 @@ import type {
 } from "../types/auth";
 
 export const authApi = {
-  checkAuth: async () =>
+  AuthCheck: async () =>
     axiosInstance.get<AuthUser>("/auth/check"),
 
   signup: async (data: SignUpData) =>
     axiosInstance.post<AuthUser>("/auth/signup", data),
 
-  login: async (data: LoginData) =>
-    axiosInstance.post<AuthUser>("/auth/login", data),
+  login: async (data: LoginData) => {
+    await axiosInstance.post("/auth/login", data);
+    return axiosInstance.get<AuthUser>("/auth/check");
+  },
 
   logout: async () =>
     axiosInstance.post("/auth/logout"),

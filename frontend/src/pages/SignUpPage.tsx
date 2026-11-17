@@ -4,7 +4,6 @@ import BorderAnimatedContainer from "../components/BorderAnimatedContainer";
 import { MessageCircleIcon, LockIcon, MailIcon, UserIcon, LoaderIcon } from "lucide-react";
 import { Link } from "react-router";
 import { useNavigate } from 'react-router-dom';
-import { react_register_request } from "../api/register";
 
 function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -13,24 +12,29 @@ function SignUpPage() {
     password: "",
     confirmPassword: ""
   });
-  const { isSigningUp } = useAuthStore();
+
+  const { signup, isSigningUp } = useAuthStore();
   const navigate = useNavigate();
 
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();  
+    event.preventDefault();
     try {
-        const newEmail = formData.email;
-        const newPassword = formData.password;
-        const response = await react_register_request({ email: newEmail, username: formData.username, password: newPassword, role: "User" });
-        if(response) {
-          alert("User registered successfully!");
-          navigate("/login");
-        }
+      if (formData.password !== formData.confirmPassword) {
+        alert("Passwords do not match!");
+        return;
       }
-      catch (err) {
-        console.error("Registration error:", err);
-        alert("Registration failed. Please try again.");
-      }
+      await signup({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password
+      });
+      navigate("/login");
+    } catch (err) {
+      console.error("Registration error:", err);
+      alert("Registration failed. Please try again.");
+    } finally {
+      useAuthStore.setState({ isSigningUp: false });
+    }
   };
 
   return (

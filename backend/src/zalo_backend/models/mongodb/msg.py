@@ -34,5 +34,16 @@ class Message(BaseModel):
     updatedAt: datetime
 
 
+class GroupMessage(BaseModel):
+    id: str = Field(alias="_id")
+    groupId: int
+    senderId: int
+    senderUsername: str
+    text: Optional[str] = None
+    image: Optional[str] = None
+    createdAt: datetime
+    updatedAt: datetime
+
+
 def message_data(document):
     return Message.model_validate({**document, "_id": str(document["_id"])})

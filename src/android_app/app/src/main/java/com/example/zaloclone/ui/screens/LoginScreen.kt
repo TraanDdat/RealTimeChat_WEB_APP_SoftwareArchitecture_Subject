@@ -20,7 +20,7 @@ import com.example.zaloclone.ui.theme.ZaloCyan
 
 @Composable
 fun LoginScreen(
-    onLoginClick: (String, String, String) -> Unit,
+    onLoginClick: (String, String) -> Unit,
     onNavigateToForgotPassword: () -> Unit,
     onNavigateToWelcome: () -> Unit
 ) {
@@ -60,11 +60,11 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(30.dp))
 
-        PrimaryButton(text = "Login", onClick = {onLoginClick(email, password, "User")})
+        PrimaryButton(text = "Login", onClick = {onLoginClick(email, password)})
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        SecondaryButton(text = "Quay lại", onClick = onNavigateToWelcome)
+        SecondaryButton(text = "Back", onClick = onNavigateToWelcome)
 
         Spacer(modifier = Modifier.height(20.dp))
 

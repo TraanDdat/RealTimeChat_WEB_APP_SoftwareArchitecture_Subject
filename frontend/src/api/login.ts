@@ -1,18 +1,16 @@
 import { API_BASE_URL, API_AUTH_LOGIN } from "../../config";
 import { apiRequest } from "./api_client";
-import type { LoginRequest, LoginResponse } from "../contexts/login"
+import type { LoginRequest, LoginResponse } from "../types/login"
 
 export async function react_login_request({
     email,
-    password,
-    role
+    password
 }: LoginRequest) {
 
     const loginUrl = `${API_BASE_URL}${API_AUTH_LOGIN}`;
     const body = {
         email,
-        password,
-        role
+        password
     };
 
     const package_res = await apiRequest(loginUrl, {
@@ -24,7 +22,6 @@ export async function react_login_request({
       id: package_res.data.id,
       email: package_res.data.email,
       username: package_res.data.username,
-      role: package_res.data.role,
       access_token: package_res.data.access_token
     };
     

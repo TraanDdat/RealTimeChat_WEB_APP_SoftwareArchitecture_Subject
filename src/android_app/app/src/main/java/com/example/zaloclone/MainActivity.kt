@@ -11,9 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import com.example.zaloclone.ui.screens.ChatListScreen
 import com.example.zaloclone.ui.screens.ChattingScreen
 import com.example.zaloclone.ui.screens.ForgotPasswordScreen
@@ -25,10 +23,21 @@ import com.example.zaloclone.ui.screens.WelcomeScreen
 import com.example.zaloclone.ui.theme.ZaloCyan
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
-import com.example.zaloclone.ui.api.remote.loginUser
-import com.example.zaloclone.ui.api.remote.LoginRequest
-import com.example.zaloclone.ui.api.remote.handleRegister
-import com.example.zaloclone.ui.api.remote.RegisterConfirmRequest
+import com.example.zaloclone.api.model.LoginRequest
+import com.example.zaloclone.api.remote.handleRegister
+import com.example.zaloclone.api.model.RegisterConfirmRequest
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.zaloclone.ui.viewModel.AuthViewModel
+import com.example.zaloclone.ui.viewModel.AuthViewModelFactory
+import com.example.zaloclone.ui.viewModel.ChatViewModel
+import com.example.zaloclone.ui.viewModel.ChatViewModelFactory
+import com.example.zaloclone.di.AppContainer
+import com.example.zaloclone.api.model.LoginResponse
+import com.example.zaloclone.api.model.LoginData
+import com.example.zaloclone.socket.socketClient
+import com.example.zaloclone.ui.viewModel.ChatState
+import com.example.zaloclone.ui.viewModel.FriendViewModel
+import com.example.zaloclone.ui.viewModel.FriendViewModelFactory
 
 private val LightColorScheme = lightColorScheme(
     primary = ZaloCyan,
@@ -39,13 +48,14 @@ private val LightColorScheme = lightColorScheme(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val appContainer = (application as ZaloApplication).container
         setContent {
             MaterialTheme(colorScheme = LightColorScheme) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainAppNavigation()
+                    MainAppNavigation(appContainer)
                 }
             }
         }
@@ -53,39 +63,79 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainAppNavigation() {
-    // Mặc định xuất phát từ màn hình "welcome"
+fun MainAppNavigation(appContainer: AppContainer) {
     var currentScreen by remember { mutableStateOf("welcome") }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     var selectedChatId by remember { mutableStateOf("1") }
     var selectedChatName by remember { mutableStateOf("Anny Peter") }
+    val authViewModel: AuthViewModel = viewModel(
+        factory = AuthViewModelFactory(
+            repository = appContainer.authRepository,
+            tokenManager = appContainer.tokenManager,
+            socketClient = appContainer.socketClientInstance,
+            socketService = appContainer.socketServiceInstance
+        )
+    )
+    val authState by authViewModel.state.collectAsState()
+    val chatViewModel: ChatViewModel = viewModel(
+        factory = ChatViewModelFactory (
+            repository = appContainer.chatRepository,
+            socketClient = appContainer.socketClientInstance,
+            sessionManager = appContainer.sessionManager
+        )
+    )
 
-    when (currentScreen) {
+    val friendViewModel: FriendViewModel = viewModel(
+        factory = FriendViewModelFactory (
+            repository = appContainer.friendRepository,
+            socketClient = appContainer.socketClientInstance,
+            sessionManager = appContainer.sessionManager
+        )
+    )
+
+    LaunchedEffect(authState.userId, authState.email) {
+        val userId = authState.userId
+        val email = authState.email
+        if (userId != null && email != null) {
+            appContainer.sessionManager.setCurrentUser(userId, email)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        authViewModel.AuthCheck()
+    }
+
+    LaunchedEffect(authState.authUser) {
+        if (authState.authUser != null) {
+            currentScreen = "chat_list"
+        }
+    }
+
+    LaunchedEffect(authState.errorMessage) {
+        authState.errorMessage?.let { message ->
+            Toast.makeText(
+                context,
+                message,
+                Toast.LENGTH_SHORT
+            ).show()
+
+            authViewModel.clearMessages()
+        }
+    }
+
+    when (currentScreen) {    
         "welcome" -> WelcomeScreen(
             onNavigateToLogin = { currentScreen = "login" },
-            onNavigateToRegister = { currentScreen = "register" },
+            onNavigateToRegister = { currentScreen = "signup" },
             onNavigateToForgotPassword = { currentScreen = "forgot_password" }
         )
 
         "login" -> LoginScreen(
-            onLoginClick = { email, password, role ->
-                scope.launch {
-                    val result = loginUser(
-                        LoginRequest(
-                            email = email,
-                            password = password,
-                            role = role
-                        )
-                    )
-                    result.onSuccess { response ->
-                        val token = response.access_token
-                        val email = response.email
-                        val token_type = response.token_type
-                        currentScreen = "chat_list"
-                        }.onFailure { error -> println("Login failed") 
-                    }
-                }
+            onLoginClick = { email, password ->
+                authViewModel.login(
+                    LoginRequest( email = email, password = password )
+                )
             },
             onNavigateToForgotPassword = { currentScreen = "forgot_password" },
             onNavigateToWelcome = { currentScreen = "welcome" }
@@ -94,31 +144,25 @@ fun MainAppNavigation() {
             onNavigateToWelcome = { currentScreen = "welcome" },
             onPasswordResetSuccess = { currentScreen = "login" }
         )
-        "register" -> RegisterScreen(
-            onRegisterClick = { email, username, password, confirmPassword, role ->
+        "signup" -> RegisterScreen(
+            onRegisterClick = { email, username, password, confirmPassword ->
                 scope.launch {
                     val result = handleRegister(
                         RegisterConfirmRequest(
                             email = email,
                             username = username,
                             password = password,
-                            confirmPassword = confirmPassword,
-                            role = role
+                            confirmPassword = confirmPassword
                         )
                     )
-                    result.onSuccess { response ->
-                        println("Register success")
-                        currentScreen = "login"
-                        Toast.makeText(context, "Register successful", Toast.LENGTH_SHORT).show()
-                    }.onFailure { error -> 
-                                    println("Register failed")
-                                    Toast.makeText(context, error.message, Toast.LENGTH_SHORT).show()
-                    }
+                    result.onSuccess { currentScreen = "login" }
                 }
             },
             onNavigateToWelcome = { currentScreen = "welcome" }
         )
         "chat_list" -> ChatListScreen(
+            chatViewModel = chatViewModel,
+            friendViewModel = friendViewModel,
             onNavigateToFriends = { currentScreen = "friends" },
             onNavigateToSettings = { currentScreen = "settings" },
             onChatItemClick = { chatId, chatName ->
@@ -130,21 +174,26 @@ fun MainAppNavigation() {
         "friends" -> FriendsScreen(
             onNavigateToChats = { currentScreen = "chat_list" },
             onNavigateToSettings = { currentScreen = "settings" },
+            chatViewModel = chatViewModel,
+            friendViewModel = friendViewModel,
             onFriendSelect = { friend ->
-                selectedChatId = friend.id
-                selectedChatName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
+                selectedChatId = friend.id.toString()
+                selectedChatName = friend.username
+                chatViewModel.setSelectedUser(friend)
                 currentScreen = "chatting"
-            }
-        )
+        })
         "chatting" -> ChattingScreen(
             chatId = selectedChatId,
             chatName = selectedChatName,
-            onNavigateBack = { currentScreen = "chat_list" } // Nút Back trở về danh sách
+            chatViewModel = chatViewModel,
+            onNavigateBack = { currentScreen = "chat_list" }
         )
         "settings" -> SettingsScreen(
             onNavigateToChats = { currentScreen = "chat_list" },
             onNavigateToFriends = { currentScreen = "friends" },
-            onLogout = { currentScreen = "welcome" }
+            onLogout = { 
+                authViewModel.logout()
+                currentScreen = "welcome" }
         )
     }
 }

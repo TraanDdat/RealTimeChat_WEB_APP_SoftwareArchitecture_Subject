@@ -7,7 +7,7 @@ from zalo_backend.user_service.service import create_user, get_user
 # create a router for authentication routers
 register_router = APIRouter()
 
-@register_router.post("/register")
+@register_router.post("/signup")
 def register_request(request: RegisterRequest, db: Session = Depends(get_db)):
     err_code = None
     if not request.email:
@@ -21,14 +21,14 @@ def register_request(request: RegisterRequest, db: Session = Depends(get_db)):
     )
 
     if not user_from_db:
+        print("start create user")
         create_user(db, request)
         register_res = RegisterResponse(
             email=request.email,
-            username=request.username,
-            role=request.role
+            username=request.username
         )
 
-        print("Register request for email:", request.email, "with role:", request.role)
+        print("Signup request for email:", request.email)
     else:
         print("Email has already been registered:", request.email)
         raise HTTPException(

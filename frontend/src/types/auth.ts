@@ -3,6 +3,7 @@ export interface AuthUser {
   username: string;
   email: string;
   profilePic: string | null;
+  access_token: string | null;
 }
 
 export interface SignUpData {
@@ -14,7 +15,6 @@ export interface SignUpData {
 export interface LoginData {
   email: string;
   password: string;
-  role: string;
 }
 
 export interface UpdateProfileData {

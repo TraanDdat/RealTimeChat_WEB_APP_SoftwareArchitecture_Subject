@@ -12,9 +12,8 @@ class Settings:
 
     # API
     AUTH_URL = os.getenv("AUTH","/api/auth")
-    USER_URL = os.getenv("USER","/api/user")
     USER_ADDFRIEND_URL = os.getenv("USER_ADDFRIEND","/api/user/addfriend")
-    MESSAGES_URL = "/api/messages"
+    MESSAGES_URL = os.getenv("MESSAGES_URL","/api/messages")
 
     # Auth: without JWT_SECRET a random one is used, so sessions reset on restart
     JWT_SECRET = os.getenv("JWT_SECRET") or secrets.token_urlsafe(32)
@@ -22,7 +21,7 @@ class Settings:
     COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
     
     # Postgres
-    DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL", "postgresql://pla2hc:bichlan1999@localhost:5432/pla2hc_uizalo_db")
+    DATABASE_URL = os.getenv("POSTGRES_DATABASE_URL", "postgresql://postgres:postgres@database-1.ct4couyucvfp.ap-southeast-2.rds.amazonaws.com:5432/zalo_db")
     
     # MongoDB
     MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "chat_db")
