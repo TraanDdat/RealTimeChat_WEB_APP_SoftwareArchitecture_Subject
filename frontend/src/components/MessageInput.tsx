@@ -4,6 +4,9 @@ import { useChatStore } from "../store/useChatStore";
 import toast from "react-hot-toast";
 import { ImageIcon, SendIcon, XIcon } from "lucide-react";
 
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+const SUPPORTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
+
 function MessageInput() {
   const { playRandomKeyStrokeSound } = useKeyboardSound();
   const [text, setText] = useState("");
@@ -28,8 +31,13 @@ function MessageInput() {
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    if (!SUPPORTED_IMAGE_TYPES.has(file.type)) {
+      toast.error("Choose a JPEG, PNG, WebP, or GIF image");
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      toast.error("Image must be 5 MB or smaller");
+      event.currentTarget.value = "";
       return;
     }
 
@@ -80,7 +88,7 @@ function MessageInput() {
 
         <input
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif"
           ref={fileInputRef}
           onChange={handleImageChange}
           className="hidden"

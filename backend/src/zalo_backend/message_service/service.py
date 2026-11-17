@@ -1,9 +1,9 @@
 import logging
 from datetime import datetime, timezone
 
-import cloudinary.uploader
 from fastapi import HTTPException
 from pymongo import ASCENDING
+from pymongo.errors import PyMongoError
 
 from . import user_client
 from zalo_backend.core.config import settings
@@ -12,19 +12,15 @@ from zalo_backend.database.l_postgres import SessionLocal
 from zalo_backend.models.mongodb.msg import MessageCreate, message_data
 from zalo_backend.schemas.user import UserPublic
 from zalo_backend.user_service.addfr_service import get_friends
-
-
-logger = logging.getLogger(__name__)
+from . import s3_storage
 
 
 def upload_image(image: str) -> str:
-    if not settings.CLOUDINARY_URL:
-        raise HTTPException(status_code=503, detail="Image upload is not configured.")
-    try:
-        return cloudinary.uploader.upload(image, resource_type="image")["secure_url"]
-    except Exception as error:
-        logger.exception("Image upload failed")
-        raise HTTPException(status_code=502, detail="Image upload failed.") from error
+    return s3_storage.store_image_data_url(image)
+
+
+def _with_image_url(message):
+    return message.model_copy(update={"image": s3_storage.image_url(message.image)})
 
 
 def get_contacts(user_id: int):
@@ -47,7 +43,7 @@ def get_messages(user_id: int, partner_id: int):
         {"senderId": user_id, "receiverId": partner_id},
         {"senderId": partner_id, "receiverId": user_id},
     ]}).sort([("createdAt", ASCENDING), ("_id", ASCENDING)])
-    return [message_data(document) for document in messages]
+    return [_with_image_url(message_data(document)) for document in messages]
 
 
 def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
@@ -56,12 +52,16 @@ def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
     if user_client.get_user(receiver_id) is None:
         raise HTTPException(status_code=404, detail="Receiver not found.")
 
-    image_url = upload_image(data.image) if data.image else None
+    image_key = upload_image(data.image) if data.image else None
 
     now = datetime.now(timezone.utc)
     document = {
         "senderId": sender_id, "receiverId": receiver_id, "text": data.text or None,
-        "image": image_url, "createdAt": now, "updatedAt": now,
+        "image": image_key, "createdAt": now, "updatedAt": now,
     }
-    result = collection.insert_one(document)
-    return message_data({**document, "_id": result.inserted_id})
+    try:
+        result = collection.insert_one(document)
+    except PyMongoError as error:
+        s3_storage.delete_image(image_key)
+        raise HTTPException(status_code=503, detail="Message storage unavailable") from error
+    return _with_image_url(message_data({**document, "_id": result.inserted_id}))
