@@ -19,5 +19,5 @@ export const friendApi = {
     rejectRequest: (requestId: number) =>
         axiosInstance.post(`/user/addfriend/requests/${requestId}/reject`),
 
-    getFriends: () => axiosInstance.get<ChatUser[]>("/user/addfriend/friends"),
+    // getFriends: () => axiosInstance.get<ChatUser[]>("/user/addfriend/friends"),
 };

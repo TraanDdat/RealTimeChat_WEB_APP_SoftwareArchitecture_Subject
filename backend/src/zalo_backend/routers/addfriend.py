@@ -41,8 +41,6 @@ async def addfriend_request(
         "error_code": None,
     }
 
-
-@addfriend_router.get("/request")
 @addfriend_router.get("/requests")
 def get_addfriend_requests(
     db: Session = Depends(get_db),

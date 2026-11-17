@@ -79,7 +79,6 @@ def get_friend_requests(db: Session, user_id: int):
         .all()
     )
 
-
 def update_friendship_status(
     db: Session,
     friendship_id: int,
@@ -97,6 +96,11 @@ def update_friendship_status(
 
     if friendship is None:
         return None
+
+    if new_status == "rejected": 
+        db.delete(friendship)
+        db.commit()
+        return friendship
 
     friendship.status = new_status
 

@@ -39,7 +39,7 @@ class AddFriendResponse(BaseModel):
     username: str
     status: str
 
-class FriendListRequest(BaseModel):
+class GetFriendListRequest(BaseModel):
     email: EmailStr
 
 class FriendListResponse(BaseModel):

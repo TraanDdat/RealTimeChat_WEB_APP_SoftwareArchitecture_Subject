@@ -55,9 +55,8 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     set({ isSigningUp: true });
     try {
       const res = await authApi.signup(data);
-      set({ authUser: res.data });
+      set({ authUser: null });
       toast.success("Account created successfully!");
-      get().connectSocket();
     } catch (error) {
       toast.error(getErrorMessage(error, "Unable to create account"));
     } finally {
@@ -120,12 +119,13 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       });
       // Handle socket connection errors
       newSocket.on("connect_error", (error) => {
-        console.error("Socket connection error:", error.message);
+        console.error("Socket connection error Message:", error.message);
       });
       newSocket.on("getOnlineUsers", (userIds: number[]) => {
           set({ onlineUsers: userIds });
       });
       set({ socket: newSocket });
+      newSocket.connect();
   },
 
   disconnectSocket: () => {
