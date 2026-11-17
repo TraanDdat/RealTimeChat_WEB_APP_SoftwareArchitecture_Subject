@@ -1,41 +1,23 @@
-import { API_BASE_URL, API_USER_ADDFRIEND_ADD, API_USER_ADDFRIEND_REQUEST } from "../../config";
-import { apiRequest } from "./api_client";
-import type { AddFriendRequest, AddFriendResponse, FriendListRequest, FriendListResponse } from "../types/friend"
+import { axiosInstance } from "../lib/axios";
+import type { ChatUser } from "../types/chat";
+import type { AddFriendRequest, AddFriendResponse, FriendRequestItem } from "../types/friend";
 
-export async function react_addfriend_request({
-    current_email,
-    target_email
-}: AddFriendRequest) {
-
-    const loginUrl = `${API_BASE_URL}${API_USER_ADDFRIEND_ADD}`;
-    const body = {
-        current_email, target_email
-    };
-
-    const package_res = await apiRequest(loginUrl, {
-        method: "POST",
-        body: JSON.stringify(body)
-    });
-
-    const data_res: AddFriendResponse = {
-      id: package_res.data.id,
-      email: package_res.data.email,
-      username: package_res.data.username,
-      status: package_res.data.status
-    };
-    
-    return data_res;
+interface DataEnvelope<T> {
+    data: T;
 }
 
-export async function react_getaddfriend_request({email}: FriendListRequest) {
+export const friendApi = {
+    sendRequest: (data: AddFriendRequest) =>
+        axiosInstance.post<DataEnvelope<AddFriendResponse>>("/user/addfriend/add", data),
 
-    const url = `${API_BASE_URL}${API_USER_ADDFRIEND_REQUEST}?email=${encodeURIComponent(email)}`;
+    getRequests: () =>
+        axiosInstance.get<DataEnvelope<FriendRequestItem[]>>("/user/addfriend/requests"),
 
-    const package_res = await apiRequest(url, {
-        method: "GET"
-    });
+    acceptRequest: (requestId: number) =>
+        axiosInstance.post(`/user/addfriend/requests/${requestId}/accept`),
 
-    const data_res: FriendListResponse[] = package_res.data;
+    rejectRequest: (requestId: number) =>
+        axiosInstance.post(`/user/addfriend/requests/${requestId}/reject`),
 
-    return data_res;
-}
+    // getFriends: () => axiosInstance.get<ChatUser[]>("/user/addfriend/friends"),
+};

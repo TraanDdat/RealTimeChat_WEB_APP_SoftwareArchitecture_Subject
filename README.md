@@ -1,4 +1,4 @@
-# Realtime Chat Backend
+ # Realtime Chat Backend
 
 Two Python service packages, organized by business capability rather than database
 vendor. The existing HTTP paths, payloads, database schema and Socket.IO events

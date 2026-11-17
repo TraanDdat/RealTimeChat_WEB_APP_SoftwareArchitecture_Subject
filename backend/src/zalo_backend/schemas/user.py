@@ -30,7 +30,7 @@ class ResetPwResponse(BaseModel):
     email: EmailStr
 
 class AddFriendRequest(BaseModel):
-    current_email: EmailStr
+    current_email: Optional[EmailStr] = None
     target_email: EmailStr
 
 class AddFriendResponse(BaseModel):
@@ -39,7 +39,7 @@ class AddFriendResponse(BaseModel):
     username: str
     status: str
 
-class FriendListRequest(BaseModel):
+class GetFriendListRequest(BaseModel):
     email: EmailStr
 
 class FriendListResponse(BaseModel):
