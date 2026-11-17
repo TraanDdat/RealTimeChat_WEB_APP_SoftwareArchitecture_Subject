@@ -67,14 +67,13 @@ fun ChattingScreen(
     }
 
     LaunchedEffect(chatId) {
+        messages.clear()
         val targetUserId = chatId.toIntOrNull()
         if (targetUserId != null && chatViewModel != null) {
             val targetUser = ChatUser(id = targetUserId, username = chatName, email = "", profilePic = null)
             chatViewModel.setSelectedUser(targetUser)
         } else {
-            messages.clear()
-            val savedMessages = getOrInitChatHistory(context, chatId, chatName)
-            messages.addAll(savedMessages)
+            chatViewModel?.getConversations()
         }
     }
 
@@ -137,7 +136,6 @@ fun ChattingScreen(
                 emotion = emotion
             )
             messages.add(newMsg)
-            saveMessagesToJson(context, chatId, messages.toList())
 
             val chatList = loadChatListFromJson(context).toMutableList()
             val existingIndex = chatList.indexOfFirst { it.id == chatId }
@@ -217,7 +215,6 @@ fun ChattingScreen(
     }
 
     LaunchedEffect(chatId) {
-        messages.clear()
         val savedMessages = getOrInitChatHistory(context, chatId, chatName)
         messages.addAll(savedMessages)
 

@@ -34,7 +34,10 @@ import com.example.zaloclone.ui.viewModel.ChatViewModelFactory
 import com.example.zaloclone.di.AppContainer
 import com.example.zaloclone.api.model.LoginResponse
 import com.example.zaloclone.api.model.LoginData
+import com.example.zaloclone.socket.socketClient
 import com.example.zaloclone.ui.viewModel.ChatState
+import com.example.zaloclone.ui.viewModel.FriendViewModel
+import com.example.zaloclone.ui.viewModel.FriendViewModelFactory
 
 private val LightColorScheme = lightColorScheme(
     primary = ZaloCyan,
@@ -78,13 +81,24 @@ fun MainAppNavigation(appContainer: AppContainer) {
     val chatViewModel: ChatViewModel = viewModel(
         factory = ChatViewModelFactory (
             repository = appContainer.chatRepository,
-            socketClient = appContainer.socketClientInstance
+            socketClient = appContainer.socketClientInstance,
+            sessionManager = appContainer.sessionManager
         )
     )
 
-    LaunchedEffect(authState.userId) {
-        authState.userId?.let { userId ->
-            chatViewModel.setCurrentUserId(userId)
+    val friendViewModel: FriendViewModel = viewModel(
+        factory = FriendViewModelFactory (
+            repository = appContainer.friendRepository,
+            socketClient = appContainer.socketClientInstance,
+            sessionManager = appContainer.sessionManager
+        )
+    )
+
+    LaunchedEffect(authState.userId, authState.email) {
+        val userId = authState.userId
+        val email = authState.email
+        if (userId != null && email != null) {
+            appContainer.sessionManager.setCurrentUser(userId, email)
         }
     }
 
@@ -141,12 +155,14 @@ fun MainAppNavigation(appContainer: AppContainer) {
                             confirmPassword = confirmPassword
                         )
                     )
+                    result.onSuccess { currentScreen = "login" }
                 }
             },
             onNavigateToWelcome = { currentScreen = "welcome" }
         )
         "chat_list" -> ChatListScreen(
             chatViewModel = chatViewModel,
+            friendViewModel = friendViewModel,
             onNavigateToFriends = { currentScreen = "friends" },
             onNavigateToSettings = { currentScreen = "settings" },
             onChatItemClick = { chatId, chatName ->
@@ -159,6 +175,7 @@ fun MainAppNavigation(appContainer: AppContainer) {
             onNavigateToChats = { currentScreen = "chat_list" },
             onNavigateToSettings = { currentScreen = "settings" },
             chatViewModel = chatViewModel,
+            friendViewModel = friendViewModel,
             onFriendSelect = { friend ->
                 selectedChatId = friend.id.toString()
                 selectedChatName = friend.username

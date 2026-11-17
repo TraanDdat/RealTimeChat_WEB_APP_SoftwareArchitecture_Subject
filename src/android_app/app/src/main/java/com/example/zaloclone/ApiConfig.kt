@@ -18,6 +18,7 @@ object ApiConfig {
     const val API_MSG_CHATS = "/api/messages/chats";
     const val API_MSG = "/api/messages";
 
-    const val API_USERS_ROOT = "/api/users/root";
-    fun userRoot(username: String) = "$API_USERS_ROOT/$username";
+    // FriendApiServices endpoint
+    const val USER_ADDFRIEND_ADD_URL = "/api/user/addfriend/add";
+    const val USER_ADDFRIEND_GET_REQUEST_URL = "/api/user/addfriend/requests";
 }

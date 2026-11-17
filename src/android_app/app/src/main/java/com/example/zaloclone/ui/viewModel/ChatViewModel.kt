@@ -16,9 +16,9 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
-import com.example.zaloclone.ui.model.FriendRequestItem
 import com.example.zaloclone.ui.model.PresenceStatus
 import com.example.zaloclone.ui.model.UserPresence
+import com.example.zaloclone.session.SessionManager
 
 enum class ActiveTab {
     CHATS,
@@ -38,9 +38,6 @@ data class ChatState(
     val chats: List<ChatUser> = emptyList(),
     val conversations: List<Conversation> = emptyList(),
     val messages: List<ChatMessage> = emptyList(),
-    val friendRequests: List<FriendRequestItem> = listOf(
-        FriendRequestItem(id = "101", name = "Nguyen Van A", email = "vana@gmail.com", message = "Xin chào, kết bạn nhé!")
-    ),
     val unreadNotifications: List<MessageNotification> = emptyList(),
     val userPresences: Map<Int, UserPresence> = emptyMap(),
     val activeTab: ActiveTab = ActiveTab.CHATS,
@@ -55,7 +52,8 @@ data class ChatState(
 
 class ChatViewModel(
     private val repository: IChatRepository,
-    private val socketClient: ISocketClient
+    private val socketClient: ISocketClient,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
     private val _state = MutableStateFlow(ChatState())
     val state: StateFlow<ChatState> = _state.asStateFlow()
@@ -126,34 +124,6 @@ class ChatViewModel(
         }
         globalMessageListener = listener
         socket.on("newMessage", listener)
-    }
-
-    fun acceptFriendRequest(request: FriendRequestItem) {
-        viewModelScope.launch {
-            val updatedRequests = _state.value.friendRequests.filter { it.id != request.id }
-            _state.value = _state.value.copy(friendRequests = updatedRequests)
-            try {
-                val receiverId = request.id.toIntOrNull()
-                if (receiverId != null) {
-                    repository.sendMessage(
-                        receiverId,
-                        SendMessageRequest(text = "Kết bạn thành công!", image = null)
-                    )
-                }
-                getMyChatPartners()
-                getAllContacts()
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    errorMessage = e.localizedMessage ?: "Unable to accept friend request"
-                )
-            }
-        }
-    }
-
-    fun rejectFriendRequest(request: FriendRequestItem) {
-        // Reject: do not update relationship down to database
-        val updatedRequests = _state.value.friendRequests.filter { it.id != request.id }
-        _state.value = _state.value.copy(friendRequests = updatedRequests)
     }
 
     fun clearMessageNotification(notificationId: Int) {
@@ -507,13 +477,5 @@ class ChatViewModel(
         super.onCleared()
     }
 
-    fun getCurrentUserId(): Int? {
-        return _state.value.currentUserId
-    }
-
-    fun setCurrentUserId(userId: Int) {
-        _state.value = _state.value.copy(
-            currentUserId = userId
-        )
-    }
+    fun getCurrentUserId(): Int? = sessionManager.currentUserId
 }

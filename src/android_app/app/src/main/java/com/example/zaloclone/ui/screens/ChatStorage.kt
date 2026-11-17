@@ -13,7 +13,6 @@ typealias MessageType = MessageType
 typealias Message = com.example.zaloclone.ui.model.Message
 typealias ChatItem = com.example.zaloclone.ui.model.ChatItem
 typealias FriendItem = com.example.zaloclone.ui.model.FriendItem
-typealias FriendRequestItem = com.example.zaloclone.ui.model.FriendRequestItem
 typealias UserProfile = com.example.zaloclone.ui.model.UserProfile
 
 // Local storage delegation helpers
@@ -49,12 +48,6 @@ fun deleteChat(context: Context, chatId: String) =
 
 fun deleteFriend(context: Context, friendId: String) =
     com.example.zaloclone.data.local.deleteFriend(context, friendId)
-
-fun saveFriendRequestsFromJson(context: Context, requests: List<FriendRequestItem>) =
-    com.example.zaloclone.data.local.saveFriendRequestsFromJson(context, requests)
-
-fun loadFriendRequestsFromJson(context: Context): List<FriendRequestItem> =
-    com.example.zaloclone.data.local.loadFriendRequestsFromJson(context)
 
 fun addFriendAndChat(
     context: Context,

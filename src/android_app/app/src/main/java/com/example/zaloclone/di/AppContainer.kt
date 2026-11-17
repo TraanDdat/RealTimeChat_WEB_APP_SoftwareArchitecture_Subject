@@ -7,6 +7,9 @@ import com.example.zaloclone.api.repository.AuthRepository
 import com.example.zaloclone.api.repository.ChatRepository
 import com.example.zaloclone.api.repository.IAuthRepository
 import com.example.zaloclone.api.repository.IChatRepository
+import com.example.zaloclone.api.repository.IFriendRepository
+import com.example.zaloclone.api.repository.FriendRepository
+import com.example.zaloclone.session.SessionManager
 import com.example.zaloclone.socket.ISocketClient
 import com.example.zaloclone.socket.ISocketService
 import com.example.zaloclone.socket.SocketService
@@ -26,11 +29,19 @@ class AppContainer(private val applicationContext: Context) {
         ChatRepository()
     }
 
+    val friendRepository: IFriendRepository by lazy {
+        FriendRepository()
+    }
+
     val socketClientInstance: ISocketClient by lazy {
         socketClient
     }
 
     val socketServiceInstance: ISocketService by lazy {
         SocketService(socketClientInstance)
+    }
+
+    val sessionManager: SessionManager by lazy {
+        SessionManager()
     }
 }

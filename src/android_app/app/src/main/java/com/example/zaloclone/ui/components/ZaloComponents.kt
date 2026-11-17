@@ -24,12 +24,13 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.foundation.border
 import androidx.compose.ui.unit.Dp
-import com.example.zaloclone.ui.model.FriendRequestItem
-import com.example.zaloclone.ui.model.PresenceStatus
+import com.example.zaloclone.ui.model.*
 import com.example.zaloclone.ui.theme.ButtonGray
 import com.example.zaloclone.ui.theme.TextGray
 import com.example.zaloclone.ui.theme.ZaloCyan
 import com.example.zaloclone.ui.viewModel.ChatState
+import com.example.zaloclone.ui.viewModel.FriendState
+import com.example.zaloclone.ui.viewModel.FriendViewModel
 import com.example.zaloclone.ui.viewModel.MessageNotification
 
 @Composable
@@ -153,12 +154,20 @@ fun ZaloTextField(
 @Composable
 fun NotificationDialog(
     chatState: ChatState,
+    friendState: FriendState,
+    friendViewModel: FriendViewModel,
     onDismiss: () -> Unit,
-    onAcceptFriend: (FriendRequestItem) -> Unit,
-    onRejectFriend: (FriendRequestItem) -> Unit,
+    onAcceptFriend: (Int) -> Unit,
+    onRejectFriend: (Int) -> Unit,
     onNotificationMessageClick: (MessageNotification) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
+
+    LaunchedEffect(selectedTab) {
+        if (selectedTab == 0) {
+            friendViewModel.getRequest()
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -186,7 +195,7 @@ fun NotificationDialog(
                 ) {
                     TextButton(onClick = { selectedTab = 0 }) {
                         Text(
-                            text = "Friend Requests (${chatState.friendRequests.size})",
+                            text = "Friend Requests (${friendState.friendRequests.size})",
                             color = if (selectedTab == 0) Color(0xFF00BCD4) else Color.Gray,
                             fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
                         )
@@ -210,7 +219,7 @@ fun NotificationDialog(
                         .weight(1f)
                 ) {
                     if (selectedTab == 0) {
-                        if (chatState.friendRequests.isEmpty()) {
+                        if (friendState.friendRequests.isEmpty()) {
                             item {
                                 Box(
                                     modifier = Modifier
@@ -222,7 +231,7 @@ fun NotificationDialog(
                                 }
                             }
                         } else {
-                            items(chatState.friendRequests, key = { it.id }) { req ->
+                            items(friendState.friendRequests, key = { it.id }) { req ->
                                 Card(
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F7)),
@@ -237,7 +246,7 @@ fun NotificationDialog(
                                             ) {
                                                 Box(contentAlignment = Alignment.Center) {
                                                     Text(
-                                                        text = req.name.firstOrNull()?.uppercase() ?: "?",
+                                                        text = req.username.firstOrNull()?.uppercase() ?: "?",
                                                         color = Color.White,
                                                         fontWeight = FontWeight.Bold
                                                     )
@@ -245,19 +254,19 @@ fun NotificationDialog(
                                             }
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Column(modifier = Modifier.weight(1f)) {
-                                                Text(text = req.name, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                                Text(text = req.username, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                                 Text(text = req.email, fontSize = 12.sp, color = Color.Gray)
                                             }
                                         }
                                         Spacer(modifier = Modifier.height(6.dp))
-                                        Text(text = req.message, fontSize = 13.sp, color = Color.DarkGray)
+                                        //Text(text = req.message, fontSize = 13.sp, color = Color.DarkGray)
                                         Spacer(modifier = Modifier.height(8.dp))
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.End
                                         ) {
                                             OutlinedButton(
-                                                onClick = { onRejectFriend(req) },
+                                                onClick = { onRejectFriend(req.id) },
                                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Red),
                                                 modifier = Modifier.height(36.dp)
                                             ) {
@@ -265,7 +274,7 @@ fun NotificationDialog(
                                             }
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Button(
-                                                onClick = { onAcceptFriend(req) },
+                                                onClick = { onAcceptFriend(req.id) },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00BCD4)),
                                                 modifier = Modifier.height(36.dp)
                                             ) {

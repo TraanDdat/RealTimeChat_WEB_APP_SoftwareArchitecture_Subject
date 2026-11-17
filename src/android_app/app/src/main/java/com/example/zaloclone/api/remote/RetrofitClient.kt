@@ -49,7 +49,11 @@ object RetrofitClient {
         retrofit.create(ResetPasswordApiServices::class.java)
     }
 
-    val ChatApi: ChatApiServices by lazy {
+    val chatApi: ChatApiServices by lazy {
         retrofit.create(ChatApiServices::class.java)
+    }
+
+    val friendApi: FriendApiServices by lazy {
+        retrofit.create(FriendApiServices::class.java)
     }
 }

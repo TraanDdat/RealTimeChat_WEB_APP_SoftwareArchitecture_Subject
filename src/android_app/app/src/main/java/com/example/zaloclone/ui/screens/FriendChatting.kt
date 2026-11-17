@@ -33,18 +33,21 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.example.zaloclone.ui.viewModel.ChatViewModel
+import com.example.zaloclone.ui.viewModel.FriendViewModel
 import com.example.zaloclone.api.model.ChatUser
 
 @Composable
 fun FriendsScreen(
     chatViewModel: ChatViewModel,
+    friendViewModel: FriendViewModel,
     onFriendSelect: (ChatUser) -> Unit = {},
     onAddFriend: (String) -> Unit = {},
     onNavigateToChats: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val chatState by chatViewModel.state.collectAsState()
+    val friendState by friendViewModel.state.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -101,7 +104,7 @@ fun FriendsScreen(
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
-                            val totalUnread = chatState.friendRequests.size + chatState.unreadNotifications.size
+                            val totalUnread = friendState.friendRequests.size + chatState.unreadNotifications.size
                             if (totalUnread > 0) {
                                 Badge(
                                     modifier = Modifier
@@ -395,45 +398,36 @@ fun FriendsScreen(
                 }
             },
             confirmButton = {
-                if (searchedUser == null) {
-                    Button(
-                        enabled = friendInput.isNotBlank(),
-                        onClick = {
-                            val emailTrimmed = friendInput.trim()
-                            val found = chatState.allContacts.find { 
-                                it.email.equals(emailTrimmed, ignoreCase = true) 
-                            }
-                            searchAttempted = true
-                            if (found != null) {
-                                searchedUser = found
-                            } else {
-                                searchedUser = null
-                                Toast.makeText(context, "User not found", Toast.LENGTH_SHORT).show()
-                            }
+                Button(
+                    enabled = friendInput.isNotBlank(),
+                    onClick = {
+                        val targetEmail = friendInput.trim()
+
+                        val isAlreadyFriend = chatState.allContacts.any {
+                            it.email.equals(targetEmail, ignoreCase = true)
                         }
-                    ) {
-                        Text("Search")
-                    }
-                } else {
-                    Button(
-                        onClick = {
-                            val isAlreadyFriend = chatState.chats.any { 
-                                it.id == searchedUser?.id || it.email.equals(searchedUser?.email, ignoreCase = true) 
-                            }
-                            if (isAlreadyFriend) {
-                                Toast.makeText(context, "Existing friend", Toast.LENGTH_SHORT).show()
-                            } else {
-                                Toast.makeText(context, "Sent friend request to ${searchedUser?.username}", Toast.LENGTH_SHORT).show()
-                                onAddFriend(searchedUser?.email ?: "")
-                                showAddDialog = false
-                                searchedUser = null
-                                searchAttempted = false
-                                friendInput = ""
-                            }
+
+                        if (isAlreadyFriend) {
+                            Toast.makeText(
+                                context,
+                                "This user is already your friend!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            friendViewModel.sendRequest(targetEmail)
+
+                            Toast.makeText(
+                                context,
+                                "Friend request sent!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+
+                            showAddDialog = false
+                            friendInput = ""
                         }
-                    ) {
-                        Text("Add Friend")
                     }
+                ) {
+                    Text("Add Friend")
                 }
             },
             dismissButton = {
@@ -454,14 +448,16 @@ fun FriendsScreen(
     if (showNotificationDialog) {
         NotificationDialog(
             chatState = chatState,
+            friendState = friendState,
+            friendViewModel = friendViewModel,
             onDismiss = { showNotificationDialog = false },
             onAcceptFriend = { req ->
-                chatViewModel.acceptFriendRequest(req)
-                Toast.makeText(context, "Accept friend request from ${req.name}. Successfully add friend!", Toast.LENGTH_SHORT).show()
+                friendViewModel.acceptFriendRequest(req)
+                Toast.makeText(context, "Accept friend request. Successfully add friend!", Toast.LENGTH_SHORT).show()
             },
             onRejectFriend = { req ->
-                chatViewModel.rejectFriendRequest(req)
-                Toast.makeText(context, "Reject friend request from ${req.name}.", Toast.LENGTH_SHORT).show()
+                friendViewModel.rejectFriendRequest(req)
+                Toast.makeText(context, "Reject friend request.", Toast.LENGTH_SHORT).show()
             },
             onNotificationMessageClick = { notif ->
                 chatViewModel.clearNotificationsForUser(notif.senderId)

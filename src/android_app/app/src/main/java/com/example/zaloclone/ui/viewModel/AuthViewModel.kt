@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 data class AuthState(
     val authUser: AuthUser? = null,
     val userId: Int? = null,
+    val email: String? = null,
     val isCheckingAuth: Boolean = true,
     val isSigningUp: Boolean = false,
     val isLoggingIn: Boolean = false,
@@ -111,8 +112,10 @@ class AuthViewModel(
                     successMessage = "Logged in successfully"
                 )
                 val userId = response.data.id
+                val email = response.data.email
                 _state.value = _state.value.copy(
                     userId = userId,
+                    email = email,
                     isLoggingIn = false
                 )
                 connectSocket(token)

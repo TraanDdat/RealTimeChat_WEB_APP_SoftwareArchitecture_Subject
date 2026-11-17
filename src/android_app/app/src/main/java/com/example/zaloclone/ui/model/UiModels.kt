@@ -88,16 +88,6 @@ data class FriendItem(
         get() = avatarBgColor ?: Color(0xFFD1E3FF)
 }
 
-data class FriendRequestItem(
-    val id: String,
-    val name: String,
-    val email: String = "",
-    val phone: String = "",
-    val message: String = "Xin chào, mình muốn kết bạn với bạn.",
-    val avatarBgColor: Color = Color(0xFFD1E3FF),
-    val avatarUri: String? = null
-)
-
 data class UserProfile(
     val name: String = "Người dùng Zalo",
     val email: String = "user@gmail.com",

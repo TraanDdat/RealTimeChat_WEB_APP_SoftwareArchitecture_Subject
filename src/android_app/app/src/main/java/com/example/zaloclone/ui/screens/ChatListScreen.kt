@@ -30,6 +30,7 @@ import android.widget.Toast
 import androidx.compose.material.icons.outlined.Notifications
 import com.example.zaloclone.ui.components.NotificationDialog
 import com.example.zaloclone.ui.viewModel.ChatViewModel
+import com.example.zaloclone.ui.viewModel.FriendViewModel
 
 import com.example.zaloclone.ui.model.ChatItem
 import com.example.zaloclone.ui.model.PresenceStatus
@@ -37,6 +38,7 @@ import com.example.zaloclone.ui.model.PresenceStatus
 @Composable
 fun ChatListScreen(
     chatViewModel: ChatViewModel? = null,
+    friendViewModel: FriendViewModel? = null,
     onChatItemClick: (String, String) -> Unit = { _, _ -> },
     onNavigateToFriends: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -111,8 +113,9 @@ fun ChatListScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (chatViewModel != null) {
-                            val currentState = chatViewModel.state.collectAsState().value
+                        if (friendViewModel != null && chatViewModel != null) {
+                            val currentState = friendViewModel.state.collectAsState().value
+                            val currentChatState = chatViewModel.state.collectAsState().value
                             Box {
                                 IconButton(
                                     onClick = { showNotificationDialog = true }
@@ -124,7 +127,7 @@ fun ChatListScreen(
                                         modifier = Modifier.size(28.dp)
                                     )
                                 }
-                                val totalUnread = currentState.friendRequests.size + currentState.unreadNotifications.size
+                                val totalUnread = currentState.friendRequests.size + currentChatState.unreadNotifications.size
                                 if (totalUnread > 0) {
                                     Badge(
                                         modifier = Modifier
@@ -225,17 +228,20 @@ fun ChatListScreen(
         )
     }
 
-    if (showNotificationDialog && chatViewModel != null) {
+    if (showNotificationDialog && chatViewModel != null && friendViewModel != null) {
         val chatState = chatViewModel.state.collectAsState().value
+        val friendState = friendViewModel.state.collectAsState().value
         NotificationDialog(
             chatState = chatState,
+            friendState = friendState,
+            friendViewModel = friendViewModel,
             onDismiss = { showNotificationDialog = false },
-            onAcceptFriend = { req ->
-                chatViewModel.acceptFriendRequest(req)
-                Toast.makeText(context, "Đã chấp nhận lời mời kết bạn từ ${req.name}. Kết bạn thành công!", Toast.LENGTH_SHORT).show()
+            onAcceptFriend = { requestId ->
+                friendViewModel.acceptFriendRequest(requestId)
+                Toast.makeText(context, "Đã chấp nhận lời mời kết bạn. Kết bạn thành công!", Toast.LENGTH_SHORT).show()
             },
-            onRejectFriend = { req ->
-                chatViewModel.rejectFriendRequest(req)
+            onRejectFriend = { requestId ->
+                friendViewModel.rejectFriendRequest(requestId)
                 Toast.makeText(context, "Đã từ chối lời mời kết bạn (không cập nhật cơ sở dữ liệu).", Toast.LENGTH_SHORT).show()
             },
             onNotificationMessageClick = { notif ->

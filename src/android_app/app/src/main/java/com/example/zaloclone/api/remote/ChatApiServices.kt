@@ -26,7 +26,7 @@ interface ChatApiServices {
         @Path("userId") userId: Int
     ): List<ChatMessage>
 
-    @GET("messages/conversation/{conversationId}")
+    @GET("/api/messages/conversation/{conversationId}")
     suspend fun getMessagesByConversation(
         @Path("conversationId") conversationId: String
     ): List<ChatMessage>
@@ -37,7 +37,7 @@ interface ChatApiServices {
         @Body data: SendMessageRequest
     ): ChatMessage
 
-    @POST("messages/send/conversation/{conversationId}")
+    @POST("/api/messages/send/conversation/{conversationId}")
     suspend fun sendMessageToConversation(
         @Path("conversationId") conversationId: String,
         @Body data: SendMessageRequest

@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.compose.ui.graphics.Color
 import com.example.zaloclone.ui.model.ChatItem
 import com.example.zaloclone.ui.model.FriendItem
-import com.example.zaloclone.ui.model.FriendRequestItem
 import com.example.zaloclone.ui.model.Message
 import com.example.zaloclone.ui.model.UserProfile
 
@@ -22,8 +21,6 @@ fun saveFriendListToJson(context: Context, friendList: List<FriendItem>) {}
 fun loadFriendListFromJson(context: Context): List<FriendItem> = emptyList()
 fun deleteChat(context: Context, chatId: String) {}
 fun deleteFriend(context: Context, friendId: String) {}
-fun saveFriendRequestsFromJson(context: Context, requests: List<FriendRequestItem>) {}
-fun loadFriendRequestsFromJson(context: Context): List<FriendRequestItem> = emptyList()
 fun addFriendAndChat(context: Context, id: String, name: String, email: String = "", phone: String = "", avatarBgColor: Color, avatarUri: String? = null) {}
 fun updateGroupName(context: Context, groupId: String, newName: String) {}
 fun updateFriendNickname(context: Context, friendId: String, newNickname: String) {}
