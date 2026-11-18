@@ -8,8 +8,8 @@ from zalo_backend.message_service import group_service
 from zalo_backend.message_service.realtime import sio
 from zalo_backend.models.mongodb.msg import GroupMessage, MessageCreate
 from zalo_backend.schemas.groups import (
-    GroupCreate,
-    GroupMemberAdd,
+    GroupCreateRequest,
+    GroupMemberAddRequest,
     GroupMemberRoleUpdate,
     GroupResponse,
 )
@@ -25,7 +25,7 @@ def list_groups(db: Session = Depends(get_db), current_user=Depends(get_current_
 
 @groups_router.post("", response_model=GroupResponse, status_code=status.HTTP_201_CREATED)
 def create_group(
-    data: GroupCreate,
+    data: GroupCreateRequest,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -34,7 +34,7 @@ def create_group(
 
 @groups_router.post("/{group_id}/members", response_model=GroupResponse)
 def add_member(
-    data: GroupMemberAdd,
+    data: GroupMemberAddRequest,
     group_id: int = Path(gt=0),
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
