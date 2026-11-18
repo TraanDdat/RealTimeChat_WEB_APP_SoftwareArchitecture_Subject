@@ -9,34 +9,32 @@ data class ChatUser(
     val profilePic: String?
 )
 
-data class Conversation(
-    @SerializedName("_id") val id: String,
-    val name: String?,
-    val isGroup: Boolean,
-    val avatarUri: String?,
-    val members: List<ChatUser>?,
-    val createdAt: String?
-)
-
-data class ConversationParticipant(
-    val conversationId: String,
-    val userId: Int,
-    val joinedAt: String?
-)
-
 data class ChatMessage(
     @SerializedName("_id") val id: String,
     val senderId: Int,
-    val receiverId: Int?,
-    val conversationId: String?,
+    val receiverId: Int? = null,
+    val groupId: Int? = null,
+    val senderUsername: String? = null,
     val text: String?,
     val image: String?,
     val createdAt: String,
-    val updatedAt: String?,
-    val isOptimistic: Boolean?
+    val updatedAt: String? = null,
+    val isOptimistic: Boolean? = false
 )
 
 data class SendMessageRequest(
     val text: String?,
     val image: String?
+)
+
+data class GroupMessageDataResponse(
+    @SerializedName("_id")
+    val id: String,
+    val groupId: Int,
+    val senderId: Int,
+    val senderUsername: String? = null,
+    val text: String? = null,
+    val image: String? = null,
+    val createdAt: String,
+    val updatedAt: String? = null
 )

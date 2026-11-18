@@ -31,7 +31,7 @@ data class Message(
     val text: String = "",
     val isMe: Boolean,
     val type: MessageType = MessageType.TEXT,
-    val timestamp: String? = null,
+    val timestamp: String,
     val duration: String? = null,
     val mediaUrl: String? = null,
     val fileName: String? = null,

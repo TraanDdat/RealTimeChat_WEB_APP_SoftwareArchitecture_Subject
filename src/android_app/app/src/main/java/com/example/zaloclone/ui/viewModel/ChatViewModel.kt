@@ -26,7 +26,7 @@ enum class ActiveTab {
 }
 
 data class MessageNotification(
-    val id: Int,
+    val id: String,
     val senderId: Int,
     val senderName: String,
     val text: String,
@@ -36,18 +36,16 @@ data class MessageNotification(
 data class ChatState(
     val allContacts: List<ChatUser> = emptyList(),
     val chats: List<ChatUser> = emptyList(),
-    val conversations: List<Conversation> = emptyList(),
     val messages: List<ChatMessage> = emptyList(),
     val unreadNotifications: List<MessageNotification> = emptyList(),
     val userPresences: Map<Int, UserPresence> = emptyMap(),
     val activeTab: ActiveTab = ActiveTab.CHATS,
     val selectedUser: ChatUser? = null,
-    val selectedConversation: Conversation? = null,
+    val selectedGroup: Int? = null,
     val isUsersLoading: Boolean = false,
     val isMessagesLoading: Boolean = false,
     val isSoundEnabled: Boolean = false,
-    val errorMessage: String? = null,
-    val currentUserId: Int? = null
+    val errorMessage: String? = null
 )
 
 class ChatViewModel(
@@ -59,6 +57,7 @@ class ChatViewModel(
     val state: StateFlow<ChatState> = _state.asStateFlow()
     private val gson = Gson()
     private var messageListener: Emitter.Listener? = null
+    private var groupMessageListener: Emitter.Listener? = null
     private var globalMessageListener: Emitter.Listener? = null
 
     init {
@@ -82,15 +81,8 @@ class ChatViewModel(
                 )
                 val currentState = _state.value
                 val selectedUser = currentState.selectedUser
-                val selectedConversation = currentState.selectedConversation
 
-                val isCurrentChat = if (selectedConversation != null) {
-                    newMessage.conversationId == selectedConversation.id
-                } else if (selectedUser != null) {
-                    newMessage.senderId == selectedUser.id
-                } else {
-                    false
-                }
+                val isCurrentChat = selectedUser != null && newMessage.senderId == selectedUser.id
 
                 if (isCurrentChat) {
                     if (!currentState.messages.any { it.id == newMessage.id }) {
@@ -101,13 +93,13 @@ class ChatViewModel(
                 } else {
                     val senderId = newMessage.senderId
                     val existingNotifs = currentState.unreadNotifications
-                    if (!existingNotifs.any { it.id == newMessage.id.toInt() }) {
+                    if (!existingNotifs.any { it.id == newMessage.id }) {
                         val senderContact = currentState.allContacts.find { it.id == senderId }
                             ?: currentState.chats.find { it.id == senderId }
                         val senderName = senderContact?.username ?: "Người dùng #$senderId"
 
                         val notif = MessageNotification(
-                            id = newMessage.id.toInt(),
+                            id = newMessage.id,
                             senderId = senderId,
                             senderName = senderName,
                             text = newMessage.text ?: "[Hình ảnh]",
@@ -126,7 +118,7 @@ class ChatViewModel(
         socket.on("newMessage", listener)
     }
 
-    fun clearMessageNotification(notificationId: Int) {
+    fun clearMessageNotification(notificationId: String) {
         val updatedNotifications = _state.value.unreadNotifications.filter { it.id != notificationId }
         _state.value = _state.value.copy(unreadNotifications = updatedNotifications)
     }
@@ -153,7 +145,7 @@ class ChatViewModel(
 
         _state.value = _state.value.copy(
             selectedUser = user,
-            selectedConversation = null,
+            selectedGroup = null,
             messages = emptyList(),
             isMessagesLoading = user != null
         )
@@ -163,17 +155,17 @@ class ChatViewModel(
         }
     }
 
-    fun setSelectedConversation(conversation: Conversation?) {
+    fun setSelectedGroup(groupId: Int?) {
         unsubscribeFromMessages()
 
         _state.value = _state.value.copy(
-            selectedConversation = conversation,
+            selectedGroup = groupId,
             selectedUser = null,
             messages = emptyList(),
-            isMessagesLoading = conversation != null
+            isMessagesLoading = groupId != null
         )
-        if (conversation != null) {
-            getMessagesByConversation(conversation.id)
+        if (groupId != null) {
+            getGroupMessages(groupId)
             subscribeToMessages()
         }
     }
@@ -224,29 +216,6 @@ class ChatViewModel(
         }
     }
 
-    fun getConversations() {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(
-                isUsersLoading = true,
-                errorMessage = null
-            )
-            try {
-                val conversations = repository.getConversations()
-                _state.value = _state.value.copy(
-                    conversations = conversations
-                )
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    errorMessage = e.localizedMessage ?: "Unable to get conversations"
-                )
-            } finally {
-                _state.value = _state.value.copy(
-                    isUsersLoading = false
-                )
-            }
-        }
-    }
-
     fun getMessagesByUserId(userId: Int) {
         viewModelScope.launch {
             _state.value = _state.value.copy(
@@ -254,54 +223,17 @@ class ChatViewModel(
                 errorMessage = null
             )
             try {
-                val messages = repository.getMessages(userId)
-                if (_state.value.selectedUser?.id?.toInt() != userId) {
-                    return@launch
-                }
-                _state.value = _state.value.copy(
-                    messages = messages
-                )
+                val response = repository.getMessages(userId)
+                if (_state.value.selectedUser?.id != userId) {return@launch}
+                val mergedMessages = (response + _state.value.messages)
+                    .distinctBy { it.id }
+                    .sortedBy { it.createdAt }
+                _state.value = _state.value.copy(messages = mergedMessages)
             } catch (e: Exception) {
-                if (_state.value.selectedUser?.id?.toInt() == userId) {
-                    _state.value = _state.value.copy(
-                        errorMessage = e.localizedMessage ?: "Unable to get messages"
-                    )
-                }
+                _state.value = _state.value.copy(errorMessage = e.localizedMessage ?: "Unable to get messages")
             } finally {
-                if (_state.value.selectedUser?.id?.toInt() == userId) {
-                    _state.value = _state.value.copy(
-                        isMessagesLoading = false
-                    )
-                }
-            }
-        }
-    }
-
-    fun getMessagesByConversation(conversationId: String) {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(
-                isMessagesLoading = true,
-                errorMessage = null
-            )
-            try {
-                val messages = repository.getMessagesByConversation(conversationId)
-                if (_state.value.selectedConversation?.id != conversationId) {
-                    return@launch
-                }
-                _state.value = _state.value.copy(
-                    messages = messages
-                )
-            } catch (e: Exception) {
-                if (_state.value.selectedConversation?.id == conversationId) {
-                    _state.value = _state.value.copy(
-                        errorMessage = e.localizedMessage ?: "Unable to get messages"
-                    )
-                }
-            } finally {
-                if (_state.value.selectedConversation?.id == conversationId) {
-                    _state.value = _state.value.copy(
-                        isMessagesLoading = false
-                    )
+                if (_state.value.selectedUser?.id == userId) {
+                    _state.value = _state.value.copy(isMessagesLoading = false)
                 }
             }
         }
@@ -311,136 +243,76 @@ class ChatViewModel(
         messageData: SendMessageRequest,
         currentUserId: Int
     ) {
-        val selectedUser = _state.value.selectedUser
-        val selectedConversation = _state.value.selectedConversation
-
-        if (selectedConversation != null) {
-            val convId = selectedConversation.id
-            viewModelScope.launch {
-                val tempId = "temp_${System.currentTimeMillis()}"
-                val optimisticMessage = ChatMessage(
-                    id = tempId,
-                    senderId = currentUserId,
-                    receiverId = null,
-                    conversationId = convId,
-                    text = messageData.text,
-                    image = messageData.image,
-                    createdAt = SimpleDateFormat(
-                        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-                        Locale.US
-                    ).apply {
-                        timeZone = TimeZone.getTimeZone("UTC")
-                    }.format(Date()),
-                    updatedAt = null,
-                    isOptimistic = true
-                )
-                _state.value = _state.value.copy(
-                    messages = _state.value.messages + optimisticMessage
-                )
-                try {
-                    val response = repository.sendMessageToConversation(convId, messageData)
-                    if (_state.value.selectedConversation?.id != convId) {
-                        return@launch
-                    }
-                    val updatedMessages = _state.value.messages.filter {
-                        it.id != tempId && it.id != response.id
-                    } + response
-                    _state.value = _state.value.copy(
-                        messages = updatedMessages
-                    )
-                } catch (e: Exception) {
-                    if (_state.value.selectedConversation?.id == convId) {
+        viewModelScope.launch {
+            val currentState  = _state.value
+            try {
+                when {
+                    currentState.selectedGroup != null -> {
+                        val groupId = currentState.selectedGroup
+                        val res_groupmsg = repository.sendGroupMessage(groupId, messageData)
+                        if (_state.value.selectedGroup != groupId) {return@launch}
+                        val new_groupmsg = res_groupmsg.toChatMessage()
                         _state.value = _state.value.copy(
-                            messages = _state.value.messages.filter { it.id != tempId },
-                            errorMessage = e.localizedMessage ?: "Unable to send message"
-                        )
+                            messages = _state.value.messages.filter {it.id != new_groupmsg.id} + new_groupmsg
+                            )
                     }
-                }
-            }
-        } else if (selectedUser != null) {
-            val receiverId = selectedUser.id
-            viewModelScope.launch {
-                val tempId = "temp_${System.currentTimeMillis()}"
-                val optimisticMessage = ChatMessage(
-                    id = tempId,
-                    senderId = currentUserId,
-                    receiverId = receiverId,
-                    conversationId = null,
-                    text = messageData.text,
-                    image = messageData.image,
-                    createdAt = SimpleDateFormat(
-                        "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
-                        Locale.US
-                    ).apply {
-                        timeZone = TimeZone.getTimeZone("UTC")
-                    }.format(Date()),
-                    updatedAt = null,
-                    isOptimistic = true
-                )
-                _state.value = _state.value.copy(
-                    messages = _state.value.messages + optimisticMessage
-                )
-                try {
-                    val response = repository.sendMessage(receiverId, messageData)
-                    if (_state.value.selectedUser?.id?.toInt() != receiverId) {
-                        return@launch
-                    }
-                    val updatedMessages = _state.value.messages.filter {
-                        it.id != tempId && it.id != response.id
-                    } + response
-                    _state.value = _state.value.copy(
-                        messages = updatedMessages
-                    )
-                } catch (e: Exception) {
-                    if (_state.value.selectedUser?.id?.toInt() == receiverId) {
+                    currentState.selectedUser != null -> {
+                        val userId = currentState.selectedUser.id
+                        val res_msg = repository.sendMessage(userId, messageData)
+                        if (_state.value.selectedUser?.id != userId) {return@launch}
                         _state.value = _state.value.copy(
-                            messages = _state.value.messages.filter { it.id != tempId },
-                            errorMessage = e.localizedMessage ?: "Unable to send message"
-                        )
+                            messages = _state.value.messages.filter {it.id != res_msg.id} + res_msg
+                            )
                     }
+                    else -> return@launch
                 }
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(errorMessage = e.localizedMessage ?: "Unable to send messages")
             }
         }
     }
 
     fun subscribeToMessages() {
         val socket = socketClient.getSocket() ?: return
-        if (_state.value.selectedUser == null && _state.value.selectedConversation == null) return
+        val currentState = _state.value
+        if (currentState.selectedUser == null && currentState.selectedGroup == null) return
         unsubscribeFromMessages()
-        val listener = Emitter.Listener { args ->
+        // handle message listener (1-1 chat)
+        messageListener = Emitter.Listener { args ->
             if (args.isEmpty()) return@Listener
             try {
                 val newMessage = gson.fromJson(
                     args[0].toString(),
                     ChatMessage::class.java
                 )
-                val selectedUser = _state.value.selectedUser
-                val selectedConversation = _state.value.selectedConversation
-
-                if (selectedConversation != null) {
-                    if (newMessage.conversationId != selectedConversation.id) {
-                        return@Listener
-                    }
-                } else if (selectedUser != null) {
-                    if (newMessage.senderId != selectedUser.id.toInt()) {
-                        return@Listener
-                    }
-                } else {
-                    return@Listener
-                }
-
-                if (_state.value.messages.any { it.id == newMessage.id }) {
-                    return@Listener
-                }
-                _state.value = _state.value.copy(
-                    messages = _state.value.messages + newMessage
-                )
+                val state = _state.value
+                val selectedUser = state.selectedUser ?: return@Listener
+                if (newMessage.senderId != selectedUser.id) {return@Listener}
+                if (state.messages.any { it.id == newMessage.id }) {return@Listener}
+                _state.value = _state.value.copy(messages = state.messages + newMessage)
             } catch (e: Exception) {
                 // Ignore invalid socket payload
             }
         }
-        messageListener = listener
-        socket.on("newMessage", listener)
+        // handle group listener (1-n chat)
+        groupMessageListener = Emitter.Listener { args ->
+            if (args.isEmpty()) return@Listener
+            try {
+                val groupMessage = gson.fromJson(
+                    args[0].toString(),
+                    ChatMessage::class.java
+                )
+                val state = _state.value
+                val selectedGroup = state.selectedGroup ?: return@Listener
+                if (groupMessage.groupId != selectedGroup) {return@Listener}
+                if (state.messages.any { it.id == groupMessage.id }) {return@Listener}
+                _state.value = _state.value.copy(messages = state.messages + groupMessage)
+            } catch (e: Exception) {
+                // Ignore invalid socket payload
+            }
+        }
+        socket.on("newMessage", messageListener)
+        socket.on("newGroupMessage", groupMessageListener)
     }
 
     fun unsubscribeFromMessages() {
@@ -448,7 +320,11 @@ class ChatViewModel(
         messageListener?.let {
             socket?.off("newMessage", it)
         }
+        groupMessageListener?.let {
+            socket?.off("newGroupMessage", it)
+        }
         messageListener = null
+        groupMessageListener = null
     }
 
     fun clearError() {
@@ -478,4 +354,36 @@ class ChatViewModel(
     }
 
     fun getCurrentUserId(): Int? = sessionManager.currentUserId
+    
+    fun getGroupMessages(groupId: Int) {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isMessagesLoading = true)
+            try {
+                if (_state.value.selectedGroup != groupId) return@launch
+                val getgrmsg_response = repository.getGroupMessages(groupId)
+                if (_state.value.selectedGroup != groupId) return@launch
+                _state.value = _state.value.copy(messages = getgrmsg_response.map{it.toChatMessage()})
+            } catch (e:Exception) {
+                _state.value = _state.value.copy(errorMessage = e.message ?: "Could not get message of group")
+            } finally {
+                if (_state.value.selectedGroup == groupId) {
+                    _state.value = _state.value.copy(isMessagesLoading = false)
+                }
+            }
+        }
+    }
+
+    private fun GroupMessageDataResponse.toChatMessage(): ChatMessage {
+
+        return ChatMessage(
+            id = id,
+            senderId = senderId,
+            groupId = groupId,
+            senderUsername = senderUsername,
+            text = text,
+            image = image,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+    }
 }

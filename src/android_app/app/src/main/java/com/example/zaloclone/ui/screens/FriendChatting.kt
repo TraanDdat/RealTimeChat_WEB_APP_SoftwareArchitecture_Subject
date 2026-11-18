@@ -32,15 +32,16 @@ import com.example.zaloclone.ui.components.UserAvatar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.example.zaloclone.ui.viewModel.ChatViewModel
-import com.example.zaloclone.ui.viewModel.FriendViewModel
-import com.example.zaloclone.api.model.ChatUser
+import com.example.zaloclone.ui.viewModel.*
+import com.example.zaloclone.api.model.*
 
 @Composable
 fun FriendsScreen(
     chatViewModel: ChatViewModel,
     friendViewModel: FriendViewModel,
+    groupViewModel: GroupViewModel,
     onFriendSelect: (ChatUser) -> Unit = {},
+    onGroupSelect: (GetGroupDataResponse) -> Unit = {},
     onAddFriend: (String) -> Unit = {},
     onNavigateToChats: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -48,6 +49,7 @@ fun FriendsScreen(
     val context = LocalContext.current
     val chatState by chatViewModel.state.collectAsState()
     val friendState by friendViewModel.state.collectAsState()
+    val groupState by groupViewModel.state.collectAsState()
 
     var searchQuery by remember { mutableStateOf("") }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -62,6 +64,7 @@ fun FriendsScreen(
     // Fetch contacts from backend
     LaunchedEffect(Unit) {
         chatViewModel.getAllContacts()
+        groupViewModel.getGroups()
         chatViewModel.getMyChatPartners()
     }
 
@@ -279,6 +282,25 @@ fun FriendsScreen(
                                 )
                             }
                         }
+                    }
+
+                    items(
+                        items = groupState.groups,
+                        key = { "group_${it.id}" }
+                    ) { group ->
+                        GroupItemRow(
+                            group = group,
+                            isEditing = isEditing,
+                            onClick = {
+                                onGroupSelect(group)
+                            }
+                        )
+
+                        HorizontalDivider(
+                            color = Color(0xFFF2F2F7),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(start = 76.dp)
+                        )
                     }
 
                     items(
@@ -534,6 +556,55 @@ fun ContactItemRow(
                     tint = Color.Red
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun GroupItemRow(
+    group: GetGroupDataResponse,
+    isEditing: Boolean = false,
+    onDelete: () -> Unit = {},
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Surface(
+            modifier = Modifier.size(48.dp),
+            shape = CircleShape,
+            color = Color(0xFFE1BEE7)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Group,
+                    contentDescription = "Group",
+                    tint = Color(0xFF7B1FA2)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = group.name,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                color = Color.Black
+            )
+
+            Spacer(modifier = Modifier.height(3.dp))
+
+            Text(
+                text = "${group.members.size} members",
+                fontSize = 13.sp,
+                color = Color.Gray
+            )
         }
     }
 }
