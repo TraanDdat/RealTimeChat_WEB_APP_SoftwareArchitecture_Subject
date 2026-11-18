@@ -66,7 +66,7 @@ bkend.include_router(signup.register_router, prefix=settings.AUTH_URL)
 bkend.include_router(auth.auth_router, prefix=settings.AUTH_URL)
 bkend.include_router(messages.messages_router, prefix=settings.MESSAGES_URL)
 bkend.include_router(addfriend.addfriend_router, prefix=settings.USER_ADDFRIEND_URL)
-bkend.include_router(groups.groups_router, prefix="/api/groups")
+bkend.include_router(groups.groups_router, prefix=settings.GROUP_URL)
 
 # ASGI entry point: Socket.IO on /socket.io, everything else goes to FastAPI
 app = socketio.ASGIApp(sio, other_asgi_app=bkend)
