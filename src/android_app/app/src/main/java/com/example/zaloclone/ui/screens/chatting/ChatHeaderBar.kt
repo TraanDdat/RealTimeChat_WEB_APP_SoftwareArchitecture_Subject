@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaloclone.ui.components.PresenceBadge
 import com.example.zaloclone.ui.model.PresenceStatus
+import com.example.zaloclone.api.model.*
 
 @Composable
 fun ChatTopBar(
@@ -24,7 +25,8 @@ fun ChatTopBar(
     memberCount: Int = 0,
     presenceStatus: PresenceStatus? = null,
     onBackClick: () -> Unit,
-    onInfoClick: () -> Unit = {}
+    onInfoClick: () -> Unit = {},
+    selectGroup: GetGroupDataResponse?
 ) {
     Surface(shadowElevation = 2.dp, color = Color.White) {
         Row(
@@ -54,8 +56,9 @@ fun ChatTopBar(
                         PresenceBadge(status = presenceStatus, size = 10.dp)
                         Spacer(modifier = Modifier.width(6.dp))
                     }
+                    val cntselectGroup = selectGroup?.members?.size
                     Text(
-                        text = if (isGroup) "$memberCount thành viên" else status,
+                        text = if (isGroup) "$cntselectGroup thành viên" else status,
                         fontSize = 12.sp,
                         color = if (isGroup) Color(0xFF5B61F4) else Color.Gray,
                         fontWeight = if (isGroup) FontWeight.Medium else FontWeight.Normal

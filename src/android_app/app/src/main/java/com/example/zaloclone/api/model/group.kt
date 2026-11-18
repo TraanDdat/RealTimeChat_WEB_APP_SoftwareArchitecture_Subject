@@ -3,13 +3,10 @@ package com.example.zaloclone.api.model
 
 import com.google.gson.annotations.SerializedName
 
-data class MemberId(
-    val member_id: Int
-)
-
 data class GroupCreateRequest(
     val name: String,
-    val member_ids: List<MemberId>
+    @SerializedName("member_ids")
+    val member_ids: List<Int>
 )
 
 enum class GroupMemberRole {

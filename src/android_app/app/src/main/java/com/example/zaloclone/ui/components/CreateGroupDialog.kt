@@ -13,23 +13,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.zaloclone.data.local.loadChatListFromJson
-import com.example.zaloclone.data.local.loadFriendListFromJson
-import com.example.zaloclone.data.local.saveChatListToJson
 import com.example.zaloclone.ui.model.ChatItem
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.zaloclone.ui.viewModel.*
+import com.example.zaloclone.api.model.*
 
 @Composable
 fun CreateGroupDialog(
+    groupViewModel: GroupViewModel,
+    chatViewModel: ChatViewModel,
     context: Context,
     onDismiss: () -> Unit,
     onGroupCreated: (String, String) -> Unit
 ) {
     var groupNameInput by remember { mutableStateOf("") }
-    val friendList = remember { mutableStateOf(loadFriendListFromJson(context)) }
-    val selectedFriends = remember { mutableStateMapOf<String, Boolean>() }
+    val chatState by chatViewModel.state.collectAsState()
+    val allContacts = chatState.allContacts
+    val friendList: List<ChatUser> = chatState.allContacts
+    val selectedFriends = remember { mutableStateMapOf<Int, Boolean>() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -60,7 +63,7 @@ fun CreateGroupDialog(
                         .fillMaxWidth()
                         .weight(1f)
                 ) {
-                    items(friendList.value) { friend ->
+                    items(friendList) { friend ->
                         val isSelected = selectedFriends[friend.id] == true
                         Row(
                             modifier = Modifier
@@ -79,15 +82,15 @@ fun CreateGroupDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             UserAvatar(
-                                name = friend.name,
-                                avatarBgColor = friend.safeAvatarBgColor,
-                                avatarUri = friend.avatarUri,
+                                name = friend.username,
+                                //avatarBgColor = friend.safeAvatarBgColor,
+                                //avatarUri = friend.avatarUri,
                                 modifier = Modifier.size(36.dp),
                                 fontSize = 14.sp
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = friend.name,
+                                text = friend.username,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.weight(1f)
@@ -100,41 +103,21 @@ fun CreateGroupDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val selectedMemberNames = friendList.value.filter { selectedFriends[it.id] == true }.map { it.name }
-                    if (selectedMemberNames.isNotEmpty()) {
-                        val groupId = "group_${System.currentTimeMillis()}"
-                        val groupName = if (groupNameInput.isBlank()) {
-                            selectedMemberNames.joinToString(", ")
-                        } else {
-                            groupNameInput.trim()
-                        }
-                        val allMembers = listOf("Me") + selectedMemberNames
-                        val membersDescription = "Member: ${selectedMemberNames.joinToString(", ")}"
-
-                        val colors = listOf(Color(0xFF38C7FF), Color(0xFF5B61F4), Color(0xFF34C759), Color(0xFFFF9500), Color(0xFFAF52DE))
-                        val randomColor = colors[groupId.hashCode().let { if (it < 0) -it else it } % colors.size]
-
-                        val newChatItem = ChatItem(
-                            id = groupId,
-                            name = groupName,
-                            lastMessage = membersDescription,
-                            time = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()),
-                            unreadCount = 0,
-                            avatarBgColor = randomColor,
-                            isGroup = true,
-                            members = allMembers
+                    val selectedMembers = friendList.filter {
+                        selectedFriends[it.id] == true
+                    }
+                    if (selectedMembers.isNotEmpty()) {
+                        val memberIds = selectedMembers.map { it.id }
+                        groupViewModel.createGroup(
+                            name = groupNameInput.trim(),
+                            memberIds = memberIds
                         )
-
-                        val currentChats = loadChatListFromJson(context).toMutableList()
-                        currentChats.add(0, newChatItem)
-                        saveChatListToJson(context, currentChats)
-
-                        onGroupCreated(groupId, groupName)
+                        onDismiss()
                     }
                 },
                 enabled = selectedFriends.any { it.value }
             ) {
-                Text("Create")
+                Text("Create new group")
             }
         },
         dismissButton = {

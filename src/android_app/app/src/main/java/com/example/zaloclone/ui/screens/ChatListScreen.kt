@@ -29,16 +29,16 @@ import com.example.zaloclone.ui.components.UserAvatar
 import android.widget.Toast
 import androidx.compose.material.icons.outlined.Notifications
 import com.example.zaloclone.ui.components.NotificationDialog
-import com.example.zaloclone.ui.viewModel.ChatViewModel
-import com.example.zaloclone.ui.viewModel.FriendViewModel
+import com.example.zaloclone.ui.viewModel.*
 
 import com.example.zaloclone.ui.model.ChatItem
 import com.example.zaloclone.ui.model.PresenceStatus
 
 @Composable
 fun ChatListScreen(
-    chatViewModel: ChatViewModel? = null,
-    friendViewModel: FriendViewModel? = null,
+    chatViewModel: ChatViewModel,
+    friendViewModel: FriendViewModel,
+    groupViewModel: GroupViewModel,
     onChatItemClick: (String, String) -> Unit = { _, _ -> },
     onNavigateToFriends: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
@@ -54,9 +54,9 @@ fun ChatListScreen(
     val userPresences = chatState?.value?.userPresences ?: emptyMap()
 
     LaunchedEffect(chatState?.value?.chats) {
-        if (chatViewModel != null) {
+        //if (chatViewModel != null) {
             chatViewModel.getMyChatPartners()
-        }
+        //}
     }
 
     LaunchedEffect(chatState?.value?.chats, userPresences) {
@@ -79,13 +79,13 @@ fun ChatListScreen(
             }
             chatList.clear()
             chatList.addAll(items)
-        } else if (chatViewModel == null) {
+        } /*else if (chatViewModel == null) {
             syncChatListWithHistory(context)
             val savedList = loadChatListFromJson(context)
             val filteredList = savedList.filter { it.lastMessage.isNotBlank() }
             chatList.clear()
             chatList.addAll(filteredList)
-        }
+        }*/
     }
 
     val cyanHeaderColor = Color(0xFF38C7FF)
@@ -113,7 +113,7 @@ fun ChatListScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (friendViewModel != null && chatViewModel != null) {
+                        //if (friendViewModel != null && chatViewModel != null) {
                             val currentState = friendViewModel.state.collectAsState().value
                             val currentChatState = chatViewModel.state.collectAsState().value
                             Box {
@@ -140,7 +140,7 @@ fun ChatListScreen(
                                     }
                                 }
                             }
-                        }
+                        //}
 
                         IconButton(onClick = { showCreateGroupDialog = true }) {
                             Icon(
@@ -218,6 +218,8 @@ fun ChatListScreen(
 
     if (showCreateGroupDialog) {
         CreateGroupDialog(
+            chatViewModel = chatViewModel,
+            groupViewModel = groupViewModel,
             context = context,
             onDismiss = { showCreateGroupDialog = false },
             onGroupCreated = { chatId, chatName ->
@@ -228,7 +230,7 @@ fun ChatListScreen(
         )
     }
 
-    if (showNotificationDialog && chatViewModel != null && friendViewModel != null) {
+    if (showNotificationDialog /*&& chatViewModel != null && friendViewModel != null*/) {
         val chatState = chatViewModel.state.collectAsState().value
         val friendState = friendViewModel.state.collectAsState().value
         NotificationDialog(
@@ -270,8 +272,8 @@ fun ChatItemRow(
         // Avatar tròn dạng UserAvatar
         UserAvatar(
             name = chat.name,
-            avatarBgColor = chat.safeAvatarBgColor,
-            avatarUri = chat.avatarUri,
+            //avatarBgColor = chat.safeAvatarBgColor,
+            //avatarUri = chat.avatarUri,
             presenceStatus = chat.presenceStatus,
             modifier = Modifier.size(52.dp),
             fontSize = 20.sp

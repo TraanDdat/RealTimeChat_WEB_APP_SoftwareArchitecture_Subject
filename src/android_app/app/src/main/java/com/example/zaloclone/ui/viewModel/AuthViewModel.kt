@@ -22,7 +22,7 @@ data class AuthState(
     val isCheckingAuth: Boolean = true,
     val isSigningUp: Boolean = false,
     val isLoggingIn: Boolean = false,
-    val onlineUsers: List<Int> = emptyList(),
+    val getOnlineUsers: List<Int> = emptyList(),
     val userPresences: Map<Int, UserPresence> = emptyMap(),
     val myPresenceStatus: PresenceStatus = PresenceStatus.ONLINE,
     val errorMessage: String? = null,
@@ -144,7 +144,7 @@ class AuthViewModel(
                 disconnectSocket()
                 _state.value = _state.value.copy(
                     authUser = null,
-                    onlineUsers = emptyList(),
+                    getOnlineUsers = emptyList(),
                     userPresences = emptyMap(),
                     successMessage = "Logged out successfully"
                 )
@@ -185,7 +185,7 @@ class AuthViewModel(
                         }
                     }
                     _state.value = _state.value.copy(
-                        onlineUsers = userIds,
+                        getOnlineUsers = userIds,
                         userPresences = updatedPresences
                     )
                 },
@@ -212,7 +212,7 @@ class AuthViewModel(
         socketClient.disconnect()
 
         _state.value = _state.value.copy(
-            onlineUsers = emptyList(),
+            getOnlineUsers = emptyList(),
             userPresences = emptyMap()
         )
     }
