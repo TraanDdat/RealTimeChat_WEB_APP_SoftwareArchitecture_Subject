@@ -1,12 +1,12 @@
 from datetime import datetime, timezone
 
-from bson import ObjectId
 from fastapi import HTTPException
 from pymongo.errors import PyMongoError
 from sqlalchemy.orm import Session
 
 from zalo_backend.database.l_mongodb import group_messages
 from zalo_backend.message_service.service import upload_image
+from zalo_backend.message_service import s3_storage
 from zalo_backend.models.mongodb.msg import GroupMessage, MessageCreate
 from zalo_backend.models.postgres.group_chat import GroupChat, GroupMember
 from zalo_backend.models.postgres.user import User
@@ -140,8 +140,11 @@ def get_group_messages(db: Session, group_id: int, user_id: int) -> list[GroupMe
             [("createdAt", 1), ("_id", 1)]
         )
         return [
-            GroupMessage.model_validate({**document, "_id": str(document["_id"])})
-            for document in documents
+            message.model_copy(update={"image": s3_storage.image_url(message.image)})
+            for message in (
+                GroupMessage.model_validate({**document, "_id": str(document["_id"])})
+                for document in documents
+            )
         ]
     except PyMongoError as error:
         raise HTTPException(status_code=503, detail="Group message storage unavailable") from error
@@ -156,14 +159,14 @@ def send_group_message(
     _group_or_404(db, group_id)
     _membership(db, group_id, sender_id)
     sender = db.query(User).filter(User.id == sender_id).first()
-    image_url = upload_image(data.image) if data.image else None
+    image_key = upload_image(data.image) if data.image else None
     now = datetime.now(timezone.utc)
     document = {
         "groupId": group_id,
         "senderId": sender_id,
         "senderUsername": sender.username,
         "text": data.text or None,
-        "image": image_url,
+        "image": image_key,
         "createdAt": now,
         "updatedAt": now,
     }
@@ -171,9 +174,10 @@ def send_group_message(
         result = group_messages.insert_one(document)
         message = GroupMessage.model_validate({**document, "_id": str(result.inserted_id)})
     except PyMongoError as error:
+        s3_storage.delete_image(image_key)
         raise HTTPException(status_code=503, detail="Group message storage unavailable") from error
     member_ids = [
         user_id
         for (user_id,) in db.query(GroupMember.user_id).filter(GroupMember.group_id == group_id).all()
     ]
-    return message, member_ids
+    return message.model_copy(update={"image": s3_storage.image_url(message.image)}), member_ids

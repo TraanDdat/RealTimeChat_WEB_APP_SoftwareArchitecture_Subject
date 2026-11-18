@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from zalo_backend.core.security import get_current_user
 from zalo_backend.database.l_postgres import Base
-from zalo_backend.message_service import group_service
+from zalo_backend.message_service import group_service, s3_storage
 from zalo_backend.models.mongodb.msg import MessageCreate
 from zalo_backend.models.postgres.friendship import Friendship
 from zalo_backend.models.postgres.group_chat import GroupMember
@@ -96,6 +96,15 @@ def test_group_creation_and_admin_assignment(db_session, monkeypatch):
     assert [item.text for item in group_service.get_group_messages(db_session, group.id, 3)] == [
         "hello group",
     ]
+
+    key = "chat-images/group.png"
+    monkeypatch.setattr(s3_storage, "store_image_data_url", lambda _: key)
+    monkeypatch.setattr(s3_storage, "image_url", lambda image_ref: f"https://signed.test/{image_ref}")
+    image_message, _ = group_service.send_group_message(
+        db_session, group.id, 2, MessageCreate(image="data:image/png;base64,abc"),
+    )
+    assert collection.find_one({"image": key})["image"] == key
+    assert image_message.image == f"https://signed.test/{key}"
 
 
 def test_only_group_admin_can_add_members(db_session):

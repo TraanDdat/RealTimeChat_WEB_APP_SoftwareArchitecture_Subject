@@ -28,6 +28,8 @@ class Settings:
     MONGODB_DATABASE = os.getenv("MONGODB_DATABASE", "chat_db")
     MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://127.0.0.1:27017")
 
-    CLOUDINARY_URL = os.getenv("CLOUDINARY_URL", "")
+    AWS_REGION = os.getenv("AWS_REGION", "ap-southeast-2")
+    S3_BUCKET = os.getenv("S3_BUCKET", "s3-zalo")
+    S3_PRESIGNED_URL_TTL_SECONDS = int(os.getenv("S3_PRESIGNED_URL_TTL_SECONDS", 3600))
 
 settings = Settings()
