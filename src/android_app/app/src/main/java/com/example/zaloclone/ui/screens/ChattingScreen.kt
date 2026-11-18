@@ -26,7 +26,10 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.example.zaloclone.ui.viewModel.ChatState
+import android.util.Base64
+import android.content.Context
+import java.io.InputStream
+import android.util.Log
 
 @Composable
 fun ChattingScreen(
@@ -142,6 +145,7 @@ fun ChattingScreen(
                 } else {
                     MessageType.TEXT
                 },
+                image = chatMsg.image,
                 timestamp = chatMsg.createdAt,
                 mediaUrl = chatMsg.image,
                 reaction = reactionByMessageId[chatMsg.id]
@@ -174,10 +178,11 @@ fun ChattingScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            sendMediaMessage(
-                type = MessageType.IMAGE,
-                mediaUrl = it.toString()
-            )
+        val imageDataUrl = uriToBase64DataUrl(context, it)
+        sendMediaMessage(
+            type = MessageType.IMAGE,
+            mediaUrl = imageDataUrl
+        )
             showAttachPanel = false
         }
     }
@@ -385,4 +390,17 @@ fun ChattingScreen(
             }
         )
     }
+}
+
+fun uriToBase64DataUrl(context: Context, uri: Uri): String {
+    val mimeType = context.contentResolver.getType(uri)
+        ?: "image/jpeg"
+
+    val bytes = context.contentResolver.openInputStream(uri)?.use {
+        it.readBytes()
+    } ?: throw IllegalStateException("Cannot read image")
+
+    val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+
+    return "data:$mimeType;base64,$base64"
 }

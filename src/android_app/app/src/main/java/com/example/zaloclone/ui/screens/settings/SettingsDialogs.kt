@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.zaloclone.data.local.saveUserProfileToJson
 import com.example.zaloclone.ui.model.UserProfile
+import com.example.zaloclone.ui.viewModel.*
 
 @Composable
 fun ChangeNameDialog(

@@ -41,8 +41,6 @@ fun PresenceBadge(
 ) {
     val color = when (status) {
         PresenceStatus.ONLINE -> Color(0xFF4CAF50)
-        PresenceStatus.AWAY -> Color(0xFFFFC107)
-        PresenceStatus.BUSY -> Color(0xFFF44336)
         PresenceStatus.OFFLINE -> Color(0xFF9E9E9E)
     }
 

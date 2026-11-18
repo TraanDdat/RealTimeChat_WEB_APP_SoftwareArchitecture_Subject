@@ -37,6 +37,7 @@ import com.example.zaloclone.ui.model.PresenceStatus
 @Composable
 fun ChatListScreen(
     chatViewModel: ChatViewModel,
+    authViewModel: AuthViewModel,
     friendViewModel: FriendViewModel,
     groupViewModel: GroupViewModel,
     onChatItemClick: (String, String) -> Unit = { _, _ -> },
@@ -49,9 +50,9 @@ fun ChatListScreen(
     var isEditing by remember { mutableStateOf(false) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
     var showNotificationDialog by remember { mutableStateOf(false) }
-
     val chatState = chatViewModel?.state?.collectAsState()
-    val userPresences = chatState?.value?.userPresences ?: emptyMap()
+    val authState = authViewModel.state.collectAsState()
+    val userPresences = authState.value.userPresences
 
     LaunchedEffect(chatState?.value?.chats) {
         //if (chatViewModel != null) {
@@ -63,6 +64,7 @@ fun ChatListScreen(
         val mongoChats = chatState?.value?.chats
         if (!mongoChats.isNullOrEmpty()) {
             val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2), Color(0xFF38C7FF))
+
             val items = mongoChats.mapIndexed { index, user ->
                 val presence = userPresences[user.id]
                 ChatItem(

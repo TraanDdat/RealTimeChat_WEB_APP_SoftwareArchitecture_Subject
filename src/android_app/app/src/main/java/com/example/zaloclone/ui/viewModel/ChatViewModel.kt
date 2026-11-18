@@ -38,7 +38,6 @@ data class ChatState(
     val chats: List<ChatUser> = emptyList(),
     val messages: List<ChatMessage> = emptyList(),
     val unreadNotifications: List<MessageNotification> = emptyList(),
-    val userPresences: Map<Int, UserPresence> = emptyMap(),
     val activeTab: ActiveTab = ActiveTab.CHATS,
     val selectedUser: ChatUser? = null,
     val selectedGroup: Int? = null,
@@ -62,10 +61,6 @@ class ChatViewModel(
 
     init {
         startGlobalSocketListener()
-    }
-
-    fun updateUserPresences(presences: Map<Int, UserPresence>) {
-        _state.value = _state.value.copy(userPresences = presences)
     }
 
     fun startGlobalSocketListener() {
@@ -354,7 +349,7 @@ class ChatViewModel(
     }
 
     fun getCurrentUserId(): Int? = sessionManager.currentUserId
-    
+
     fun getGroupMessages(groupId: Int) {
         viewModelScope.launch {
             _state.value = _state.value.copy(isMessagesLoading = true)
@@ -374,7 +369,6 @@ class ChatViewModel(
     }
 
     private fun GroupMessageDataResponse.toChatMessage(): ChatMessage {
-
         return ChatMessage(
             id = id,
             senderId = senderId,

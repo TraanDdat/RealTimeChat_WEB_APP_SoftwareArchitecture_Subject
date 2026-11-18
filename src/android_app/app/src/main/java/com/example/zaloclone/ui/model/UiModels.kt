@@ -6,16 +6,11 @@ enum class MessageType { TEXT, AUDIO, IMAGE, VIDEO, DOCUMENT, EMOTION }
 
 enum class PresenceStatus {
     ONLINE,
-    OFFLINE,
-    AWAY,
-    BUSY;
-
+    OFFLINE;
     fun getDisplayName(): String {
         return when (this) {
             ONLINE -> "Đang hoạt động"
             OFFLINE -> "Ngoại tuyến"
-            AWAY -> "Vắng mặt"
-            BUSY -> "Đang bận"
         }
     }
 }
@@ -37,7 +32,8 @@ data class Message(
     val fileName: String? = null,
     val fileSize: String? = null,
     val emotion: String? = null,
-    val reaction: String? = null
+    val reaction: String? = null,
+    val image: String? = null
 )
 
 fun getPreviewTextForMessage(message: Message): String {

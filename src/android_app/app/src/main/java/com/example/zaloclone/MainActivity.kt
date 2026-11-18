@@ -164,6 +164,7 @@ fun MainAppNavigation(appContainer: AppContainer) {
             chatViewModel = chatViewModel,
             friendViewModel = friendViewModel,
             groupViewModel = groupViewModel,
+            authViewModel = authViewModel,
             onNavigateToFriends = { currentScreen = "friends" },
             onNavigateToSettings = { currentScreen = "settings" },
             onChatItemClick = { chatId, chatName ->
@@ -197,6 +198,7 @@ fun MainAppNavigation(appContainer: AppContainer) {
             onNavigateBack = { currentScreen = "friends" }
         )
         "settings" -> SettingsScreen(
+            authViewModel = authViewModel,
             onNavigateToChats = { currentScreen = "chat_list" },
             onNavigateToFriends = { currentScreen = "friends" },
             onLogout = { 

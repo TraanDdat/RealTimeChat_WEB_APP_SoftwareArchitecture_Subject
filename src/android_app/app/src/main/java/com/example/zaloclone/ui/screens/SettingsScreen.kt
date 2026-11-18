@@ -36,15 +36,19 @@ import coil.compose.AsyncImage
 import com.example.zaloclone.data.local.loadUserProfileFromJson
 import com.example.zaloclone.data.local.saveUserProfileToJson
 import com.example.zaloclone.ui.screens.settings.*
+import com.example.zaloclone.ui.viewModel.*
 
 @Composable
 fun SettingsScreen(
+    authViewModel: AuthViewModel,
     onNavigateToChats: () -> Unit = {},
     onNavigateToFriends: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var userProfile by remember { mutableStateOf(loadUserProfileFromJson(context)) }
+    val authState = authViewModel.state.collectAsState()
+    val authUser = authState?.value?.authUser
 
     // Dialog State
     var showChangeNameDialog by remember { mutableStateOf(false) }
@@ -151,7 +155,7 @@ fun SettingsScreen(
                             .clickable { showChangeAvatarDialog = true },
                         contentAlignment = Alignment.Center
                     ) {
-                        if (!userProfile.avatarUri.isNullOrBlank()) {
+                        /*if (!userProfile.avatarUri.isNullOrBlank()) {
                             AsyncImage(
                                 model = userProfile.avatarUri,
                                 contentDescription = "Avatar",
@@ -160,14 +164,14 @@ fun SettingsScreen(
                                     .clip(CircleShape),
                                 contentScale = ContentScale.Crop
                             )
-                        } else {
+                        } else { */
                             Text(
-                                text = userProfile.name.take(1).uppercase(),
+                                text = authUser?.username?:"null",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 28.sp,
                                 color = Color.White
                             )
-                        }
+                        //}
 
                         Box(
                             modifier = Modifier
@@ -190,14 +194,14 @@ fun SettingsScreen(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = userProfile.name,
+                            text = authUser?.username?:"null",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Gmail: ${userProfile.email}",
+                            text = "Gmail: ${authUser?.email}",
                             fontSize = 14.sp,
                             color = Color.Gray
                         )
@@ -236,7 +240,7 @@ fun SettingsScreen(
                         icon = Icons.Default.Person,
                         iconBgColor = Color(0xFF4A90E2),
                         title = "Change nickname",
-                        subtitle = userProfile.name,
+                        subtitle = authUser?.username?:"null",
                         onClick = { showChangeNameDialog = true }
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = Color(0xFFF0F0F0))
