@@ -1,9 +1,6 @@
 package com.example.zaloclone.api.remote
 
-import com.example.zaloclone.api.model.ChatUser
-import com.example.zaloclone.api.model.ChatMessage
-import com.example.zaloclone.api.model.Conversation
-import com.example.zaloclone.api.model.SendMessageRequest
+import com.example.zaloclone.api.model.*
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.DELETE
@@ -18,17 +15,9 @@ interface ChatApiServices {
     @GET(ApiConfig.API_MSG_CHATS)
     suspend fun getChatPartners(): List<ChatUser>
 
-    @GET("conversations")
-    suspend fun getConversations(): List<Conversation>
-
     @GET("/api/messages/{userId}")
     suspend fun getMessages(
         @Path("userId") userId: Int
-    ): List<ChatMessage>
-
-    @GET("/api/messages/conversation/{conversationId}")
-    suspend fun getMessagesByConversation(
-        @Path("conversationId") conversationId: String
     ): List<ChatMessage>
 
     @POST("/api/messages/send/{receiverId}")
@@ -37,14 +26,17 @@ interface ChatApiServices {
         @Body data: SendMessageRequest
     ): ChatMessage
 
-    @POST("/api/messages/send/conversation/{conversationId}")
-    suspend fun sendMessageToConversation(
-        @Path("conversationId") conversationId: String,
-        @Body data: SendMessageRequest
-    ): ChatMessage
-
     @DELETE("friends/{friendId}")
     suspend fun deleteFriend(
         @Path("friendId") friendId: Int
     )
+
+    @GET("api/groups/{groupId}/messages")
+    suspend fun getGroupMessages(@Path("groupId") groupId: Int): List<GroupMessageDataResponse>
+
+    @POST("api/groups/{groupId}/messages")
+    suspend fun sendGroupMessage(
+        @Path("groupId") groupId: Int,
+        @Body data: SendMessageRequest
+    ): GroupMessageDataResponse
 }

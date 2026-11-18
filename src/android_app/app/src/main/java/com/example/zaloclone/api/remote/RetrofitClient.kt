@@ -56,4 +56,8 @@ object RetrofitClient {
     val friendApi: FriendApiServices by lazy {
         retrofit.create(FriendApiServices::class.java)
     }
+
+    val groupdApi: GroupApiServices by lazy {
+        retrofit.create(GroupApiServices::class.java)
+    }
 }

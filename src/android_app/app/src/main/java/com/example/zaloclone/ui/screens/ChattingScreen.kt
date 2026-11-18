@@ -28,33 +28,30 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.zaloclone.ui.viewModel.ChatState
 
 @Composable
 fun ChattingScreen(
     chatId: String,
     chatName: String,
-    chatViewModel: ChatViewModel? = null,
+    chatViewModel: ChatViewModel,
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
     var messageText by remember { mutableStateOf("") }
-    val messages = remember { mutableStateListOf<Message>() }
-    val chatState = chatViewModel?.state?.collectAsState()
+    val chatState by chatViewModel.state.collectAsState()
+    val currentUserId = chatViewModel.getCurrentUserId()?: return
 
-    var chatItem by remember { mutableStateOf<ChatItem?>(null) }
+    val reactionByMessageId = remember {
+        mutableStateMapOf<String, String>()
+    }
+
     var currentChatName by remember { mutableStateOf(chatName) }
 
-    LaunchedEffect(chatName) {
-        if (chatName.isNotBlank()) {
-            currentChatName = chatName
-        }
-    }
     var showChangeGroupNameDialog by remember { mutableStateOf(false) }
     var showIndividualSettingsDialog by remember { mutableStateOf(false) }
-    val groupMembers = remember { mutableStateListOf<String>() }
     var showGroupInfoDialog by remember { mutableStateOf(false) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
 
@@ -62,48 +59,87 @@ fun ChattingScreen(
     var showEmotionSheet by remember { mutableStateOf(false) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
 
-    val isGroup = remember(chatId, chatItem) {
-        chatId.startsWith("group_") || (chatItem?.isGroup == true)
+    val isGroup = remember(chatId) {
+        chatId.startsWith("group_")
     }
 
-    LaunchedEffect(chatId) {
-        messages.clear()
-        val targetUserId = chatId.toIntOrNull()
-        if (targetUserId != null && chatViewModel != null) {
-            val targetUser = ChatUser(id = targetUserId, username = chatName, email = "", profilePic = null)
-            chatViewModel.setSelectedUser(targetUser)
-        } else {
-            chatViewModel?.getConversations()
+    val groupMembers = remember {
+        mutableStateListOf<String>()
+    }
+
+    LaunchedEffect(chatName) {
+        if (chatName.isNotBlank()) {
+            currentChatName = chatName
         }
     }
 
-    LaunchedEffect(chatState?.value?.messages) {
-        val dbMessages = chatState?.value?.messages
-        if (dbMessages != null && chatViewModel != null) {
-            val mappedMessages = dbMessages.map { chatMsg ->
-                val currentUserId = chatViewModel?.getCurrentUserId()
-                val isMe = (chatMsg.senderId == currentUserId)
-                val timeStr = try {
-                    if (chatMsg.createdAt.length >= 16) chatMsg.createdAt.substring(11, 16) else chatMsg.createdAt
-                } catch (e: Exception) {
-                    ""
-                }
-                Message(
-                    id = chatMsg.id.toString(),
-                    text = chatMsg.text ?: "",
-                    isMe = isMe,
-                    type = if (!chatMsg.image.isNullOrBlank()) MessageType.IMAGE else MessageType.TEXT,
-                    timestamp = timeStr,
-                    mediaUrl = chatMsg.image
+    Text(
+        text = """
+            Chat ID: $chatId
+            Is Group: $isGroup
+            Selected User: ${chatState.selectedUser?.id}
+            Selected Group: ${chatState.selectedGroup}
+            Messages: ${chatState.messages.size}
+            Error: ${chatState.errorMessage}
+        """.trimIndent(),
+        color = Color.Red
+    )
+
+    LaunchedEffect(chatId, chatViewModel) {
+        reactionByMessageId.clear()
+        groupMembers.clear()
+
+        if(isGroup) {
+            val groupId = chatId.removePrefix("group_").toIntOrNull()
+            chatViewModel.setSelectedGroup(groupId)
+            groupMembers.add("Me")
+        } else {
+            val userId = chatId.toIntOrNull()
+            if (userId != null) {
+                val targetUser = ChatUser(
+                    id = userId,
+                    username = chatName,
+                    email = "",
+                    profilePic = null
                 )
+                chatViewModel.setSelectedUser(targetUser)
             }
-            messages.clear()
-            messages.addAll(mappedMessages)
-            if (messages.isNotEmpty()) {
-                coroutineScope.launch {
-                    listState.animateScrollToItem(messages.size - 1)
-                }
-            }
+        }
+    }
+
+    LaunchedEffect(chatState.messages) {
+        chatState.messages.forEach {
+            Log.d(
+                "CHAT_DEBUG",
+                "Message id=${it.id}, sender=${it.senderId}, text=${it.text}"
+            )
+        }
+    val messages = remember(
+        chatState.messages,
+        currentUserId,
+        reactionByMessageId.toMap()
+    ) {
+        chatState.messages.map { chatMsg ->
+            val isMe = chatMsg.senderId == currentUserId
+            Message(
+                id = chatMsg.id,
+                text = chatMsg.text ?: "",
+                isMe = isMe,
+                type = if (!chatMsg.image.isNullOrBlank()) {
+                    MessageType.IMAGE
+                } else {
+                    MessageType.TEXT
+                },
+                timestamp = chatMsg.createdAt,
+                mediaUrl = chatMsg.image,
+                reaction = reactionByMessageId[chatMsg.id]
+            )
+        }
+    }
+
+    LaunchedEffect(chatId, messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
         }
     }
 
@@ -115,66 +151,13 @@ fun ChattingScreen(
         fileSize: String? = null,
         emotion: String? = null
     ) {
-        if (chatViewModel != null && chatId.toIntOrNull() != null) {
-            val sendReq = SendMessageRequest(
-                text = text.ifBlank { null },
-                image = mediaUrl
-            )
-            val currentUserId = chatViewModel?.getCurrentUserId()
-            chatViewModel.sendMessage(sendReq, currentUserId!!.toInt())
-        } else {
-            val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-            val newMsg = Message(
-                id = System.currentTimeMillis().toString(),
-                text = text,
-                isMe = true,
-                type = type,
-                timestamp = currentTime,
-                mediaUrl = mediaUrl,
-                fileName = fileName,
-                fileSize = fileSize,
-                emotion = emotion
-            )
-            messages.add(newMsg)
-
-            val chatList = loadChatListFromJson(context).toMutableList()
-            val existingIndex = chatList.indexOfFirst { it.id == chatId }
-            val lastPreviewText = getPreviewTextForMessage(newMsg)
-
-            if (existingIndex != -1) {
-                val updatedChat = chatList[existingIndex].copy(
-                    lastMessage = lastPreviewText,
-                    time = currentTime,
-                    unreadCount = 0
-                )
-                chatList[existingIndex] = updatedChat
-                saveChatListToJson(context, chatList)
-            } else {
-                val friendList = loadFriendListFromJson(context)
-                val friend = friendList.find { it.id == chatId }
-                val targetAvatarBg = friend?.safeAvatarBgColor ?: Color(0xFF38C7FF)
-                val targetAvatarUri = friend?.avatarUri
-                val targetName = if (friend != null && friend.nickname.isNotBlank()) friend.nickname else currentChatName
-
-                val newChat = ChatItem(
-                    id = chatId,
-                    name = targetName,
-                    lastMessage = lastPreviewText,
-                    time = currentTime,
-                    unreadCount = 0,
-                    avatarBgColor = targetAvatarBg,
-                    avatarUri = targetAvatarUri
-                )
-                chatList.add(0, newChat)
-                saveChatListToJson(context, chatList)
-            }
-
-            coroutineScope.launch {
-                listState.animateScrollToItem(messages.size - 1)
-            }
-        }
+        val sendReq = SendMessageRequest(
+            text = text.ifBlank { null },
+            image = mediaUrl
+        )
+        chatViewModel.sendMessage(sendReq, currentUserId)
     }
-
+    
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -211,56 +194,6 @@ fun ChattingScreen(
                 fileSize = fSize
             )
             showAttachPanel = false
-        }
-    }
-
-    LaunchedEffect(chatId) {
-        val savedMessages = getOrInitChatHistory(context, chatId, chatName)
-        messages.addAll(savedMessages)
-
-        if (chatName.isNotBlank()) {
-            currentChatName = chatName
-        }
-
-        val chatList = loadChatListFromJson(context).toMutableList()
-        val index = chatList.indexOfFirst { it.id == chatId }
-        if (index != -1) {
-            chatItem = chatList[index]
-            if (chatName.isBlank()) {
-                currentChatName = chatList[index].name
-            }
-            if (chatList[index].unreadCount > 0) {
-                chatList[index] = chatList[index].copy(unreadCount = 0)
-                saveChatListToJson(context, chatList)
-            }
-        } else if (!chatId.startsWith("group_")) {
-            val friendList = loadFriendListFromJson(context)
-            val friend = friendList.find { it.id == chatId }
-            if (friend != null) {
-                if (chatName.isBlank()) {
-                    currentChatName = if (friend.nickname.isNotBlank()) friend.nickname else friend.name
-                }
-            } else {
-                if (chatName.isNotBlank()) {
-                    currentChatName = chatName
-                }
-            }
-        } else {
-            if (chatName.isNotBlank()) {
-                currentChatName = chatName
-            }
-        }
-
-        groupMembers.clear()
-        val membersFromItem = chatItem?.safeMembers ?: emptyList()
-        if (membersFromItem.isNotEmpty()) {
-            groupMembers.addAll(membersFromItem)
-        } else if (isGroup) {
-            groupMembers.add("Me")
-        }
-
-        if (messages.isNotEmpty()) {
-            listState.scrollToItem(messages.size - 1)
         }
     }
 
@@ -353,23 +286,26 @@ fun ChattingScreen(
                 contentPadding = PaddingValues(vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(messages) { message ->
-                    if (message.timestamp != null && message.text.isEmpty() && message.mediaUrl == null && message.emotion == null) {
+                items(
+                    items = messages,
+                    key = { message -> message.id }
+                ) { message ->
+                    if (
+                        message.timestamp != null &&
+                        message.text.isEmpty() &&
+                        message.mediaUrl == null &&
+                        message.emotion == null
+                    ) {
                         TimeDivider(time = message.timestamp)
                     } else {
                         MessageBubble(
                             message = message,
-                            senderName = chatName,
+                            senderName = currentChatName,
                             onImageClick = { url -> previewImageUrl = url },
                             onReactionSelect = { msg, reaction ->
-                                val index = messages.indexOfFirst { it.id == msg.id }
-                                if (index != -1) {
-                                    val updatedMsg = messages[index].copy(
-                                        reaction = if (messages[index].reaction == reaction) null else reaction
-                                    )
-                                    messages[index] = updatedMsg
-                                    saveMessagesToJson(context, chatId, messages.toList())
-                                }
+                                val currentReaction = reactionByMessageId[msg.id]
+                                if (currentReaction == reaction) {reactionByMessageId.remove(msg.id)} 
+                                else {reactionByMessageId[msg.id] = reaction}
                             }
                         )
                     }
@@ -390,12 +326,8 @@ fun ChattingScreen(
             groupName = currentChatName,
             members = groupMembers,
             onDismiss = { showGroupInfoDialog = false },
-            onAddMemberClick = {
-                showAddMemberDialog = true
-            },
-            onChangeGroupNameClick = {
-                showChangeGroupNameDialog = true
-            }
+            onAddMemberClick = { showAddMemberDialog = true },
+            onChangeGroupNameClick = { showChangeGroupNameDialog = true }
         )
     }
 
@@ -406,7 +338,7 @@ fun ChattingScreen(
             onSave = { newName ->
                 showChangeGroupNameDialog = false
                 currentChatName = newName
-                updateGroupName(context, chatId, newName)
+                //updateGroupName(context, chatId, newName)
             }
         )
     }
@@ -415,7 +347,7 @@ fun ChattingScreen(
         IndividualChatSettingsDialog(
             context = context,
             friendId = chatId,
-            friendName = chatName,
+            friendName = currentChatName,
             onDismiss = { showIndividualSettingsDialog = false },
             onNicknameUpdated = { newDisplayName ->
                 showIndividualSettingsDialog = false
@@ -432,30 +364,7 @@ fun ChattingScreen(
             onMembersAdded = { newNames ->
                 showAddMemberDialog = false
                 groupMembers.addAll(newNames)
-                updateGroupMembers(context, chatId, groupMembers.toList())
-
-                val currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
-                val noticeText = "Added ${newNames.joinToString(", ")} to the group."
-                val noticeMsg = Message(
-                    id = System.currentTimeMillis().toString(),
-                    text = noticeText,
-                    isMe = true
-                )
-                messages.add(noticeMsg)
-                saveMessagesToJson(context, chatId, messages.toList())
-
-                val chatList = loadChatListFromJson(context).toMutableList()
-                val existingIndex = chatList.indexOfFirst { it.id == chatId }
-                if (existingIndex != -1) {
-                    val updatedChat = chatList[existingIndex].copy(
-                        lastMessage = noticeText,
-                        time = currentTime,
-                        unreadCount = 0,
-                        members = groupMembers.toList()
-                    )
-                    chatList[existingIndex] = updatedChat
-                    saveChatListToJson(context, chatList)
-                }
+                //updateGroupMembers(context, chatId, groupMembers.toList())
             }
         )
     }

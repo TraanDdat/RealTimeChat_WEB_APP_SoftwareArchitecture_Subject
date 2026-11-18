@@ -3,12 +3,7 @@ package com.example.zaloclone.di
 import android.content.Context
 import com.example.zaloclone.api.datastore.ITokenManager
 import com.example.zaloclone.api.datastore.TokenManager
-import com.example.zaloclone.api.repository.AuthRepository
-import com.example.zaloclone.api.repository.ChatRepository
-import com.example.zaloclone.api.repository.IAuthRepository
-import com.example.zaloclone.api.repository.IChatRepository
-import com.example.zaloclone.api.repository.IFriendRepository
-import com.example.zaloclone.api.repository.FriendRepository
+import com.example.zaloclone.api.repository.*
 import com.example.zaloclone.session.SessionManager
 import com.example.zaloclone.socket.ISocketClient
 import com.example.zaloclone.socket.ISocketService
@@ -31,6 +26,10 @@ class AppContainer(private val applicationContext: Context) {
 
     val friendRepository: IFriendRepository by lazy {
         FriendRepository()
+    }
+
+    val groupRepository: IGroupRepository by lazy {
+        GroupRepository()
     }
 
     val socketClientInstance: ISocketClient by lazy {
