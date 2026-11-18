@@ -282,7 +282,6 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     if (isSoundEnabled) {
       const notificationSound = new Audio("/sounds/notification.mp3");
       notificationSound.currentTime = 0;
-
       notificationSound.play().catch((error) => {
         console.log("Audio play failed:", error);
       });
@@ -290,16 +289,17 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   };
 
   groupMessageListener = (newMessage: ChatMessage) => {
-    const { selectedGroup, isSoundEnabled, messages } = get();
-    if (!selectedGroup || newMessage.groupId !== selectedGroup.id) return;
-    if (messages.some((message) => message._id === newMessage._id)) return;
-    set((state) => ({ messages: [...state.messages, newMessage] }));
-    if (isSoundEnabled) {
-      const notificationSound = new Audio("/sounds/notification.mp3");
-      notificationSound.play().catch(() => undefined);
-    }
-  };
+    const { selectedGroup, messages } = get();
+    if (!selectedGroup) return;
 
+    if (Number(newMessage.groupId) !== selectedGroup.id) return;
+
+    if (messages.some((message) => message._id === newMessage._id)) return;
+    
+    set((state) => ({
+      messages: [...state.messages, newMessage],
+    }));
+  };
   socket.on("newMessage", messageListener);
   socket.on("newGroupMessage", groupMessageListener);
 },
