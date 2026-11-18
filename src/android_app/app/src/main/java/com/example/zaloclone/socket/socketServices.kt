@@ -37,13 +37,11 @@ class SocketService(
         socket?.off("presenceChanged")
 
         socket?.on("getOnlineUsers") { args ->
-            val data = args.firstOrNull()
-            var userIdList = emptyList<Int>()
-            if (data is List<*>) {
-                userIdList = data.mapNotNull { (it as? Number)?.toInt() }
-            }
-            if (data is JSONArray) {
-                userIdList = (0 until data.length()).map { data.getInt(it) }
+            val data = args.getOrNull(1) ?: args.firstOrNull()
+            val userIdList = when (data) {
+                is List<*> -> data.mapNotNull { (it as? Number)?.toInt() }
+                is JSONArray -> (0 until data.length()).map { data.getInt(it) }
+                else -> emptyList()
             }
             callbacks.onOnlineUsers?.invoke(userIdList)
         }

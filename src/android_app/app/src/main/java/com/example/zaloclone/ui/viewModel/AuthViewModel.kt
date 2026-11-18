@@ -179,10 +179,16 @@ class AuthViewModel(
             SocketCallbacks(
                 onOnlineUsers = { userIds ->
                     val updatedPresences = _state.value.userPresences.toMutableMap()
-                    userIds.forEach { userId ->
-                        if (!updatedPresences.containsKey(userId)) {
-                            updatedPresences[userId] = UserPresence(userId = userId, status = PresenceStatus.ONLINE)
+                    updatedPresences.keys.toList().forEach { userId ->
+                        if (userId !in userIds) {
+                            updatedPresences[userId] = UserPresence(userId = userId, status = PresenceStatus.OFFLINE)
                         }
+                    }
+                    userIds.forEach { userId ->
+                        updatedPresences[userId] = UserPresence(
+                            userId = userId,
+                            status = PresenceStatus.ONLINE
+                        )
                     }
                     _state.value = _state.value.copy(
                         getOnlineUsers = userIds,

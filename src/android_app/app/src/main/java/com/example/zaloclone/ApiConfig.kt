@@ -11,7 +11,7 @@ object ApiConfig {
     const val API_AUTH_RESETPW = "/api/auth/resetpw";
     const val API_AUTH_CHECK = "/api/auth/check";
     const val API_AUTH_LOGOUT = "/api/auth/logout";
-    const val API_AUTH_UPDATE_PROFILE = "api/auth/update-profile";
+    const val API_AUTH_UPDATE_PROFILE = "/api/auth/update-profile";
 
     // ChatApiServices endpoint
     const val API_MSG_CONTACTS = "/api/messages/contacts";
