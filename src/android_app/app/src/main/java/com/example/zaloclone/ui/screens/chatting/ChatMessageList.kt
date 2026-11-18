@@ -392,12 +392,13 @@ fun AudioMessageContent(duration: String) {
 
 @Composable
 fun TimeDivider(time: String) {
+    val timeText = time.toString().substring(11, 16)
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text = time, fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
+        Text(text = timeText, fontSize = 12.sp, color = Color.Gray, textAlign = TextAlign.Center)
     }
 }

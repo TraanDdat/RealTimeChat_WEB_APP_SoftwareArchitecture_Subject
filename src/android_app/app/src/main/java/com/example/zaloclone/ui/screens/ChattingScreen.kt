@@ -18,12 +18,10 @@ import androidx.compose.ui.unit.dp
 import com.example.zaloclone.api.model.ChatUser
 import com.example.zaloclone.api.model.SendMessageRequest
 import com.example.zaloclone.data.local.*
-import com.example.zaloclone.ui.model.ChatItem
 import com.example.zaloclone.ui.model.Message
 import com.example.zaloclone.ui.model.MessageType
-import com.example.zaloclone.ui.model.getPreviewTextForMessage
 import com.example.zaloclone.ui.screens.chatting.*
-import com.example.zaloclone.ui.viewModel.ChatViewModel
+import com.example.zaloclone.ui.viewModel.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -35,15 +33,17 @@ fun ChattingScreen(
     chatId: String,
     chatName: String,
     chatViewModel: ChatViewModel,
+    groupViewModel: GroupViewModel,
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
-
+    val groupState by groupViewModel.state.collectAsState()
     var messageText by remember { mutableStateOf("") }
     val chatState by chatViewModel.state.collectAsState()
+    val allContacts = chatState.allContacts
     val currentUserId = chatViewModel.getCurrentUserId()?: return
-
+    val friendId = chatId.toIntOrNull()
     val reactionByMessageId = remember {
         mutableStateMapOf<String, String>()
     }
@@ -64,7 +64,7 @@ fun ChattingScreen(
     }
 
     val groupMembers = remember {
-        mutableStateListOf<String>()
+        mutableStateListOf<Int>()
     }
 
     LaunchedEffect(chatName) {
@@ -92,7 +92,7 @@ fun ChattingScreen(
         if(isGroup) {
             val groupId = chatId.removePrefix("group_").toIntOrNull()
             chatViewModel.setSelectedGroup(groupId)
-            groupMembers.add("Me")
+            //groupMembers.add("Me")
         } else {
             val userId = chatId.toIntOrNull()
             if (userId != null) {
@@ -108,12 +108,24 @@ fun ChattingScreen(
     }
 
     LaunchedEffect(chatState.messages) {
+        Log.d(
+            "CHAT_DEBUG",
+            "State messages count = ${chatState.messages.size}"
+        )
+
         chatState.messages.forEach {
             Log.d(
                 "CHAT_DEBUG",
                 "Message id=${it.id}, sender=${it.senderId}, text=${it.text}"
             )
         }
+
+        Log.d(
+            "CHAT_DEBUG",
+            "UI messages count = ${chatState.messages.size}"
+        )
+    }
+
     val messages = remember(
         chatState.messages,
         currentUserId,
@@ -206,6 +218,9 @@ fun ChattingScreen(
                 isGroup = isGroup,
                 memberCount = groupMembers.size,
                 onBackClick = onNavigateBack,
+                selectGroup = groupState.groups.firstOrNull {
+                    it.id == chatId.removePrefix("group_").toIntOrNull()
+                },
                 onInfoClick = {
                     if (isGroup) {
                         showGroupInfoDialog = true
@@ -324,7 +339,9 @@ fun ChattingScreen(
     if (showGroupInfoDialog && isGroup) {
         GroupInfoDialog(
             groupName = currentChatName,
-            members = groupMembers,
+            members = groupMembers.mapNotNull { id ->
+                allContacts.find { contact -> contact.id == id }?.username
+            },
             onDismiss = { showGroupInfoDialog = false },
             onAddMemberClick = { showAddMemberDialog = true },
             onChangeGroupNameClick = { showChangeGroupNameDialog = true }
@@ -343,10 +360,10 @@ fun ChattingScreen(
         )
     }
 
-    if (showIndividualSettingsDialog && !isGroup) {
+    if (showIndividualSettingsDialog && !isGroup && friendId != null) {
         IndividualChatSettingsDialog(
             context = context,
-            friendId = chatId,
+            friendId = friendId,
             friendName = currentChatName,
             onDismiss = { showIndividualSettingsDialog = false },
             onNicknameUpdated = { newDisplayName ->
@@ -358,13 +375,13 @@ fun ChattingScreen(
 
     if (showAddMemberDialog && isGroup) {
         AddMemberDialog(
-            context = context,
+            //context = context,
             currentMembers = groupMembers,
+            allContacts = allContacts,
             onDismiss = { showAddMemberDialog = false },
-            onMembersAdded = { newNames ->
+            onMembersAdded = { newIds ->
                 showAddMemberDialog = false
-                groupMembers.addAll(newNames)
-                //updateGroupMembers(context, chatId, groupMembers.toList())
+                groupMembers.addAll(newIds)
             }
         )
     }

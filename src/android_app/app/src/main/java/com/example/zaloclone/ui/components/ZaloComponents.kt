@@ -57,9 +57,9 @@ fun PresenceBadge(
 @Composable
 fun UserAvatar(
     name: String,
-    avatarBgColor: Color,
+    //avatarBgColor: Color,
     modifier: Modifier = Modifier,
-    avatarUri: String? = null,
+    //avatarUri: String? = null,
     fontSize: TextUnit = 18.sp,
     presenceStatus: PresenceStatus? = null
 ) {
@@ -68,10 +68,10 @@ fun UserAvatar(
             modifier = Modifier
                 .fillMaxSize()
                 .clip(CircleShape)
-                .background(avatarBgColor),
+                /*.background(avatarBgColor)*/,
             contentAlignment = Alignment.Center
         ) {
-            if (!avatarUri.isNullOrBlank()) {
+            /*if (!avatarUri.isNullOrBlank()) {
                 AsyncImage(
                     model = avatarUri,
                     contentDescription = "Avatar",
@@ -80,14 +80,14 @@ fun UserAvatar(
                         .clip(CircleShape),
                     contentScale = ContentScale.Crop
                 )
-            } else {
+            } else {*/
                 Text(
                     text = name.ifBlank { " " }.take(1).uppercase(),
                     fontWeight = FontWeight.Bold,
                     fontSize = fontSize,
                     color = Color.White
                 )
-            }
+            //}
         }
         if (presenceStatus != null) {
             PresenceBadge(

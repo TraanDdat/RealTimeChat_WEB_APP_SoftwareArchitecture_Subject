@@ -72,7 +72,7 @@ data class ChatItem(
 }
 
 data class FriendItem(
-    val id: String,
+    val id: Int,
     val name: String,
     val status: String,
     val isOnline: Boolean = false,

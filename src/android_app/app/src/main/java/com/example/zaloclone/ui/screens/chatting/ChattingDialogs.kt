@@ -26,6 +26,7 @@ import coil.compose.AsyncImage
 import com.example.zaloclone.data.local.loadFriendListFromJson
 import com.example.zaloclone.data.local.updateFriendNickname
 import com.example.zaloclone.ui.components.UserAvatar
+import com.example.zaloclone.api.model.*
 
 @Composable
 fun FullscreenImageViewerDialog(imageUrl: String, onDismiss: () -> Unit) {
@@ -233,16 +234,15 @@ fun GroupInfoDialog(
 
 @Composable
 fun AddMemberDialog(
-    context: Context,
-    currentMembers: List<String>,
+    allContacts: List<ChatUser>,
+    currentMembers: List<Int>,
     onDismiss: () -> Unit,
-    onMembersAdded: (List<String>) -> Unit
+    onMembersAdded: (List<Int>) -> Unit
 ) {
-    val allFriends = remember { loadFriendListFromJson(context) }
-    val availableFriends = remember(allFriends, currentMembers) {
-        allFriends.filter { friend -> currentMembers.none { m -> m.contains(friend.name) || friend.name.contains(m) } }
+    val availableFriends = remember(allContacts, currentMembers) {
+        allContacts.filter { it.id !in currentMembers }
     }
-    val selected = remember { mutableStateMapOf<String, Boolean>() }
+    val selected = remember { mutableStateMapOf<Int, Boolean>() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -276,15 +276,15 @@ fun AddMemberDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 UserAvatar(
-                                    name = friend.name,
-                                    avatarBgColor = friend.safeAvatarBgColor,
-                                    avatarUri = friend.avatarUri,
+                                    name = friend.username,
+                                    // = friend.safeAvatarBgColor,
+                                    //avatarUri = friend.avatarUri,
                                     modifier = Modifier.size(36.dp),
                                     fontSize = 14.sp
                                 )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text(
-                                    text = friend.name,
+                                    text = friend.username,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -297,9 +297,9 @@ fun AddMemberDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val newNames = availableFriends.filter { selected[it.id] == true }.map { it.name }
-                    if (newNames.isNotEmpty()) {
-                        onMembersAdded(newNames)
+                    val newMemberIds = availableFriends.filter { selected[it.id] == true }.map { it.id }
+                    if (newMemberIds.isNotEmpty()) {
+                        onMembersAdded(newMemberIds)
                     }
                 },
                 enabled = selected.any { it.value }
@@ -358,7 +358,7 @@ fun ChangeGroupNameDialog(
 @Composable
 fun IndividualChatSettingsDialog(
     context: Context,
-    friendId: String,
+    friendId: Int,
     friendName: String,
     onDismiss: () -> Unit,
     onNicknameUpdated: (String) -> Unit
@@ -395,7 +395,7 @@ fun IndividualChatSettingsDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    updateFriendNickname(context, friendId, nicknameInput.trim())
+                    //updateFriendNickname(context, friendId, nicknameInput.trim())
                     onNicknameUpdated(nicknameInput.trim().ifBlank { friendName })
                 }
             ) {

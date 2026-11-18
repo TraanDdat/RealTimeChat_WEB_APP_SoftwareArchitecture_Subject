@@ -17,6 +17,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 import com.example.zaloclone.session.SessionManager
+import android.util.Log
 
 data class GroupState(
     val groups: List<GetGroupDataResponse> = emptyList(),
@@ -52,7 +53,7 @@ class GroupViewModel(
     ) {
         viewModelScope.launch {
             try {
-                val create_request = GroupCreateRequest(name, memberIds.map{MemberId(it)})
+                val create_request = GroupCreateRequest(name, memberIds)
                 val group_created = groupRepository.createGroup(create_request)
                 _state.value = _state.value.copy(groups = listOf(group_created) + _state.value.groups)
                 onSuccess(group_created)

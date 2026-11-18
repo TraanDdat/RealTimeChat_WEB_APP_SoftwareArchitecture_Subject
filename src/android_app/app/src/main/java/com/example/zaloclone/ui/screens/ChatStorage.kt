@@ -7,6 +7,7 @@ import com.example.zaloclone.ui.model.*
 import com.example.zaloclone.data.local.*
 import com.example.zaloclone.ui.model.MessageType
 import com.example.zaloclone.ui.components.CreateGroupDialog as ComponentCreateGroupDialog
+import com.example.zaloclone.ui.viewModel.*
 
 // Typealiases & Model Re-exports for backward compatibility
 typealias MessageType = MessageType
@@ -61,10 +62,17 @@ fun addFriendAndChat(
 
 @Composable
 fun CreateGroupDialog(
+    chatViewModel: ChatViewModel,
+    groupViewModel: GroupViewModel,
     context: Context,
     onDismiss: () -> Unit,
     onGroupCreated: (String, String) -> Unit
-) = ComponentCreateGroupDialog(context = context, onDismiss = onDismiss, onGroupCreated = onGroupCreated)
+) = ComponentCreateGroupDialog(
+    context = context,
+    onDismiss = onDismiss,
+    onGroupCreated = onGroupCreated,
+    chatViewModel = chatViewModel,
+    groupViewModel = groupViewModel)
 
 fun updateGroupName(context: Context, groupId: String, newName: String) =
     com.example.zaloclone.data.local.updateGroupName(context, groupId, newName)

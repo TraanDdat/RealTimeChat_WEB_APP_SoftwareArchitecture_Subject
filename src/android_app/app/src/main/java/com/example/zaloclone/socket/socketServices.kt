@@ -33,10 +33,10 @@ class SocketService(
 
     override fun listenEvents(callbacks: SocketCallbacks) {
         socket = socketClient.getSocket()
-        socket?.off("onlineUsers")
+        socket?.off("getOnlineUsers")
         socket?.off("presenceChanged")
 
-        socket?.on("onlineUsers") { args ->
+        socket?.on("getOnlineUsers") { args ->
             val data = args.firstOrNull()
             var userIdList = emptyList<Int>()
             if (data is List<*>) {
@@ -89,7 +89,7 @@ class SocketService(
 
     override fun removeListeners() {
         stopHeartbeat()
-        socket?.off("onlineUsers")
+        socket?.off("getOnlineUsers")
         socket?.off("presenceChanged")
         socket = null
     }
