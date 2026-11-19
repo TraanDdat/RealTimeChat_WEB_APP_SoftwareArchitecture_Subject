@@ -14,19 +14,18 @@ class SocketClient ( private val baseUrl: String ) : ISocketClient {
     private var socket: Socket? = null
 
     override fun create(token: String): Socket {
-        if(socket == null) {
-            val option = IO.Options.builder()
-                .setPath("/socket.io")
-                .setTransports(arrayOf("websocket","polling"))
-                .setReconnection(true)
-                .setExtraHeaders(mapOf("Authorization" to listOf("Bearer $token")))
-                .build()
-            socket = IO.socket(baseUrl, option)
-        }
+        disconnect()
+        val option = IO.Options.builder()
+            .setPath("/socket.io")
+            .setTransports(arrayOf("websocket","polling"))
+            .setReconnection(true)
+            .setExtraHeaders(mapOf("Authorization" to listOf("Bearer $token")))
+            .build()
+        socket = IO.socket(baseUrl, option)
         return socket!!
     }
 
-    override fun getSocket(): Socket? { return socket}
+    override fun getSocket(): Socket? = socket
 
     override fun disconnect() {
         socket?.disconnect()

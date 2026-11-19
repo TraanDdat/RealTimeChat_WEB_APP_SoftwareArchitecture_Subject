@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.zaloclone.api.model.ChatUser
-import com.example.zaloclone.api.model.SendMessageRequest
+import com.example.zaloclone.api.model.SendMessageDataRequest
 import com.example.zaloclone.data.local.*
 import com.example.zaloclone.ui.model.Message
 import com.example.zaloclone.ui.model.MessageType
@@ -136,18 +136,23 @@ fun ChattingScreen(
     ) {
         chatState.messages.map { chatMsg ->
             val isMe = chatMsg.senderId == currentUserId
+            val messageType = when {
+                !chatMsg.image.isNullOrBlank() -> MessageType.IMAGE
+                !chatMsg.attachment.isNullOrBlank() && chatMsg.attachmentMimeType?.startsWith("video/") == true -> MessageType.VIDEO
+                !chatMsg.attachment.isNullOrBlank() -> MessageType.DOCUMENT
+                !chatMsg.emotion.isNullOrBlank() -> MessageType.EMOTION
+                else -> MessageType.TEXT
+            }
             Message(
                 id = chatMsg.id,
                 text = chatMsg.text ?: "",
                 isMe = isMe,
-                type = if (!chatMsg.image.isNullOrBlank()) {
-                    MessageType.IMAGE
-                } else {
-                    MessageType.TEXT
-                },
+                type = messageType,
                 image = chatMsg.image,
                 timestamp = chatMsg.createdAt,
-                mediaUrl = chatMsg.image,
+                emotion = chatMsg.emotion,
+                mediaUrl = chatMsg.image ?: chatMsg.attachment,
+                fileName = chatMsg.attachmentName,
                 reaction = reactionByMessageId[chatMsg.id]
             )
         }
@@ -163,13 +168,19 @@ fun ChattingScreen(
         type: MessageType,
         text: String = "",
         mediaUrl: String? = null,
-        fileName: String? = null,
-        fileSize: String? = null,
-        emotion: String? = null
+        emotion: String? = null,
+        attachment: String? = null,
+        attachmentName: String? = null,
+        attachmentMimeType: String? = null
     ) {
-        val sendReq = SendMessageRequest(
+        val isImage = type == MessageType.IMAGE
+        val sendReq = SendMessageDataRequest(
             text = text.ifBlank { null },
-            image = mediaUrl
+            image = if (isImage) mediaUrl else null,
+            emotion = if (type == MessageType.EMOTION) emotion else null,
+            attachment = if (isImage) null else (attachment ?: mediaUrl),
+            attachmentName = if (isImage) null else attachmentName,
+            attachmentMimeType = if (isImage) null else attachmentMimeType
         )
         chatViewModel.sendMessage(sendReq, currentUserId)
     }
@@ -178,11 +189,12 @@ fun ChattingScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-        val imageDataUrl = uriToBase64DataUrl(context, it)
-        sendMediaMessage(
-            type = MessageType.IMAGE,
-            mediaUrl = imageDataUrl
-        )
+            val imageDataUrl = uriToBase64DataUrl(context, it)
+            sendMediaMessage(
+                type = MessageType.IMAGE,
+                mediaUrl = imageDataUrl,
+                attachmentMimeType = context.contentResolver.getType(it)
+            )
             showAttachPanel = false
         }
     }
@@ -191,9 +203,13 @@ fun ChattingScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
+            val (fName, fSize) = getFileNameAndSizeFromUri(context, it)
+            val videoDataUrl = uriToBase64DataUrl(context, it)
             sendMediaMessage(
                 type = MessageType.VIDEO,
-                mediaUrl = it.toString()
+                mediaUrl = videoDataUrl,
+                attachmentName = fName,
+                attachmentMimeType = context.contentResolver.getType(it)
             )
             showAttachPanel = false
         }
@@ -204,11 +220,12 @@ fun ChattingScreen(
     ) { uri: Uri? ->
         uri?.let {
             val (fName, fSize) = getFileNameAndSizeFromUri(context, it)
+            val documentDataUrl = uriToBase64DataUrl(context, it)
             sendMediaMessage(
                 type = MessageType.DOCUMENT,
-                mediaUrl = it.toString(),
-                fileName = fName,
-                fileSize = fSize
+                mediaUrl = documentDataUrl,
+                attachmentName = fName,
+                attachmentMimeType = context.contentResolver.getType(it)
             )
             showAttachPanel = false
         }
@@ -394,11 +411,11 @@ fun ChattingScreen(
 
 fun uriToBase64DataUrl(context: Context, uri: Uri): String {
     val mimeType = context.contentResolver.getType(uri)
-        ?: "image/jpeg"
+        ?: "application/octet-stream"
 
     val bytes = context.contentResolver.openInputStream(uri)?.use {
         it.readBytes()
-    } ?: throw IllegalStateException("Cannot read image")
+    } ?: throw IllegalStateException("Cannot read file")
 
     val base64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
 

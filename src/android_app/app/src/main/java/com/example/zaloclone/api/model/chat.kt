@@ -17,14 +17,22 @@ data class ChatMessage(
     val senderUsername: String? = null,
     val text: String?,
     val image: String?,
+    val attachment: String? = null,
+    val attachmentName: String? = null,
+    val attachmentMimeType: String? = null,
     val createdAt: String,
     val updatedAt: String? = null,
-    val isOptimistic: Boolean? = false
+    val isOptimistic: Boolean? = false,
+    val emotion: String? = null
 )
 
-data class SendMessageRequest(
+data class SendMessageDataRequest(
     val text: String?,
-    val image: String?
+    val image: String?,
+    val emotion: String?,
+    val attachment: String?,
+    val attachmentName: String?,
+    val attachmentMimeType: String?
 )
 
 data class GroupMessageDataResponse(

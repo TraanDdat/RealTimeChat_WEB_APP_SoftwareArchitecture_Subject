@@ -168,7 +168,7 @@ fun SettingsScreen(
                             Text(
                                 text = authUser?.username?:"null",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 28.sp,
+                                fontSize = 10.sp,
                                 color = Color.White
                             )
                         //}
