@@ -229,9 +229,9 @@ class ChatViewModel(
                 val messages = response
                     .distinctBy { it.id }
                     .sortedBy { it.createdAt }
-                _state.update { it.copy(messages = messages) }		        
+                _state.update { it.copy(messages = messages) }
+                Log.d("CHAT_DEBUG", "State updated size=${_state.value.messages.size}")
             } catch (e: Exception) {
-                _state.value = _state.value.copy(errorMessage = e.localizedMessage ?: "Unable to get messages")
                 if (_state.value.selectedUser?.id == userId) {
                     _state.update {
                         it.copy(
