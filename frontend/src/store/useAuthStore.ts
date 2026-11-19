@@ -54,7 +54,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   signup: async (data) => {
     set({ isSigningUp: true });
     try {
-      const res = await authApi.signup(data);
+      await authApi.signup(data);
       set({ authUser: null });
       toast.success("Account created successfully!");
     } catch (error) {
