@@ -108,6 +108,7 @@ function MessageInput() {
     sendMessage({
       text: text.trim(),
       image: isImage ? fileDataUrl : null,
+      emotion: null,
       attachment,
       attachmentName: attachment ? selectedFile?.name ?? null : null,
       attachmentMimeType: attachment ? selectedMimeType : null,

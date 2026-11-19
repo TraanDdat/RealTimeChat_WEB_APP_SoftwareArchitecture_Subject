@@ -84,7 +84,13 @@ function ChatContainer() {
                         {msg.attachmentName ?? "Download attachment"}
                       </a>
                     )}
-                    {msg.text && <p className="mt-2">{msg.text}</p>}
+                    {msg.emotion ? (
+                        <div className="text-5xl leading-tight">
+                            {msg.emotion}
+                        </div>
+                    ) : (
+                        msg.text && <p className="mt-2">{msg.text}</p>
+                    )}
                     <p className="text-xs mt-1 opacity-75 flex items-center gap-1">
                       {new Date(msg.createdAt).toLocaleTimeString(undefined, {
                         hour: "2-digit",

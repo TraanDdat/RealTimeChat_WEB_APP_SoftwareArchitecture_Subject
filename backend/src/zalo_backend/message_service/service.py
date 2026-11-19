@@ -68,6 +68,7 @@ def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
         "senderId": sender_id, "receiverId": receiver_id, "text": data.text or None,
         "image": image_key, "attachment": attachment_key,
         "attachmentName": data.attachmentName, "attachmentMimeType": data.attachmentMimeType,
+        "emotion": data.emotion,
         "attachmentSize": attachment_size, "createdAt": now, "updatedAt": now,
     }
     try:

@@ -9,6 +9,7 @@ class MessageCreate(BaseModel):
 
     text: Optional[str] = Field(default=None, max_length=2000)
     image: Optional[str] = Field(default=None, max_length=8_000_000)
+    emotion: Optional[str] = None
     attachment: Optional[str] = Field(default=None, max_length=7_000_000)
     attachmentName: Optional[str] = Field(default=None, max_length=255)
     attachmentMimeType: Optional[str] = Field(default=None, max_length=127)
@@ -22,8 +23,8 @@ class MessageCreate(BaseModel):
             raise ValueError("Attachment data is required.")
         if self.image and self.attachment:
             raise ValueError("Send either an image or an attachment, not both.")
-        if not self.text and not self.image and not self.attachment:
-            raise ValueError("Text, image, or attachment is required.")
+        if not self.text and not self.image and not self.attachment and not self.emotion:
+            raise ValueError("Message content is required, should not null.")
         return self
 
 
@@ -40,6 +41,7 @@ class Message(BaseModel):
     receiverId: int
     text: Optional[str] = None
     image: Optional[str] = None
+    emotion: Optional[str] = None
     attachment: Optional[str] = None
     attachmentName: Optional[str] = None
     attachmentMimeType: Optional[str] = None
@@ -55,6 +57,7 @@ class GroupMessage(BaseModel):
     senderUsername: str
     text: Optional[str] = None
     image: Optional[str] = None
+    emotion: Optional[str] = None
     attachment: Optional[str] = None
     attachmentName: Optional[str] = None
     attachmentMimeType: Optional[str] = None

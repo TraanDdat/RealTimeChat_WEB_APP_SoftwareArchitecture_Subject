@@ -1,5 +1,5 @@
 import { axiosInstance } from "../lib/axios";
-import type { ChatGroup, CreateGroupData, GroupMessageData, SendMessageData } from "../types/chat";
+import type { ChatGroup, CreateGroupData, GroupMessageData, SendMessageDataRequest } from "../types/chat";
 
 export const groupApi = {
   getGroups: () => axiosInstance.get<ChatGroup[]>("/groups"),
@@ -16,6 +16,6 @@ export const groupApi = {
   getMessages: (groupId: number) =>
     axiosInstance.get<GroupMessageData[]>(`/groups/${groupId}/messages`),
 
-  sendMessage: (groupId: number, data: SendMessageData) =>
+  sendMessage: (groupId: number, data: SendMessageDataRequest) =>
     axiosInstance.post<GroupMessageData>(`/groups/${groupId}/messages`, data),
 };

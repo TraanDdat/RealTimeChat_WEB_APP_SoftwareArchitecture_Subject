@@ -7,7 +7,7 @@ import type {
   ChatGroup,
   ChatUser,
   ChatMessage,
-  SendMessageData,
+  SendMessageDataRequest,
   ApiErrorBody,
 } from "../types/chat.ts";
 import { chatApi } from "../api/chat.ts";
@@ -37,7 +37,7 @@ interface ChatStore {
   refreshGroup: (groupId: number) => Promise<void>;
   getMessagesByUserId: (userId: number) => Promise<void>;
   getGroupMessages: (groupId: number) => Promise<void>;
-  sendMessage: (messageData: SendMessageData) => Promise<void>;
+  sendMessage: (messageData: SendMessageDataRequest) => Promise<void>;
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
 }

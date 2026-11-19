@@ -1,5 +1,5 @@
 import { axiosInstance } from "../lib/axios";
-import type { ChatUser, ChatMessage, SendMessageData } from "../types/chat";
+import type { ChatUser, ChatMessage, SendMessageDataRequest } from "../types/chat";
 
 export const chatApi = {
   getContacts: () =>
@@ -11,7 +11,7 @@ export const chatApi = {
   getMessages: (userId: number) =>
     axiosInstance.get<ChatMessage[]>(`/messages/${userId}`),
 
-  sendMessage: (receiverId: number, data: SendMessageData) =>
+  sendMessage: (receiverId: number, data: SendMessageDataRequest) =>
     axiosInstance.post<ChatMessage>(
       `/messages/send/${receiverId}`,
       data
