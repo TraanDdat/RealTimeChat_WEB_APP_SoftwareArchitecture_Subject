@@ -1,8 +1,8 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import useKeyboardSound from "../hooks/useKeyboardSound";
 import { useChatStore } from "../store/useChatStore";
 import toast from "react-hot-toast";
-import { PaperclipIcon, SendIcon, XIcon } from "lucide-react";
+import { PaperclipIcon, SendIcon, SmileIcon, XIcon } from "lucide-react";
 
 const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 const UPLOAD_TYPES: Record<string, string> = {
@@ -24,6 +24,13 @@ const UPLOAD_TYPES: Record<string, string> = {
   webm: "video/webm",
 };
 const ACCEPTED_FILE_TYPES = Object.values(UPLOAD_TYPES).join(",");
+const EMOJIS = [
+  "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
+  "😊", "🙂", "😉", "😍", "🥰", "😘", "😋", "😎",
+  "🤔", "🤗", "😐", "🙄", "😏", "😢", "😭", "😡",
+  "🤬", "😱", "🥳", "😴", "🤒", "👍", "👎", "👏",
+  "🙌", "🙏", "❤️", "💔", "🔥", "🎉", "✨", "💯",
+];
 
 function readAsDataUrl(file: File, mimeType: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -47,7 +54,40 @@ function MessageInput() {
   const [selectedMimeType, setSelectedMimeType] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textInputRef = useRef<HTMLInputElement | null>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement | null>(null);
+  const emojiPickerRef = useRef<HTMLDivElement | null>(null);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { sendMessage, isSoundEnabled } = useChatStore();
+
+  useEffect(() => {
+    if (!isEmojiPickerOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Node &&
+        !emojiPickerRef.current?.contains(target) &&
+        !emojiButtonRef.current?.contains(target)
+      ) {
+        setIsEmojiPickerOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [isEmojiPickerOpen]);
+
+  const insertEmoji = (emoji: string) => {
+    const input = textInputRef.current;
+    const start = input?.selectionStart ?? text.length;
+    const end = input?.selectionEnd ?? text.length;
+    const nextText = `${text.slice(0, start)}${emoji}${text.slice(end)}`;
+    setText(nextText);
+    setIsEmojiPickerOpen(false);
+    requestAnimationFrame(() => {
+      input?.focus();
+      input?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  };
 
   const handleSendMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -131,15 +171,53 @@ function MessageInput() {
 
       <form onSubmit={handleSendMessage} className="max-w-3xl mx-auto flex space-x-2 sm:space-x-4">
         <input
+          ref={textInputRef}
           type="text"
+          maxLength={2000}
           value={text}
           onChange={(event) => {
             setText(event.target.value);
             if (isSoundEnabled) playRandomKeyStrokeSound();
           }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setIsEmojiPickerOpen(false);
+          }}
           className="min-w-0 flex-1 bg-slate-800/50 border border-slate-700/50 rounded-lg py-2 px-4"
           placeholder="Type your message..."
         />
+
+        <div className="relative">
+          <button
+            ref={emojiButtonRef}
+            type="button"
+            onClick={() => setIsEmojiPickerOpen((open) => !open)}
+            className="h-full bg-slate-800/50 text-slate-400 hover:text-slate-200 rounded-lg px-3 transition-colors"
+            aria-label="Choose an emoji"
+            aria-expanded={isEmojiPickerOpen}
+          >
+            <SmileIcon className="w-5 h-5" />
+          </button>
+          {isEmojiPickerOpen && (
+            <div
+              ref={emojiPickerRef}
+              role="dialog"
+              aria-label="Choose an emoji"
+              className="absolute bottom-full right-0 z-20 mb-2 grid w-64 grid-cols-8 gap-1 rounded-lg border border-slate-700 bg-slate-900 p-2 shadow-xl"
+            >
+              {EMOJIS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => insertEmoji(emoji)}
+                  className="aspect-square rounded-md text-xl hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-400"
+                  aria-label={`Insert ${emoji}`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <input
           type="file"
