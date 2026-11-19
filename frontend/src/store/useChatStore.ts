@@ -225,6 +225,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       attachmentMimeType: messageData.attachmentMimeType,
       createdAt: new Date().toISOString(),
       isOptimistic: true,
+      emotion: messageData.emotion ?? null,
     };
     set((state) => ({
       messages: [...state.messages, optimisticMessage],

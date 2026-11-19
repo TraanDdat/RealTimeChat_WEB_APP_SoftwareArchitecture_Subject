@@ -1,5 +1,4 @@
 import { axiosInstance } from "../lib/axios";
-import type { ChatUser } from "../types/chat";
 import type { AddFriendRequest, AddFriendResponse, FriendRequestItem } from "../types/friend";
 
 interface DataEnvelope<T> {
