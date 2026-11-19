@@ -140,7 +140,10 @@ def get_group_messages(db: Session, group_id: int, user_id: int) -> list[GroupMe
             [("createdAt", 1), ("_id", 1)]
         )
         return [
-            message.model_copy(update={"image": s3_storage.image_url(message.image)})
+            message.model_copy(update={
+                "image": s3_storage.image_url(message.image),
+                "attachment": s3_storage.attachment_url(message.attachment),
+            })
             for message in (
                 GroupMessage.model_validate({**document, "_id": str(document["_id"])})
                 for document in documents
@@ -160,6 +163,12 @@ def send_group_message(
     _membership(db, group_id, sender_id)
     sender = db.query(User).filter(User.id == sender_id).first()
     image_key = upload_image(data.image) if data.image else None
+    attachment_key = None
+    attachment_size = None
+    if data.attachment:
+        attachment_key, attachment_size = s3_storage.store_attachment_data_url(
+            data.attachment, data.attachmentName, data.attachmentMimeType,
+        )
     now = datetime.now(timezone.utc)
     document = {
         "groupId": group_id,
@@ -167,6 +176,10 @@ def send_group_message(
         "senderUsername": sender.username,
         "text": data.text or None,
         "image": image_key,
+        "attachment": attachment_key,
+        "attachmentName": data.attachmentName,
+        "attachmentMimeType": data.attachmentMimeType,
+        "attachmentSize": attachment_size,
         "createdAt": now,
         "updatedAt": now,
     }
@@ -175,9 +188,13 @@ def send_group_message(
         message = GroupMessage.model_validate({**document, "_id": str(result.inserted_id)})
     except PyMongoError as error:
         s3_storage.delete_image(image_key)
+        s3_storage.delete_image(attachment_key)
         raise HTTPException(status_code=503, detail="Group message storage unavailable") from error
     member_ids = [
         user_id
         for (user_id,) in db.query(GroupMember.user_id).filter(GroupMember.group_id == group_id).all()
     ]
-    return message.model_copy(update={"image": s3_storage.image_url(message.image)}), member_ids
+    return message.model_copy(update={
+        "image": s3_storage.image_url(message.image),
+        "attachment": s3_storage.attachment_url(message.attachment),
+    }), member_ids

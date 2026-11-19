@@ -65,6 +65,25 @@ function ChatContainer() {
                     {msg.image && (
                       <img src={msg.image} alt="Shared" className="rounded-lg h-48 object-cover" />
                     )}
+                    {msg.attachment && msg.attachmentMimeType?.startsWith("video/") && (
+                      <video
+                        src={msg.attachment}
+                        controls
+                        preload="metadata"
+                        className="max-h-64 max-w-full rounded-lg"
+                      />
+                    )}
+                    {msg.attachment && !msg.attachmentMimeType?.startsWith("video/") && (
+                      <a
+                        href={msg.attachment}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block max-w-64 truncate underline underline-offset-2"
+                        download={msg.attachmentName ?? undefined}
+                      >
+                        {msg.attachmentName ?? "Download attachment"}
+                      </a>
+                    )}
                     {msg.text && <p className="mt-2">{msg.text}</p>}
                     <p className="text-xs mt-1 opacity-75 flex items-center gap-1">
                       {new Date(msg.createdAt).toLocaleTimeString(undefined, {

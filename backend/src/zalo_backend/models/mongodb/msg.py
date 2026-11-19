@@ -9,11 +9,21 @@ class MessageCreate(BaseModel):
 
     text: Optional[str] = Field(default=None, max_length=2000)
     image: Optional[str] = Field(default=None, max_length=8_000_000)
+    attachment: Optional[str] = Field(default=None, max_length=7_000_000)
+    attachmentName: Optional[str] = Field(default=None, max_length=255)
+    attachmentMimeType: Optional[str] = Field(default=None, max_length=127)
 
     @model_validator(mode="after")
     def require_content(self):
-        if not self.text and not self.image:
-            raise ValueError("Text or image is required.")
+        has_attachment_metadata = self.attachmentName is not None or self.attachmentMimeType is not None
+        if self.attachment and (not self.attachmentName or not self.attachmentMimeType):
+            raise ValueError("Attachment name and media type are required.")
+        if has_attachment_metadata and not self.attachment:
+            raise ValueError("Attachment data is required.")
+        if self.image and self.attachment:
+            raise ValueError("Send either an image or an attachment, not both.")
+        if not self.text and not self.image and not self.attachment:
+            raise ValueError("Text, image, or attachment is required.")
         return self
 
 
@@ -30,6 +40,10 @@ class Message(BaseModel):
     receiverId: int
     text: Optional[str] = None
     image: Optional[str] = None
+    attachment: Optional[str] = None
+    attachmentName: Optional[str] = None
+    attachmentMimeType: Optional[str] = None
+    attachmentSize: Optional[int] = None
     createdAt: datetime
     updatedAt: datetime
 
@@ -41,6 +55,10 @@ class GroupMessage(BaseModel):
     senderUsername: str
     text: Optional[str] = None
     image: Optional[str] = None
+    attachment: Optional[str] = None
+    attachmentName: Optional[str] = None
+    attachmentMimeType: Optional[str] = None
+    attachmentSize: Optional[int] = None
     createdAt: datetime
     updatedAt: datetime
 

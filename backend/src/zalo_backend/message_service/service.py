@@ -19,8 +19,11 @@ def upload_image(image: str) -> str:
     return s3_storage.store_image_data_url(image)
 
 
-def _with_image_url(message):
-    return message.model_copy(update={"image": s3_storage.image_url(message.image)})
+def _with_media_urls(message):
+    return message.model_copy(update={
+        "image": s3_storage.image_url(message.image),
+        "attachment": s3_storage.attachment_url(message.attachment),
+    })
 
 
 def get_contacts(user_id: int):
@@ -43,7 +46,7 @@ def get_messages(user_id: int, partner_id: int):
         {"senderId": user_id, "receiverId": partner_id},
         {"senderId": partner_id, "receiverId": user_id},
     ]}).sort([("createdAt", ASCENDING), ("_id", ASCENDING)])
-    return [_with_image_url(message_data(document)) for document in messages]
+    return [_with_media_urls(message_data(document)) for document in messages]
 
 
 def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
@@ -53,15 +56,24 @@ def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
         raise HTTPException(status_code=404, detail="Receiver not found.")
 
     image_key = upload_image(data.image) if data.image else None
+    attachment_key = None
+    attachment_size = None
+    if data.attachment:
+        attachment_key, attachment_size = s3_storage.store_attachment_data_url(
+            data.attachment, data.attachmentName, data.attachmentMimeType,
+        )
 
     now = datetime.now(timezone.utc)
     document = {
         "senderId": sender_id, "receiverId": receiver_id, "text": data.text or None,
-        "image": image_key, "createdAt": now, "updatedAt": now,
+        "image": image_key, "attachment": attachment_key,
+        "attachmentName": data.attachmentName, "attachmentMimeType": data.attachmentMimeType,
+        "attachmentSize": attachment_size, "createdAt": now, "updatedAt": now,
     }
     try:
         result = collection.insert_one(document)
     except PyMongoError as error:
         s3_storage.delete_image(image_key)
+        s3_storage.delete_image(attachment_key)
         raise HTTPException(status_code=503, detail="Message storage unavailable") from error
-    return _with_image_url(message_data({**document, "_id": result.inserted_id}))
+    return _with_media_urls(message_data({**document, "_id": result.inserted_id}))

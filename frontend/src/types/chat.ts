@@ -15,6 +15,10 @@ export interface ChatMessage {
   senderUsername?: string;
   text: string | null;
   image: string | null;
+  attachment?: string | null;
+  attachmentName?: string | null;
+  attachmentMimeType?: string | null;
+  attachmentSize?: number | null;
   createdAt: string;
   updatedAt?: string;
   isOptimistic?: boolean;
@@ -23,6 +27,9 @@ export interface ChatMessage {
 export interface SendMessageData {
   text: string;
   image: string | null;
+  attachment: string | null;
+  attachmentName: string | null;
+  attachmentMimeType: string | null;
 }
 
 export interface ApiErrorBody {

@@ -106,6 +106,23 @@ def test_group_creation_and_admin_assignment(db_session, monkeypatch):
     assert collection.find_one({"image": key})["image"] == key
     assert image_message.image == f"https://signed.test/{key}"
 
+    attachment_key = "chat-attachments/group.pdf"
+    monkeypatch.setattr(s3_storage, "store_attachment_data_url", lambda *_: (attachment_key, 24))
+    monkeypatch.setattr(
+        s3_storage, "attachment_url",
+        lambda attachment_ref: f"https://signed.test/{attachment_ref}",
+    )
+    attachment_message, _ = group_service.send_group_message(
+        db_session, group.id, 2,
+        MessageCreate(
+            attachment="data:application/pdf;base64,JVBERi0xLjQ=",
+            attachmentName="group.pdf",
+            attachmentMimeType="application/pdf",
+        ),
+    )
+    assert collection.find_one({"attachment": attachment_key})["attachmentSize"] == 24
+    assert attachment_message.attachment == f"https://signed.test/{attachment_key}"
+
 
 def test_only_group_admin_can_add_members(db_session):
     group = group_service.create_group(db_session, 1, "Project team", [2])

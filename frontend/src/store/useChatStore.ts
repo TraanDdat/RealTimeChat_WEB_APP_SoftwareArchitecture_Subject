@@ -220,6 +220,9 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       ...(selectedGroup ? { groupId: selectedGroup.id, senderUsername: authUser.username } : { receiverId: selectedUser!._id }),
       text: messageData.text,
       image: messageData.image,
+      attachment: messageData.attachment,
+      attachmentName: messageData.attachmentName,
+      attachmentMimeType: messageData.attachmentMimeType,
       createdAt: new Date().toISOString(),
       isOptimistic: true,
     };
