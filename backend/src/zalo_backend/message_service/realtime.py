@@ -51,16 +51,15 @@ def _get_socket_user_id(environ) -> int | None:
 async def connect(sid, environ, auth):
     user_id = _get_socket_user_id(environ)
     if user_id is None:
-            user_id = _user_id_from_bearer(environ)
-            if user_id is None:
-                return False
+        return False
     try:
         user = await run_in_threadpool(resolve_user, user_id)
-    except HTTPException:
+    except HTTPException as e:
+        logger.warning("SOCKET USER NOT FOUND: user_id=%s", user_id)
         return False
     await sio.enter_room(sid, str(user.id))
     online_users.setdefault(user.id, set()).add(sid)
-    await sio.emit("getOnlineUsers", list(online_users))
+    await sio.emit("getOnlineUsers", list(online_users.keys()))
 
 
 @sio.event

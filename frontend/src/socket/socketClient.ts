@@ -11,6 +11,7 @@ class SocketClient {
         withCredentials: true,
         transports: ["websocket", "polling"],
         autoConnect: false,
+        reconnection: true
       });
     }
     return this.socket;
@@ -30,4 +31,3 @@ class SocketClient {
 }
 
 export const socketClient = new SocketClient();
-export const socket = socketClient.create();

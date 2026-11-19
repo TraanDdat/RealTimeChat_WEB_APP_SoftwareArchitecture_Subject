@@ -105,25 +105,18 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   connectSocket: () => {
       const { authUser, socket } = get();
-      if (!authUser || socket?.connected) return;
+      if (!authUser || socket?.active) return;
       const newSocket = socketClient.create();
-      // Listen to socket events before connecting
+      // Listen to backend events
       socketService.listenEvents({
-        onOnlineUsers: (user_id: number[]) => {
-          set({ onlineUsers: user_id });
-        } 
+          onOnlineUsers: (userIds: number[]) => {
+              set({ onlineUsers: userIds });
+          }
       });
-      // Connect the socket if not already connected
-      newSocket.on("connect", () => {
-        console.log("Socket connected:", newSocket.id);
-      });
-      // Handle socket connection errors
-      newSocket.on("connect_error", (error) => {
-        console.error("Socket connection error Message:", error.message);
-      });
-      newSocket.on("getOnlineUsers", (userIds: number[]) => {
-          set({ onlineUsers: userIds });
-      });
+      // Remove old listeners to prevent duplicates
+      newSocket.off("connect");
+      newSocket.off("disconnect");
+      newSocket.off("connect_error");
       set({ socket: newSocket });
       newSocket.connect();
   },

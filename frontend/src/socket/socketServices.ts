@@ -11,8 +11,8 @@ class SocketService {
   listenEvents(callbacks: SocketCallbacks): void {
   this.socket = socketClient.getSocket();
     if (this.socket) {
-      this.socket.off("onlineUsers"); // off current listeners before adding a new one
-      this.socket.on("onlineUsers", (user_id: number[]) => {
+      this.socket.off("getOnlineUsers"); // off current listeners before adding a new one
+      this.socket.on("getOnlineUsers", (user_id: number[]) => {
         callbacks.onOnlineUsers(user_id); // listen the new one and update to callback interface
       });
     }
@@ -20,7 +20,7 @@ class SocketService {
   
   removeListeners(): void {
     if (this.socket) {
-      this.socket.off("onlineUsers");
+      this.socket.off("getOnlineUsers");
       this.socket = null;
     }
   }
