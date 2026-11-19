@@ -6,8 +6,8 @@ interface IChatRepository {
     suspend fun getContacts(): List<ChatUser>
     suspend fun getChatPartners(): List<ChatUser>
     suspend fun getMessages(userId: Int): List<ChatMessage>
-    suspend fun sendMessage(receiverId: Int, data: SendMessageRequest): ChatMessage
+    suspend fun sendMessage(receiverId: Int, data: SendMessageDataRequest): ChatMessage
     suspend fun getGroupMessages(groupId: Int): List<GroupMessageDataResponse>
-    suspend fun sendGroupMessage(groupId: Int, data: SendMessageRequest): GroupMessageDataResponse
+    suspend fun sendGroupMessage(groupId: Int, data: SendMessageDataRequest): GroupMessageDataResponse
     suspend fun deleteFriend(friendId: Int)
 }

@@ -24,7 +24,7 @@ data class AuthState(
     val isLoggingIn: Boolean = false,
     val getOnlineUsers: List<Int> = emptyList(),
     val userPresences: Map<Int, UserPresence> = emptyMap(),
-    val myPresenceStatus: PresenceStatus = PresenceStatus.ONLINE,
+    val myPresenceStatus: PresenceStatus = PresenceStatus.OFFLINE,
     val errorMessage: String? = null,
     val successMessage: String? = null
 )
@@ -45,8 +45,8 @@ class AuthViewModel(
             try {
                 val token = tokenManager.getToken()
                 if (token.isNullOrBlank()) {
-                    _state.value = _state.value.copy(
-                        authUser = null,
+                    disconnectSocket()
+                    _state.value = AuthState(
                         isCheckingAuth = false
                     )
                     return@launch
@@ -54,6 +54,8 @@ class AuthViewModel(
                 val user = repository.AuthCheck()
                 _state.value = _state.value.copy(
                     authUser = user,
+                    userId = user.id,
+                    email = user.email,
                     isCheckingAuth = false
                 )
                 connectSocket(token)
@@ -62,8 +64,10 @@ class AuthViewModel(
                 disconnectSocket()
                 _state.value = _state.value.copy(
                     authUser = null,
-                    isCheckingAuth = false,
-                    errorMessage = e.localizedMessage
+                    userId = null,
+                    email = null,
+                    myPresenceStatus = PresenceStatus.OFFLINE,
+                    errorMessage = e.localizedMessage ?: "Error when login"
                 )
             }
         }
@@ -109,14 +113,10 @@ class AuthViewModel(
                 val user = repository.AuthCheck()
                 _state.value = _state.value.copy(
                     authUser = user,
+                    userId = user.id,
+                    email = user.email,
+                    myPresenceStatus = PresenceStatus.ONLINE,
                     successMessage = "Logged in successfully"
-                )
-                val userId = response.data.id
-                val email = response.data.email
-                _state.value = _state.value.copy(
-                    userId = userId,
-                    email = email,
-                    isLoggingIn = false
                 )
                 connectSocket(token)
             } catch (e: Exception) {
@@ -142,10 +142,11 @@ class AuthViewModel(
             } finally {
                 tokenManager.clearToken()
                 disconnectSocket()
-                _state.value = _state.value.copy(
-                    authUser = null,
-                    getOnlineUsers = emptyList(),
-                    userPresences = emptyMap(),
+                _state.value = AuthState(
+                    isCheckingAuth = false,
+                    isLoggingIn = false,
+                    isSigningUp = false,
+                    myPresenceStatus = PresenceStatus.OFFLINE,
                     successMessage = "Logged out successfully"
                 )
             }
@@ -174,6 +175,8 @@ class AuthViewModel(
     }
 
     private fun connectSocket(token: String) {
+        socketService.stopHeartbeat()
+        socketService.removeListeners()
         val socket = socketClient.create(token)
         socketService.listenEvents(
             SocketCallbacks(
@@ -204,11 +207,9 @@ class AuthViewModel(
                 }
             )
         )
-
         if (!socket.connected()) {
             socket.connect()
         }
-
         socketService.startHeartbeat(viewModelScope)
     }
 

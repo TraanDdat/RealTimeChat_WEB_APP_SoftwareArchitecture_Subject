@@ -13,11 +13,11 @@ class ChatRepository(
 
     override suspend fun getMessages(userId: Int): List<ChatMessage> = chatApi.getMessages(userId)
 
-    override suspend fun sendMessage(receiverId: Int, data: SendMessageRequest): ChatMessage = chatApi.sendMessage(receiverId, data)
+    override suspend fun sendMessage(receiverId: Int, data: SendMessageDataRequest): ChatMessage = chatApi.sendMessage(receiverId, data)
 
     override suspend fun getGroupMessages(groupId: Int): List<GroupMessageDataResponse> = chatApi.getGroupMessages(groupId)
 
-    override suspend fun sendGroupMessage(groupId: Int, data: SendMessageRequest): GroupMessageDataResponse = chatApi.sendGroupMessage(groupId, data)
+    override suspend fun sendGroupMessage(groupId: Int, data: SendMessageDataRequest): GroupMessageDataResponse = chatApi.sendGroupMessage(groupId, data)
 
     override suspend fun deleteFriend(friendId: Int) = chatApi.deleteFriend(friendId)
 }

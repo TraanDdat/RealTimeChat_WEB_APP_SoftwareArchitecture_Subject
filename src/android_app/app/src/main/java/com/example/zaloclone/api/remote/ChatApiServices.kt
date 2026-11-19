@@ -23,7 +23,7 @@ interface ChatApiServices {
     @POST("/api/messages/send/{receiverId}")
     suspend fun sendMessage(
         @Path("receiverId") receiverId: Int,
-        @Body data: SendMessageRequest
+        @Body data: SendMessageDataRequest
     ): ChatMessage
 
     @DELETE("friends/{friendId}")
@@ -37,6 +37,6 @@ interface ChatApiServices {
     @POST("api/groups/{groupId}/messages")
     suspend fun sendGroupMessage(
         @Path("groupId") groupId: Int,
-        @Body data: SendMessageRequest
+        @Body data: SendMessageDataRequest
     ): GroupMessageDataResponse
 }
