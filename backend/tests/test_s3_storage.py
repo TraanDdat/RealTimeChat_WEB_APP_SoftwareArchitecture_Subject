@@ -52,6 +52,45 @@ def test_upload_rejects_non_image_payload(monkeypatch):
     assert error.value.status_code == 400
 
 
+def test_attachment_upload_stores_pdf_in_private_s3(monkeypatch):
+    client = FakeS3Client()
+    monkeypatch.setattr(settings, "S3_BUCKET", "chat-images-test")
+    monkeypatch.setattr(s3_storage, "_client", lambda: client)
+    file_bytes = b"%PDF-1.7\nsmall-test-document"
+    data_url = "data:application/pdf;base64," + base64.b64encode(file_bytes).decode("ascii")
+
+    key, size = s3_storage.store_attachment_data_url(data_url, "notes.pdf", "application/pdf")
+
+    assert key.startswith("chat-attachments/") and key.endswith(".pdf")
+    assert size == len(file_bytes)
+    assert client.uploads[0]["Body"] == file_bytes
+    assert client.uploads[0]["ContentType"] == "application/pdf"
+    assert client.uploads[0]["ServerSideEncryption"] == "AES256"
+    assert "ACL" not in client.uploads[0]
+    assert s3_storage.attachment_url(key) == f"https://s3.test/{key}?signature=fake"
+
+
+def test_attachment_upload_rejects_files_of_5_mib_or_more(monkeypatch):
+    monkeypatch.setattr(settings, "S3_BUCKET", "chat-images-test")
+    file_bytes = b"%PDF-" + b"x" * (s3_storage.MAX_UPLOAD_BYTES - len(b"%PDF-"))
+    data_url = "data:application/pdf;base64," + base64.b64encode(file_bytes).decode("ascii")
+
+    with pytest.raises(HTTPException) as error:
+        s3_storage.store_attachment_data_url(data_url, "large.pdf", "application/pdf")
+
+    assert error.value.status_code == 413
+
+
+def test_attachment_upload_rejects_mismatched_mime_type(monkeypatch):
+    monkeypatch.setattr(settings, "S3_BUCKET", "chat-images-test")
+    data_url = "data:application/pdf;base64," + base64.b64encode(b"%PDF-1.7").decode("ascii")
+
+    with pytest.raises(HTTPException) as error:
+        s3_storage.store_attachment_data_url(data_url, "notes.pdf", "video/mp4")
+
+    assert error.value.status_code == 400
+
+
 def test_legacy_cloudinary_urls_are_preserved():
     url = "https://res.cloudinary.com/demo/image/upload/photo.png"
 
@@ -84,3 +123,26 @@ def test_direct_message_persists_s3_key_and_returns_signed_url(monkeypatch):
     assert message.image == f"https://signed.test/{key}"
     history = service.get_messages(1, 2)
     assert history[0].image == f"https://signed.test/{key}"
+
+
+def test_direct_message_persists_attachment_metadata_and_returns_signed_url(monkeypatch):
+    collection = mongomock.MongoClient().chat.messages
+    key = "chat-attachments/direct.pdf"
+    monkeypatch.setattr(service, "collection", collection)
+    monkeypatch.setattr(service.user_client, "get_user", lambda user_id: object())
+    monkeypatch.setattr(s3_storage, "store_attachment_data_url", lambda *_: (key, 28))
+    monkeypatch.setattr(s3_storage, "attachment_url", lambda attachment_ref: f"https://signed.test/{attachment_ref}")
+    data = MessageCreate(
+        attachment="data:application/pdf;base64,JVBERi0xLjQ=",
+        attachmentName="direct.pdf",
+        attachmentMimeType="application/pdf",
+    )
+
+    message = service.send_message(data, 1, 2)
+
+    stored = collection.find_one()
+    assert stored["attachment"] == key
+    assert stored["attachmentName"] == "direct.pdf"
+    assert stored["attachmentMimeType"] == "application/pdf"
+    assert stored["attachmentSize"] == 28
+    assert message.attachment == f"https://signed.test/{key}"
