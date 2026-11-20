@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 import mongomock
 import pytest
 from fastapi import FastAPI, HTTPException
@@ -8,7 +10,7 @@ from sqlalchemy.pool import StaticPool
 
 from zalo_backend.core.security import get_current_user
 from zalo_backend.database.l_postgres import Base
-from zalo_backend.message_service import group_service, s3_storage
+from zalo_backend.message_service import group_service, s3_storage, service
 from zalo_backend.models.mongodb.msg import MessageCreate
 from zalo_backend.models.postgres.friendship import Friendship
 from zalo_backend.models.postgres.group_chat import GroupMember
@@ -141,3 +143,31 @@ def test_non_member_cannot_read_group_messages(db_session):
         group_service.get_group_messages(db_session, group.id, 3)
 
     assert error.value.status_code == 403
+
+
+def test_unread_counts_and_mark_read_cover_private_and_group_messages(db_session, monkeypatch):
+    private_collection = mongomock.MongoClient().chat.messages
+    group_collection = mongomock.MongoClient().chat.group_messages
+    group = group_service.create_group(db_session, 1, "Unread team", [2])
+    monkeypatch.setattr(service, "collection", private_collection)
+    monkeypatch.setattr(service, "group_messages", group_collection)
+    monkeypatch.setattr(group_service, "group_messages", group_collection)
+    monkeypatch.setattr(service, "SessionLocal", lambda: db_session)
+    now = datetime.now(timezone.utc)
+    private_collection.insert_many([
+        {"senderId": 2, "receiverId": 1, "readBy": [2], "createdAt": now},
+        {"senderId": 2, "receiverId": 1, "readBy": [2], "createdAt": now},
+        {"senderId": 1, "receiverId": 2, "readBy": [1], "createdAt": now},
+    ])
+    group_collection.insert_many([
+        {"groupId": group.id, "senderId": 2, "readBy": [2], "createdAt": now},
+        {"groupId": group.id, "senderId": 1, "readBy": [1], "createdAt": now},
+    ])
+
+    assert service.get_unread_counts(1) == {
+        "users": {"2": 2},
+        "groups": {str(group.id): 1},
+    }
+    service.mark_messages_read(1, 2)
+    group_service.mark_group_messages_read(db_session, group.id, 1)
+    assert service.get_unread_counts(1) == {"users": {}, "groups": {}}

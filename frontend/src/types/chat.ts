@@ -62,3 +62,8 @@ export interface GroupMessageData extends ChatMessage {
   groupId: number;
   senderUsername: string;
 }
+
+export interface UnreadCountsResponse {
+  users: Record<string, number>;
+  groups: Record<string, number>;
+}
