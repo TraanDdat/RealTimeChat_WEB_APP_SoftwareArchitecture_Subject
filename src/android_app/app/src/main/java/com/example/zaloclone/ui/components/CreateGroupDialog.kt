@@ -31,7 +31,7 @@ fun CreateGroupDialog(
     var groupNameInput by remember { mutableStateOf("") }
     val chatState by chatViewModel.state.collectAsState()
     val allContacts = chatState.allContacts
-    val friendList: List<ChatUser> = chatState.allContacts
+    val friendList: List<ChatUser> = allContacts
     val selectedFriends = remember { mutableStateMapOf<Int, Boolean>() }
 
     AlertDialog(
