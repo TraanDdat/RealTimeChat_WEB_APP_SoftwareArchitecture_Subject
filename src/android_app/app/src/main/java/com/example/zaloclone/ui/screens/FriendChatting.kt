@@ -107,7 +107,7 @@ fun FriendsScreen(
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
-                            val totalUnread = friendState.friendRequests.size + chatState.unreadNotifications.size
+                            val totalUnread = friendState.friendRequests.size + chatState.unreadCounts.values.sum()
                             if (totalUnread > 0) {
                                 Badge(
                                     modifier = Modifier
@@ -481,12 +481,14 @@ fun FriendsScreen(
                 friendViewModel.rejectFriendRequest(req)
                 Toast.makeText(context, "Reject friend request.", Toast.LENGTH_SHORT).show()
             },
-            onNotificationMessageClick = { notif ->
-                chatViewModel.clearNotificationsForUser(notif.senderId)
+            onNotificationMessageClick = { senderId ->
+                val sender = chatState.chats.find { it.id == senderId }
+                val senderName = sender?.username ?: "Người dùng #$senderId"
+                chatViewModel.clearNotificationsForUser(senderId)
                 showNotificationDialog = false
                 val user = ChatUser(
-                    id = notif.senderId,
-                    username = notif.senderName,
+                    id = senderId,
+                    username = senderName,
                     email = "",
                     profilePic = null
                 )

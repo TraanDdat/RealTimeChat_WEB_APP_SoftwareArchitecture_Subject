@@ -157,7 +157,7 @@ fun NotificationDialog(
     onDismiss: () -> Unit,
     onAcceptFriend: (Int) -> Unit,
     onRejectFriend: (Int) -> Unit,
-    onNotificationMessageClick: (MessageNotification) -> Unit
+    onNotificationMessageClick: (Int) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -199,8 +199,9 @@ fun NotificationDialog(
                         )
                     }
                     TextButton(onClick = { selectedTab = 1 }) {
+                        val unreadCnt = chatState.unreadCounts.values.sum()
                         Text(
-                            text = "Message (${chatState.unreadNotifications.size})",
+                            text = "Message (${unreadCnt})",
                             color = if (selectedTab == 1) Color(0xFF00BCD4) else Color.Gray,
                             fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
                         )
@@ -285,7 +286,8 @@ fun NotificationDialog(
                             }
                         }
                     } else {
-                        if (chatState.unreadNotifications.isEmpty()) {
+                        val hasuncntItems = chatState.unreadCounts.filter { it.value > 0 }.toList()
+                        if (hasuncntItems.isEmpty()) {
                             item {
                                 Box(
                                     modifier = Modifier
@@ -297,11 +299,16 @@ fun NotificationDialog(
                                 }
                             }
                         } else {
-                            items(chatState.unreadNotifications, key = { it.id }) { notif ->
+                            items(
+                                items = hasuncntItems,
+                                key = { it.first }
+                            ) { (senderId, count) ->
+                                val sender = chatState.allContacts.find {it.id == senderId} ?: chatState.chats.find {it.id == senderId}
+                                val senderName = sender?.username ?: "Người dùng #$senderId"
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { onNotificationMessageClick(notif) },
+                                        .clickable { onNotificationMessageClick(senderId) },
                                     colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F7FA)),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
@@ -316,7 +323,7 @@ fun NotificationDialog(
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
                                                 Text(
-                                                    text = notif.senderName.firstOrNull()?.uppercase() ?: "?",
+                                                    text = senderName.firstOrNull()?.uppercase() ?: "?",
                                                     color = Color.White,
                                                     fontWeight = FontWeight.Bold
                                                 )
@@ -324,8 +331,8 @@ fun NotificationDialog(
                                         }
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(text = notif.senderName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                            Text(text = notif.text, fontSize = 13.sp, color = Color.DarkGray, maxLines = 1)
+                                            Text(text = senderName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                            Text(text = "$count unread", fontSize = 13.sp, color = Color.DarkGray, maxLines = 1)
                                         }
                                     }
                                 }

@@ -39,4 +39,12 @@ interface ChatApiServices {
         @Path("groupId") groupId: Int,
         @Body data: SendMessageDataRequest
     ): GroupMessageDataResponse
+
+    @GET("api/messages/unread-counts")
+    suspend fun getUnreadCounts(): UnreadCountsResponse
+
+    @POST("api/messages/{userId}/read")
+    suspend fun markRead(
+        @Path("userId") userId: Int
+    )
 }

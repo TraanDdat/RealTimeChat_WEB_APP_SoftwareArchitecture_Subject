@@ -74,6 +74,7 @@ fun ChattingScreen(
         if (chatName.isNotBlank()) {
             currentChatName = chatName
         }
+        chatViewModel.clearUnreadCount(currentUserId)
     }
 
     Text(
