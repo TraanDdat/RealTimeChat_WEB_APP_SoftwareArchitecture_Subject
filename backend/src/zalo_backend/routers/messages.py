@@ -21,6 +21,19 @@ def get_chat_partners(user: UserPublic = Depends(current_user)):
     return service.get_chat_partners(user.id)
 
 
+@messages_router.get("/unread-counts")
+def get_unread_counts(user: UserPublic = Depends(current_user)):
+    return service.get_unread_counts(user.id)
+
+
+@messages_router.post("/{partner_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+def mark_messages_read(
+    partner_id: int = Path(gt=0),
+    user: UserPublic = Depends(current_user),
+):
+    service.mark_messages_read(user.id, partner_id)
+
+
 @messages_router.get("/{partner_id}", response_model=list[Message])
 def get_messages(partner_id: int = Path(gt=0), user: UserPublic = Depends(current_user)):
     return service.get_messages(user.id, partner_id)

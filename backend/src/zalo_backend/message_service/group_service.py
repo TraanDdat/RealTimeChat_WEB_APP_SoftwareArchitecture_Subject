@@ -153,6 +153,22 @@ def get_group_messages(db: Session, group_id: int, user_id: int) -> list[GroupMe
         raise HTTPException(status_code=503, detail="Group message storage unavailable") from error
 
 
+def mark_group_messages_read(db: Session, group_id: int, user_id: int) -> None:
+    _group_or_404(db, group_id)
+    _membership(db, group_id, user_id)
+    try:
+        group_messages.update_many(
+            {
+                "groupId": group_id,
+                "senderId": {"$ne": user_id},
+                "readBy": {"$ne": user_id},
+            },
+            {"$addToSet": {"readBy": user_id}},
+        )
+    except PyMongoError as error:
+        raise HTTPException(status_code=503, detail="Group message storage unavailable") from error
+
+
 def send_group_message(
     db: Session,
     group_id: int,
@@ -174,6 +190,7 @@ def send_group_message(
         "groupId": group_id,
         "senderId": sender_id,
         "senderUsername": sender.username,
+        "readBy": [sender_id],
         "text": data.text or None,
         "image": image_key,
         "attachment": attachment_key,

@@ -13,10 +13,10 @@ function ChatContainer() {
     selectedGroup,
     getMessagesByUserId,
     getGroupMessages,
+    markUserMessagesRead,
+    markGroupMessagesRead,
     messages,
     isMessagesLoading,
-    subscribeToMessages,
-    unsubscribeFromMessages,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef<HTMLDivElement>(null);
@@ -25,12 +25,14 @@ function ChatContainer() {
 
   useEffect(() => {
     if (!userId && !groupId) return;
-    if (groupId) getGroupMessages(groupId);
-    else if (userId) getMessagesByUserId(userId);
-    subscribeToMessages();
-
-    return () => unsubscribeFromMessages();
-  }, [userId, groupId, getMessagesByUserId, getGroupMessages, subscribeToMessages, unsubscribeFromMessages]);
+    if (groupId) {
+      getGroupMessages(groupId);
+      void markGroupMessagesRead(groupId);
+    } else if (userId) {
+      getMessagesByUserId(userId);
+      void markUserMessagesRead(userId);
+    }
+  }, [userId, groupId, getMessagesByUserId, getGroupMessages, markUserMessagesRead, markGroupMessagesRead]);
 
   useEffect(() => {
     if (messageEndRef.current) {

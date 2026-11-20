@@ -7,6 +7,8 @@ function GroupsList() {
     groups,
     allContacts,
     getGroups,
+    getUnreadCounts,
+    unreadCounts,
     getAllContacts,
     createGroup,
     selectedGroup,
@@ -20,7 +22,8 @@ function GroupsList() {
   useEffect(() => {
     getGroups();
     getAllContacts();
-  }, [getGroups, getAllContacts]);
+    getUnreadCounts();
+  }, [getGroups, getAllContacts, getUnreadCounts]);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -97,9 +100,19 @@ function GroupsList() {
             <UsersIcon className="size-5" />
           </span>
           <span className="min-w-0">
-            <span className="block truncate text-sm font-medium text-slate-100">{group.name}</span>
+            <span className={`block truncate text-sm text-slate-100 ${unreadCounts[`group:${group.id}`] ? "font-bold" : "font-medium"}`}>
+              {group.name}
+            </span>
             <span className="block text-xs text-slate-400">{group.members.length} members</span>
           </span>
+          {!!unreadCounts[`group:${group.id}`] && (
+            <span
+              aria-label={`${unreadCounts[`group:${group.id}`]} unread messages`}
+              className="ml-auto flex size-6 shrink-0 items-center justify-center rounded-full bg-cyan-500 text-xs font-bold text-slate-950"
+            >
+              {unreadCounts[`group:${group.id}`] > 99 ? "99+" : unreadCounts[`group:${group.id}`]}
+            </span>
+          )}
         </button>
       ))}
     </section>

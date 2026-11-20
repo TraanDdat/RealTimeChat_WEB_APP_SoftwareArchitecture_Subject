@@ -9,6 +9,7 @@ import type {
   ChatMessage,
   SendMessageDataRequest,
   ApiErrorBody,
+  UnreadCountsResponse,
 } from "../types/chat.ts";
 import { chatApi } from "../api/chat.ts";
 import { groupApi } from "../api/groups.ts";
@@ -17,6 +18,7 @@ interface ChatStore {
   allContacts: ChatUser[];
   chats: ChatUser[];
   messages: ChatMessage[];
+  unreadCounts: Record<string, number>;
   activeTab: ActiveTab;
   selectedUser: ChatUser | null;
   groups: ChatGroup[];
@@ -30,6 +32,9 @@ interface ChatStore {
   setSelectedGroup: (selectedGroup: ChatGroup | null) => void;
   getAllContacts: () => Promise<void>;
   getMyChatPartners: () => Promise<void>;
+  getUnreadCounts: () => Promise<void>;
+  markUserMessagesRead: (userId: number) => Promise<void>;
+  markGroupMessagesRead: (groupId: number) => Promise<void>;
   getGroups: () => Promise<void>;
   createGroup: (name: string, memberIds: number[]) => Promise<boolean>;
   addGroupMember: (groupId: number, userId: number, role: "admin" | "member") => Promise<void>;
@@ -49,6 +54,11 @@ const getErrorMessage = (error: unknown) => {
   return "Something went wrong";
 };
 
+const toUnreadMap = (counts: UnreadCountsResponse) => ({
+  ...Object.fromEntries(Object.entries(counts.users).map(([id, count]) => [`user:${id}`, count])),
+  ...Object.fromEntries(Object.entries(counts.groups).map(([id, count]) => [`group:${id}`, count])),
+});
+
 let messageListener: ((message: ChatMessage) => void) | null = null;
 let groupMessageListener: ((message: ChatMessage) => void) | null = null;
 
@@ -56,6 +66,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   allContacts: [],
   chats: [],
   messages: [],
+  unreadCounts: {},
   activeTab: "chats",
   selectedUser: null,
   groups: [],
@@ -109,6 +120,37 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       toast.error(getErrorMessage(error));
     } finally {
       set({ isUsersLoading: false });
+    }
+  },
+
+  getUnreadCounts: async () => {
+    try {
+      const res = await chatApi.getUnreadCounts();
+      set({ unreadCounts: toUnreadMap(res.data) });
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  },
+
+  markUserMessagesRead: async (userId) => {
+    try {
+      await chatApi.markRead(userId);
+      set((state) => ({
+        unreadCounts: { ...state.unreadCounts, [`user:${userId}`]: 0 },
+      }));
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  },
+
+  markGroupMessagesRead: async (groupId) => {
+    try {
+      await groupApi.markRead(groupId);
+      set((state) => ({
+        unreadCounts: { ...state.unreadCounts, [`group:${groupId}`]: 0 },
+      }));
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     }
   },
 
@@ -257,9 +299,6 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   },
 
   subscribeToMessages: () => {
-    const { selectedUser, selectedGroup } = get();
-    if (!selectedUser && !selectedGroup) return;
-
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
 
@@ -271,18 +310,19 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
 
   messageListener = (newMessage: ChatMessage) => {
     const { selectedUser, isSoundEnabled, messages } = get();
+    const isOpenConversation = Number(newMessage.senderId) === Number(selectedUser?._id);
 
-    if (!selectedUser) return;
-
-    if (newMessage.senderId !== selectedUser._id) return;
-
-    if (messages.some((message) => message._id === newMessage._id)) {
+    if (!isOpenConversation) {
+      void get().getUnreadCounts();
+      if (!get().chats.some((chat) => Number(chat._id) === Number(newMessage.senderId))) {
+        void get().getMyChatPartners();
+      }
       return;
     }
 
-    set((state) => ({
-      messages: [...state.messages, newMessage],
-    }));
+    if (messages.some((message) => message._id === newMessage._id)) return;
+    set((state) => ({ messages: [...state.messages, newMessage] }));
+    void get().markUserMessagesRead(newMessage.senderId);
     if (isSoundEnabled) {
       const notificationSound = new Audio("/sounds/notification.mp3");
       notificationSound.currentTime = 0;
@@ -294,15 +334,19 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
 
   groupMessageListener = (newMessage: ChatMessage) => {
     const { selectedGroup, messages } = get();
-    if (!selectedGroup) return;
-
-    if (Number(newMessage.groupId) !== selectedGroup.id) return;
+    const currentUserId = useAuthStore.getState().authUser?._id;
+    if (Number(newMessage.senderId) === Number(currentUserId)) return;
+    const isOpenGroup = Number(newMessage.groupId) === Number(selectedGroup?.id);
+    if (!isOpenGroup) {
+      void get().getUnreadCounts();
+      return;
+    }
 
     if (messages.some((message) => message._id === newMessage._id)) return;
-    
     set((state) => ({
       messages: [...state.messages, newMessage],
     }));
+    void get().markGroupMessagesRead(newMessage.groupId!);
   };
   socket.on("newMessage", messageListener);
   socket.on("newGroupMessage", groupMessageListener);

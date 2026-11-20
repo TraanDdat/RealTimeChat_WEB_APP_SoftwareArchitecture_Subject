@@ -66,6 +66,15 @@ def list_group_messages(
     return group_service.get_group_messages(db, group_id, current_user.id)
 
 
+@groups_router.post("/{group_id}/read", status_code=status.HTTP_204_NO_CONTENT)
+def mark_group_messages_read(
+    group_id: int = Path(gt=0),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    group_service.mark_group_messages_read(db, group_id, current_user.id)
+
+
 @groups_router.post(
     "/{group_id}/messages",
     response_model=GroupMessage,

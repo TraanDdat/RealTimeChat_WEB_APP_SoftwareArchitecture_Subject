@@ -18,8 +18,10 @@ def create_indexes():
         [("senderId", ASCENDING), ("receiverId", ASCENDING), ("createdAt", ASCENDING)],
     )
     collection.create_index([("receiverId", ASCENDING), ("senderId", ASCENDING)])
+    collection.create_index([("receiverId", ASCENDING), ("readBy", ASCENDING)])
     group_messages.create_index([("groupId", ASCENDING), ("createdAt", ASCENDING)])
     group_messages.create_index([("senderId", ASCENDING), ("createdAt", ASCENDING)])
+    group_messages.create_index([("groupId", ASCENDING), ("readBy", ASCENDING)])
 
 def close_mongodb():
     client.close()

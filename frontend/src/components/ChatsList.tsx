@@ -5,12 +5,13 @@ import NoChatsFound from "./NoChatsFound";
 import { useAuthStore } from "../store/useAuthStore";
 
 function ChatsList() {
-  const { getMyChatPartners, chats, isUsersLoading, setSelectedUser } = useChatStore();
+  const { getMyChatPartners, getUnreadCounts, unreadCounts, chats, isUsersLoading, setSelectedUser } = useChatStore();
   const { onlineUsers } = useAuthStore();
 
   useEffect(() => {
     getMyChatPartners();
-  }, [getMyChatPartners]);
+    getUnreadCounts();
+  }, [getMyChatPartners, getUnreadCounts]);
 
   if (isUsersLoading) return <UsersLoadingSkeleton />;
   if (chats.length === 0) return <NoChatsFound />;
@@ -18,9 +19,10 @@ function ChatsList() {
   return (
     <>
       {chats.map((chat) => (
-        <div
+        <button
+          type="button"
           key={chat._id}
-          className="bg-cyan-500/10 p-4 rounded-lg cursor-pointer hover:bg-cyan-500/20 transition-colors"
+          className="w-full bg-cyan-500/10 p-4 rounded-lg cursor-pointer hover:bg-cyan-500/20 transition-colors text-left"
           onClick={() => setSelectedUser(chat)}
         >
           <div className="flex items-center gap-3">
@@ -29,9 +31,19 @@ function ChatsList() {
                 <img src={chat.profilePic || "/avatar.png"} alt={chat.username} />
               </div>
             </div>
-            <h4 className="text-slate-200 font-medium truncate">{chat.username}</h4>
+            <h4 className={`min-w-0 flex-1 truncate text-slate-200 ${unreadCounts[`user:${chat._id}`] ? "font-bold" : "font-medium"}`}>
+              {chat.username}
+            </h4>
+            {!!unreadCounts[`user:${chat._id}`] && (
+              <span
+                aria-label={`${unreadCounts[`user:${chat._id}`]} unread messages`}
+                className="flex size-6 shrink-0 items-center justify-center rounded-full bg-cyan-500 text-xs font-bold text-slate-950"
+              >
+                {unreadCounts[`user:${chat._id}`] > 99 ? "99+" : unreadCounts[`user:${chat._id}`]}
+              </span>
+            )}
           </div>
-        </div>
+        </button>
       ))}
     </>
   );
