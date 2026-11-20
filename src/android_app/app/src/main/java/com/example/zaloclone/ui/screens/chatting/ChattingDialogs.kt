@@ -23,10 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
-import com.example.zaloclone.data.local.loadFriendListFromJson
 import com.example.zaloclone.data.local.updateFriendNickname
 import com.example.zaloclone.ui.components.UserAvatar
 import com.example.zaloclone.api.model.*
+import com.example.zaloclone.ui.viewModel.*
 
 @Composable
 fun FullscreenImageViewerDialog(imageUrl: String, onDismiss: () -> Unit) {
@@ -361,11 +361,14 @@ fun IndividualChatSettingsDialog(
     friendId: Int,
     friendName: String,
     onDismiss: () -> Unit,
+    chatViewModel: ChatViewModel,
     onNicknameUpdated: (String) -> Unit
 ) {
-    val friendList = loadFriendListFromJson(context)
+    val chatState by chatViewModel.state.collectAsState()
+    val allContacts = chatState.allContacts
+    val friendList = allContacts
     val friend = friendList.find { it.id == friendId }
-    var nicknameInput by remember { mutableStateOf(friend?.nickname ?: "") }
+    var nicknameInput by remember { mutableStateOf(friend?.username ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -378,10 +381,10 @@ fun IndividualChatSettingsDialog(
                 if (friend?.email?.isNotBlank() == true) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = "Gmail: ${friend.email}", fontSize = 14.sp, color = Color.Gray)
-                } else if (friend?.phone?.isNotBlank() == true) {
+                } /*else if (friend?.phone?.isNotBlank() == true) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = "Gmail: ${friend.phone}", fontSize = 14.sp, color = Color.Gray)
-                }
+                }*/
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = nicknameInput,
