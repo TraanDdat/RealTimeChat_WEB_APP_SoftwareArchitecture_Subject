@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status, Response, Header
 from zalo_backend.core.security import get_current_user
 from zalo_backend.schemas.user import UserPublic
 from typing import Literal, Optional
-from zalo_backend.schemas.user import LoginRequest
+from zalo_backend.schemas.user import LoginRequest, UpdateProfileRequest
 from sqlalchemy.orm import Session
 from zalo_backend.database.l_postgres import get_db
-from zalo_backend.user_service.service import get_user
+from zalo_backend.user_service.service import get_user, update_userprofile
 from zalo_backend.core.security import  create_access_token, set_auth_cookie, verify_password, clear_auth_cookie
 
 auth_router = APIRouter()
@@ -74,4 +74,24 @@ def logout(response: Response, client_type: Literal["web", "android"] = Header(d
     clear_auth_cookie(client_type, response)
     return {
         "error_code": None
+    }
+
+@auth_router.patch("/update-profile")
+def update_profile(request: UpdateProfileRequest, db: Session = Depends(get_db)):
+    new_user = update_userprofile(
+        db =  db,
+        user_name = request.username,
+        user_id = request.id,
+        profile_pic = request.profilePic
+    )
+    if not new_user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    return {
+        "id": new_user.id,
+        "username": new_user.username,
+        "profilePic": new_user.profile_pic
     }

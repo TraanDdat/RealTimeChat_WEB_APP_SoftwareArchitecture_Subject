@@ -53,8 +53,9 @@ class FriendRequestResponse(BaseModel):
 	
 class UpdateProfileRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-
-    profilePic: str = Field(min_length=1, max_length=8_000_000)
+    id: int
+    username: str | None = None
+    profilePic: str | None = Field(default=None, max_length=8_000_000)
 
 
 class UserPublic(BaseModel):
