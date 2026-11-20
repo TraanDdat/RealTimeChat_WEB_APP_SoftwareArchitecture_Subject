@@ -2,6 +2,81 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  --app-bg: #f4f8fd;
+  --surface: #ffffff;
+  --surface-soft: #f0f6fd;
+  --surface-hover: #e5effb;
+  --line: #d9e4f0;
+  --ink: #172b4d;
+  --ink-soft: #526b87;
+  --ink-muted: #788da5;
+  --zalo-blue: #0068ff;
+  --zalo-blue-hover: #0056d6;
+  --zalo-blue-soft: #e7f1ff;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  background: var(--app-bg);
+  color: var(--ink);
+}
+
+[class~="bg-slate-900"] { background-color: var(--app-bg) !important; }
+[class~="bg-slate-900/80"],
+[class~="bg-slate-900/70"] { background-color: var(--surface) !important; }
+[class~="bg-slate-900/50"],
+[class~="bg-slate-800/50"] { background-color: var(--surface-soft) !important; }
+[class~="bg-slate-800"] { background-color: var(--surface-soft) !important; }
+[class~="bg-slate-800/60"],
+[class~="bg-slate-800/30"] { background-color: var(--surface-hover) !important; }
+[class~="bg-slate-700"],
+[class~="bg-slate-700/70"] { background-color: #e4edf7 !important; }
+[class~="bg-cyan-500/10"],
+[class~="bg-cyan-500/20"],
+[class~="bg-cyan-900/70"] { background-color: var(--zalo-blue-soft) !important; }
+[class~="bg-cyan-500"],
+[class~="bg-cyan-600"] { background-color: var(--zalo-blue) !important; }
+
+[class~="text-slate-100"],
+[class~="text-slate-200"] { color: var(--ink) !important; }
+[class~="text-slate-300"] { color: #344b67 !important; }
+[class~="text-slate-400"] { color: var(--ink-soft) !important; }
+[class~="text-slate-500"] { color: var(--ink-muted) !important; }
+[class~="text-cyan-300"],
+[class~="text-cyan-400"],
+[class~="text-cyan-500"] { color: var(--zalo-blue) !important; }
+
+[class~="border-slate-600"],
+[class~="border-slate-600/30"],
+[class~="border-slate-700"],
+[class~="border-slate-700/70"],
+[class~="border-slate-700/50"],
+[class~="border-slate-700/50"] { border-color: var(--line) !important; }
+
+[class~="hover:bg-slate-900"]:hover,
+[class~="hover:bg-slate-800"]:hover,
+[class~="hover:bg-slate-700"]:hover { background-color: var(--surface-hover) !important; }
+[class~="hover:bg-cyan-500/20"]:hover,
+[class~="hover:bg-cyan-600"]:hover,
+[class~="hover:bg-cyan-500"]:hover { background-color: var(--zalo-blue-hover) !important; }
+[class~="hover:text-slate-200"]:hover,
+[class~="hover:text-slate-100"]:hover { color: var(--ink) !important; }
+[class~="hover:text-cyan-500"]:hover { color: var(--zalo-blue-hover) !important; }
+
+[class~="from-slate-800/20"] { --tw-gradient-from: #eaf2fc var(--tw-gradient-from-position) !important; }
+[class~="from-cyan-500"] { --tw-gradient-from: var(--zalo-blue) var(--tw-gradient-from-position) !important; }
+[class~="to-cyan-600"] { --tw-gradient-to: var(--zalo-blue-hover) var(--tw-gradient-to-position) !important; }
+[class~="to-cyan-400/10"] { --tw-gradient-to: #e7f1ff var(--tw-gradient-to-position) !important; }
+[class~="focus:ring-cyan-500"] { --tw-ring-color: var(--zalo-blue) !important; }
+[class~="focus-visible:outline-cyan-400"] { outline-color: var(--zalo-blue) !important; }
+
 @property --border-angle {
   inherits: false;
   initial-value: 0deg;
@@ -9,27 +84,36 @@
 }
 
 .input {
-  @apply w-full bg-slate-800/50 border border-slate-700 rounded-lg py-2 pl-10 pr-4 text-slate-200 placeholder-slate-400 focus:ring-2 focus:ring-cyan-500 focus:border-transparent;
+  @apply w-full rounded-lg border py-2 pl-10 pr-4 focus:ring-2 focus:border-transparent;
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink);
 }
 
+.input::placeholder { color: var(--ink-muted); }
+
 .auth-input-icon {
-  @apply absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 size-5;
+  @apply absolute left-3 top-1/2 -translate-y-1/2 size-5;
+  color: var(--ink-muted);
 }
 
 .auth-input-label {
-  @apply block text-sm font-medium text-slate-300 mb-2;
-}
-
-.auth-badge {
-  @apply inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-cyan-500/20 text-cyan-300;
+  @apply mb-2 block text-sm font-medium;
+  color: var(--ink-soft);
 }
 
 .auth-btn {
-  @apply w-full bg-cyan-500 text-white rounded-lg py-2.5 font-medium
-  hover:bg-cyan-600 focus:ring-2 focus:ring-cyan-500;
+  @apply w-full rounded-lg py-2.5 font-medium text-white transition-colors focus:ring-2;
+  background: var(--zalo-blue);
 }
 
+.auth-btn:hover { background: var(--zalo-blue-hover); }
+.auth-btn:focus-visible { outline: 2px solid var(--zalo-blue); outline-offset: 2px; }
+
 .auth-link {
-  @apply px-4 py-2 inline-block bg-cyan-500/10 rounded-lg text-cyan-400
-  hover:text-cyan-500 text-sm transition-colors;
+  @apply inline-block rounded-lg px-4 py-2 text-sm transition-colors;
+  color: var(--zalo-blue);
+  background: var(--zalo-blue-soft);
 }
+
+.auth-link:hover { color: var(--zalo-blue-hover); background: #d9eaff; }

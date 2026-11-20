@@ -6,7 +6,7 @@ interface BorderAnimatedContainerProps {
 
 function BorderAnimatedContainer({ children }: BorderAnimatedContainerProps) {
   return (
-    <div className="w-full h-full [background:linear-gradient(45deg,#172033,theme(colors.slate.800)_50%,#172033)_padding-box,conic-gradient(from_var(--border-angle),theme(colors.slate.600/.48)_80%,_theme(colors.cyan.500)_86%,_theme(colors.cyan.300)_90%,_theme(colors.cyan.500)_94%,_theme(colors.slate.600/.48))_border-box] rounded-2xl border border-transparent animate-border  flex overflow-hidden">
+    <div className="w-full h-full [background:linear-gradient(45deg,#ffffff,#f5f9ff_50%,#ffffff)_padding-box,conic-gradient(from_var(--border-angle),#dce8f5_80%,#0068ff_86%,#7db4ff_90%,#0068ff_94%,#dce8f5)_border-box] rounded-2xl border border-transparent animate-border flex overflow-hidden">
       {children}
     </div>
   );
