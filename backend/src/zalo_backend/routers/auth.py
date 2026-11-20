@@ -6,7 +6,7 @@ from zalo_backend.schemas.user import LoginRequest
 from sqlalchemy.orm import Session
 from zalo_backend.database.l_postgres import get_db
 from zalo_backend.user_service.service import get_user
-from zalo_backend.core.security import  create_access_token, set_auth_cookie, verify_password
+from zalo_backend.core.security import  create_access_token, set_auth_cookie, verify_password, clear_auth_cookie
 
 auth_router = APIRouter()
 
@@ -66,5 +66,12 @@ def login_request(
             "access_token": access_token,
             "profilePic": user_from_db.profile_pic if hasattr(user_from_db, "profile_pic") else None
         },
+        "error_code": None
+    }
+
+@auth_router.post("/logout")
+def logout(response: Response, client_type: Literal["web", "android"] = Header(default="web", alias="X-Client-Type")):
+    clear_auth_cookie(client_type, response)
+    return {
         "error_code": None
     }
