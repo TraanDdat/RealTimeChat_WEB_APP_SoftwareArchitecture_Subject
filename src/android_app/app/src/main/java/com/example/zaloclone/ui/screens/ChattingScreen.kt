@@ -105,6 +105,7 @@ fun ChattingScreen(
                     email = "",
                     profilePic = null
                 )
+                chatViewModel.clearNotificationsForUser(userId)
                 chatViewModel.setSelectedUser(targetUser)
             }
         }
@@ -387,6 +388,7 @@ fun ChattingScreen(
             context = context,
             friendId = friendId,
             friendName = currentChatName,
+            chatViewModel = chatViewModel,
             onDismiss = { showIndividualSettingsDialog = false },
             onNicknameUpdated = { newDisplayName ->
                 showIndividualSettingsDialog = false
