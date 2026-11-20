@@ -62,14 +62,14 @@ class ChatViewModel(
     private var groupMessageListener: Emitter.Listener? = null
     private var globalMessageListener: Emitter.Listener? = null
 
-    init {
-        startGlobalSocketListener()
-    }
-
     fun startGlobalSocketListener() {
-        val socket = socketClient.getSocket() ?: return
-        globalMessageListener?.let { socket.off("newMessage", it) }
+        val socket = socketClient.getSocket()
+        if (socket == null) {
+            Log.e("CHAT_SOCKET", "Socket is null. Cannot register global listener.")
+            return
+        }
 
+        globalMessageListener?.let {socket.off("newMessage", it)}
         val listener = Emitter.Listener { args ->
             if (args.isEmpty()) return@Listener
             try {
@@ -374,6 +374,10 @@ class ChatViewModel(
 
     override fun onCleared() {
         unsubscribeFromMessages()
+        globalMessageListener?.let {
+            socketClient.getSocket()?.off("newMessage", it)
+        }
+        globalMessageListener = null
         super.onCleared()
     }
 
@@ -417,6 +421,16 @@ class ChatViewModel(
             image = image,
             createdAt = createdAt,
             updatedAt = updatedAt
+        )
+    }
+
+    fun clearSelectedChat() {
+        unsubscribeFromMessages()
+        _state.value = _state.value.copy(
+            selectedUser = null,
+            selectedGroup = null,
+            messages = emptyList(),
+            isMessagesLoading = false
         )
     }
 }

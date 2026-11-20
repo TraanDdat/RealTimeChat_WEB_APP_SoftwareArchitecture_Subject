@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.update
 
 data class AuthState(
     val authUser: AuthUser? = null,
@@ -26,7 +27,8 @@ data class AuthState(
     val userPresences: Map<Int, UserPresence> = emptyMap(),
     val myPresenceStatus: PresenceStatus = PresenceStatus.OFFLINE,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    val isSocketReady: Boolean = false
 )
 
 class AuthViewModel(
@@ -170,7 +172,7 @@ class AuthViewModel(
     }
 
     fun updateMyPresenceStatus(status: PresenceStatus) {
-        _state.value = _state.value.copy(myPresenceStatus = status)
+        _state.update {it.copy(myPresenceStatus = status)}
         socketService.updatePresenceStatus(status)
     }
 
@@ -181,32 +183,50 @@ class AuthViewModel(
         socketService.listenEvents(
             SocketCallbacks(
                 onOnlineUsers = { userIds ->
-                    val updatedPresences = _state.value.userPresences.toMutableMap()
-                    updatedPresences.keys.toList().forEach { userId ->
-                        if (userId !in userIds) {
-                            updatedPresences[userId] = UserPresence(userId = userId, status = PresenceStatus.OFFLINE)
+                    _state.update { current ->
+                        val updatedPresences = current.userPresences.toMutableMap()
+                        updatedPresences.keys.toList().forEach { id ->
+                            val old = updatedPresences[id] ?: return@forEach
+                            updatedPresences[id] = old.copy(
+                                status = if (id in userIds) {
+                                    PresenceStatus.ONLINE
+                                } else {
+                                    PresenceStatus.OFFLINE
+                                }
+                            )
                         }
-                    }
-                    userIds.forEach { userId ->
-                        updatedPresences[userId] = UserPresence(
-                            userId = userId,
-                            status = PresenceStatus.ONLINE
+                        userIds.forEach { id ->
+                            val old = updatedPresences[id]
+                            updatedPresences[id] = old?.copy(
+                                status = PresenceStatus.ONLINE
+                            ) ?: UserPresence(
+                                userId = id,
+                                status = PresenceStatus.ONLINE,
+                                lastSeen = null
+                            )
+                        }
+                        current.copy(
+                            getOnlineUsers = userIds,
+                            userPresences = updatedPresences
                         )
                     }
-                    _state.value = _state.value.copy(
-                        getOnlineUsers = userIds,
-                        userPresences = updatedPresences
-                    )
                 },
                 onPresenceChanged = { presence ->
-                    val updatedPresences = _state.value.userPresences.toMutableMap()
-                    updatedPresences[presence.userId] = presence
-                    _state.value = _state.value.copy(
-                        userPresences = updatedPresences
-                    )
+                    _state.update { current ->
+                        current.copy(
+                            userPresences = current.userPresences +
+                                (presence.userId to presence),
+                            myPresenceStatus = if (presence.userId == current.userId) {
+                                presence.status
+                            } else {
+                                current.myPresenceStatus
+                            }
+                        )
+                    }
                 }
             )
         )
+        _state.value = _state.value.copy(isSocketReady = true)
         if (!socket.connected()) {
             socket.connect()
         }
@@ -219,6 +239,7 @@ class AuthViewModel(
         socketClient.disconnect()
 
         _state.value = _state.value.copy(
+            isSocketReady = false,
             getOnlineUsers = emptyList(),
             userPresences = emptyMap()
         )

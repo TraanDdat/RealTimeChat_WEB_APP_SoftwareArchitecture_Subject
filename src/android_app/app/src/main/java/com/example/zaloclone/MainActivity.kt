@@ -94,6 +94,12 @@ fun MainAppNavigation(appContainer: AppContainer) {
         )
     )
 
+    LaunchedEffect(authState.isSocketReady) {
+        if (authState.isSocketReady) {
+            chatViewModel.startGlobalSocketListener()
+        }
+    }
+
     LaunchedEffect(authState.userId, authState.email) {
         val userId = authState.userId
         val email = authState.email
@@ -195,7 +201,9 @@ fun MainAppNavigation(appContainer: AppContainer) {
             chatName = selectedChatName,
             chatViewModel = chatViewModel,
             groupViewModel = groupViewModel,
-            onNavigateBack = { currentScreen = "friends" }
+            onNavigateBack = { 
+                chatViewModel.clearSelectedChat()
+                currentScreen = "friends" }
         )
         "settings" -> SettingsScreen(
             authViewModel = authViewModel,

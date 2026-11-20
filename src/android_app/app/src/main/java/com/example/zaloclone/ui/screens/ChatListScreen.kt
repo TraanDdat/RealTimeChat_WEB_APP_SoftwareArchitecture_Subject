@@ -30,7 +30,6 @@ import android.widget.Toast
 import androidx.compose.material.icons.outlined.Notifications
 import com.example.zaloclone.ui.components.NotificationDialog
 import com.example.zaloclone.ui.viewModel.*
-
 import com.example.zaloclone.ui.model.ChatItem
 import com.example.zaloclone.ui.model.PresenceStatus
 
@@ -50,11 +49,11 @@ fun ChatListScreen(
     var isEditing by remember { mutableStateOf(false) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
     var showNotificationDialog by remember { mutableStateOf(false) }
-    val chatState = chatViewModel?.state?.collectAsState()
+    val chatState = chatViewModel.state.collectAsState()
     val authState = authViewModel.state.collectAsState()
     val userPresences = authState.value.userPresences
 
-    LaunchedEffect(chatState?.value?.chats) {
+    LaunchedEffect(Unit) {
         //if (chatViewModel != null) {
             chatViewModel.getMyChatPartners()
         //}
@@ -82,8 +81,6 @@ fun ChatListScreen(
             chatList.clear()
             chatList.addAll(items)
         } /*else if (chatViewModel == null) {
-            syncChatListWithHistory(context)
-            val savedList = loadChatListFromJson(context)
             val filteredList = savedList.filter { it.lastMessage.isNotBlank() }
             chatList.clear()
             chatList.addAll(filteredList)
@@ -198,22 +195,35 @@ fun ChatListScreen(
             }
         }
     ) { paddingValues ->
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
             items(chatList) { chat ->
+                val unreadCount = chatState.value.unreadNotifications.count {
+                    it.senderId.toString() == chat.id
+                }
+                val isUnread = unreadCount > 0
                 ChatItemRow(
                     chat = chat,
                     isEditing = isEditing,
-                    onClick = { onChatItemClick(chat.id, chat.name) },
+                    isUnread = isUnread,
+                    unreadCount = unreadCount,
+                    onClick = {
+                        onChatItemClick(chat.id, chat.name)
+                    },
                     onDelete = {
                         deleteChat(context, chat.id)
                         chatList.remove(chat)
                     }
                 )
-                HorizontalDivider(color = Color(0xFFF2F2F7), thickness = 1.dp, modifier = Modifier.padding(start = 76.dp))
+                HorizontalDivider(
+                    color = Color(0xFFF2F2F7),
+                    thickness = 1.dp,
+                    modifier = Modifier.padding(start = 76.dp)
+                )
             }
         }
     }
@@ -262,7 +272,9 @@ fun ChatItemRow(
     chat: ChatItem,
     isEditing: Boolean,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    isUnread: Boolean = false,
+    unreadCount: Int = 0
 ) {
     Row(
         modifier = Modifier
@@ -289,7 +301,7 @@ fun ChatItemRow(
         ) {
             Text(
                 text = chat.name,
-                fontWeight = if (chat.unreadCount > 0) FontWeight.ExtraBold else FontWeight.Bold,
+                fontWeight = if (isUnread) FontWeight.Bold else FontWeight.Normal,
                 fontSize = 16.sp,
                 color = Color.Black
             )
@@ -297,8 +309,8 @@ fun ChatItemRow(
             Text(
                 text = chat.lastMessage,
                 fontSize = 14.sp,
-                fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.Normal,
-                color = if (chat.unreadCount > 0) Color.Black else Color.Gray,
+                fontWeight = if (isUnread) FontWeight.Bold else FontWeight.Normal,
+                color = if (isUnread) Color.Black else Color.Gray,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -321,18 +333,19 @@ fun ChatItemRow(
                 Text(
                     text = chat.time,
                     fontSize = 12.sp,
-                    color = if (chat.unreadCount > 0) Color(0xFF5B61F4) else Color.Gray,
-                    fontWeight = if (chat.unreadCount > 0) FontWeight.Bold else FontWeight.Normal
+                    color = if (isUnread) Color(0xFF5B61F4) else Color.Gray,
+                    fontWeight = if (isUnread) FontWeight.Bold else FontWeight.Normal
                 )
                 Spacer(modifier = Modifier.height(4.dp))
-                if (chat.unreadCount > 0) {
-                    val displayCount = if (chat.unreadCount > 5) "5+" else chat.unreadCount.toString()
+                if (unreadCount > 0) {
+                    val displayCount =
+                        if (unreadCount > 5) "5+" else unreadCount.toString()
                     Box(
                         modifier = Modifier
                             .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
-                            .padding(horizontal = 4.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFF5B61F4)),
+                            .background(Color(0xFF5B61F4))
+                            .padding(horizontal = 5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
