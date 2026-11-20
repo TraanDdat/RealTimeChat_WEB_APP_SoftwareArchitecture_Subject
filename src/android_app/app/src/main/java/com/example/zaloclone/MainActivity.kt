@@ -203,7 +203,7 @@ fun MainAppNavigation(appContainer: AppContainer) {
             groupViewModel = groupViewModel,
             onNavigateBack = { 
                 chatViewModel.clearSelectedChat()
-                currentScreen = "friends" }
+                currentScreen = "chat_list" }
         )
         "settings" -> SettingsScreen(
             authViewModel = authViewModel,

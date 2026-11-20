@@ -24,4 +24,6 @@ class ChatRepository(
     override suspend fun getUnreadCounts(): UnreadCountsResponse = chatApi.getUnreadCounts()
 
     override suspend fun markRead(userId: Int) {chatApi.markRead(userId)}
+
+    override suspend fun markGroupRead(groupId: Int) {chatApi.markGroupRead(groupId)}
 }

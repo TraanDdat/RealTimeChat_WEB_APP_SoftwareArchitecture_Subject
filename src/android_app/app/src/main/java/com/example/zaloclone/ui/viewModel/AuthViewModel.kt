@@ -59,7 +59,7 @@ class AuthViewModel(
                     access_token = token
                 )
                 _state.value = _state.value.copy(
-                    authUser = user,
+                    authUser = authUser,
                     userId = user.id,
                     email = user.email,
                     isCheckingAuth = false

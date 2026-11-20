@@ -31,6 +31,7 @@ import com.example.zaloclone.ui.theme.ZaloCyan
 import com.example.zaloclone.ui.viewModel.ChatState
 import com.example.zaloclone.ui.viewModel.FriendState
 import com.example.zaloclone.ui.viewModel.FriendViewModel
+import com.example.zaloclone.ui.viewModel.GroupState
 import com.example.zaloclone.ui.viewModel.MessageNotification
 
 @Composable
@@ -152,12 +153,14 @@ fun ZaloTextField(
 @Composable
 fun NotificationDialog(
     chatState: ChatState,
+    groupState: GroupState,
     friendState: FriendState,
     friendViewModel: FriendViewModel,
     onDismiss: () -> Unit,
     onAcceptFriend: (Int) -> Unit,
     onRejectFriend: (Int) -> Unit,
-    onNotificationMessageClick: (Int) -> Unit
+    onNotificationMessageClick: (Int) -> Unit,
+    onNotificationGroupClick: (Int) -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(0) }
 
@@ -199,7 +202,7 @@ fun NotificationDialog(
                         )
                     }
                     TextButton(onClick = { selectedTab = 1 }) {
-                        val unreadCnt = chatState.unreadCounts.values.sum()
+                        val unreadCnt = chatState.unreadCounts.values.sum() + chatState.groupUnreadCounts.values.sum()
                         Text(
                             text = "Message (${unreadCnt})",
                             color = if (selectedTab == 1) Color(0xFF00BCD4) else Color.Gray,
@@ -286,7 +289,7 @@ fun NotificationDialog(
                             }
                         }
                     } else {
-                        val hasuncntItems = chatState.unreadCounts.filter { it.value > 0 }.toList()
+                        val hasuncntItems = chatState.unreadCounts.filter { it.value > 0 }.map { Triple("user", it.key, it.value) } + chatState.groupUnreadCounts.filter { it.value > 0 }.map { Triple("group", it.key, it.value) }
                         if (hasuncntItems.isEmpty()) {
                             item {
                                 Box(
@@ -301,15 +304,31 @@ fun NotificationDialog(
                         } else {
                             items(
                                 items = hasuncntItems,
-                                key = { it.first }
-                            ) { (senderId, count) ->
-                                val sender = chatState.allContacts.find {it.id == senderId} ?: chatState.chats.find {it.id == senderId}
-                                val senderName = sender?.username ?: "Người dùng #$senderId"
+                                key = { "${it.first}_${it.second}" }
+                            ) { (type, notificationId, count) ->
+			    	            val isGroup = type == "group"
+                                val displayName = 
+                                    if (isGroup) 
+                                    {
+                                        val group = groupState.groups.find { it.id == notificationId }
+                                        group?.name ?: "Group #$group.id"
+                                    } else {
+                                        val sender = chatState.allContacts.find { it.id == notificationId }?: chatState.chats.find { it.id == notificationId }
+                                        sender?.username ?: "Người dùng #$notificationId"
+                                    }
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clickable { onNotificationMessageClick(senderId) },
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F7FA)),
+                                        .clickable {
+                                            if (isGroup) {
+                                                onNotificationGroupClick(notificationId)
+                                            } else {
+                                                onNotificationMessageClick(notificationId)
+                                            }
+                                        },
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = Color(0xFFE0F7FA)
+                                    ),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
                                     Row(
@@ -323,7 +342,7 @@ fun NotificationDialog(
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
                                                 Text(
-                                                    text = senderName.firstOrNull()?.uppercase() ?: "?",
+                                                    text = displayName.firstOrNull()?.uppercase() ?: "?",
                                                     color = Color.White,
                                                     fontWeight = FontWeight.Bold
                                                 )
@@ -331,7 +350,7 @@ fun NotificationDialog(
                                         }
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(text = senderName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                            Text(text = displayName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                             Text(text = "$count unread", fontSize = 13.sp, color = Color.DarkGray, maxLines = 1)
                                         }
                                     }

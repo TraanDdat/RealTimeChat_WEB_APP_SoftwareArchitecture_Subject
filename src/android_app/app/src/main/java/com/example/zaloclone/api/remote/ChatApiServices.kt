@@ -26,25 +26,30 @@ interface ChatApiServices {
         @Body data: SendMessageDataRequest
     ): ChatMessage
 
-    @DELETE("friends/{friendId}")
+    @DELETE("/friends/{friendId}")
     suspend fun deleteFriend(
         @Path("friendId") friendId: Int
     )
 
-    @GET("api/groups/{groupId}/messages")
+    @GET("/api/groups/{groupId}/messages")
     suspend fun getGroupMessages(@Path("groupId") groupId: Int): List<GroupMessageDataResponse>
 
-    @POST("api/groups/{groupId}/messages")
+    @POST("/api/groups/{groupId}/messages")
     suspend fun sendGroupMessage(
         @Path("groupId") groupId: Int,
         @Body data: SendMessageDataRequest
     ): GroupMessageDataResponse
 
-    @GET("api/messages/unread-counts")
+    @GET("/api/messages/unread-counts")
     suspend fun getUnreadCounts(): UnreadCountsResponse
 
-    @POST("api/messages/{userId}/read")
+    @POST("/api/messages/{userId}/read")
     suspend fun markRead(
         @Path("userId") userId: Int
+    )
+
+    @POST("/api/groups/{groupId}/read")
+    suspend fun markGroupRead(
+        @Path("groupId") groupId: Int
     )
 }
