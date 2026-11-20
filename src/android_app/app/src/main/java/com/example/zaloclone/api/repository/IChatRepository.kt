@@ -12,4 +12,5 @@ interface IChatRepository {
     suspend fun deleteFriend(friendId: Int)
     suspend fun getUnreadCounts(): UnreadCountsResponse
     suspend fun markRead(userId: Int)
+    suspend fun markGroupRead(groupId: Int)
 }

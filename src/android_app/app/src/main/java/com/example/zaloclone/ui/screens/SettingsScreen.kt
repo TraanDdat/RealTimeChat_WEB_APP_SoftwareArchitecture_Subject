@@ -59,12 +59,15 @@ fun SettingsScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            val updated = userProfile.copy(avatarUri = it.toString())
-            userProfile = updated
-            Toast.makeText(context, "Cập nhật avatar thành công!", Toast.LENGTH_SHORT).show()
+            val imageDataUrl = uriToBase64DataUrl(context, it)
+            authViewModel.updateProfile(
+                UpdateProfileRequest(
+                    profilePic = imageDataUrl,
+                    id = authUser!!.id
+                )
+            )
         }
     }
-
     val cyanHeaderColor = Color(0xFF38C7FF)
     val navActiveColor = Color(0xFF5B61F4)
     val avatarBgColor = Color(userProfile.avatarBgColorHex)

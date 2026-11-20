@@ -107,7 +107,7 @@ fun FriendsScreen(
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
-                            val totalUnread = friendState.friendRequests.size + chatState.unreadCounts.values.sum()
+                            val totalUnread = friendState.friendRequests.size + chatState.unreadCounts.values.sum() + chatState.groupUnreadCounts.values.sum()
                             if (totalUnread > 0) {
                                 Badge(
                                     modifier = Modifier
@@ -470,6 +470,7 @@ fun FriendsScreen(
     if (showNotificationDialog) {
         NotificationDialog(
             chatState = chatState,
+            groupState = groupState,
             friendState = friendState,
             friendViewModel = friendViewModel,
             onDismiss = { showNotificationDialog = false },
@@ -493,6 +494,12 @@ fun FriendsScreen(
                     profilePic = null
                 )
                 onFriendSelect(user)
+            },
+            onNotificationGroupClick = { groupId ->
+                chatViewModel.clearNotificationsForGroup(groupId)
+                showNotificationDialog = false
+                val group = groupState.groups.find { it.id == groupId }
+                group?.let { onGroupSelect(it) }
             }
         )
     }
