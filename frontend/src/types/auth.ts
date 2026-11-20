@@ -18,7 +18,8 @@ export interface LoginData {
 }
 
 export interface UpdateProfileData {
-  profilePic: string;
+  profilePic: string | null;
+  username: string | null;
 }
 
 export interface ApiErrorBody {
