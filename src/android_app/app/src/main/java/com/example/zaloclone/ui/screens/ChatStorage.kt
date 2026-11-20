@@ -45,9 +45,6 @@ fun loadFriendListFromJson(context: Context): List<FriendItem> =
 fun deleteChat(context: Context, chatId: String) =
     com.example.zaloclone.data.local.deleteChat(context, chatId)
 
-fun deleteFriend(context: Context, friendId: String) =
-    com.example.zaloclone.data.local.deleteFriend(context, friendId)
-
 fun addFriendAndChat(
     context: Context,
     id: String,

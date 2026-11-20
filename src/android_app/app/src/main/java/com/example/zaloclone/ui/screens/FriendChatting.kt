@@ -311,13 +311,12 @@ fun FriendsScreen(
                             user = user,
                             isEditing = isEditing,
                             onDelete = {
-                                chatViewModel.deleteFriend(user.id)
+                                friendViewModel.deleteFriendship(user.id)
                             },
                             onClick = {
                                 onFriendSelect(user)
                             }
                         )
-
                         HorizontalDivider(
                             color = Color(0xFFF2F2F7),
                             thickness = 1.dp,

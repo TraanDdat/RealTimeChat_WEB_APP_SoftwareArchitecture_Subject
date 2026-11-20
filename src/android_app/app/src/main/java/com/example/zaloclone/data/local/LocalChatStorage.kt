@@ -20,7 +20,6 @@ fun syncChatListWithHistory(context: Context) {}
 fun saveFriendListToJson(context: Context, friendList: List<FriendItem>) {}
 fun loadFriendListFromJson(context: Context): List<FriendItem> = emptyList()
 fun deleteChat(context: Context, chatId: String) {}
-fun deleteFriend(context: Context, friendId: String) {}
 fun addFriendAndChat(context: Context, id: String, name: String, email: String = "", avatarBgColor: Color, avatarUri: String? = null) {}
 fun updateGroupName(context: Context, groupId: String, newName: String) {}
 fun updateFriendNickname(context: Context, friendId: String, newNickname: String) {}

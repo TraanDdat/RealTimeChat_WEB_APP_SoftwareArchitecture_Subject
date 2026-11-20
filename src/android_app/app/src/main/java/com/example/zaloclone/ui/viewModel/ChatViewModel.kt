@@ -402,22 +402,7 @@ class ChatViewModel(
             errorMessage = null
         )
     }
-
-    fun deleteFriend(friendId: Int) {
-        viewModelScope.launch {
-            _state.value = _state.value.copy(errorMessage = null)
-            try {
-                repository.deleteFriend(friendId)
-                getMyChatPartners()
-                getAllContacts()
-            } catch (e: Exception) {
-                _state.value = _state.value.copy(
-                    errorMessage = e.localizedMessage ?: "Unable to delete friend"
-                )
-            }
-        }
-    }
-
+    
     override fun onCleared() {
         unsubscribeFromMessages()
         val socket = socketClient.getSocket()
