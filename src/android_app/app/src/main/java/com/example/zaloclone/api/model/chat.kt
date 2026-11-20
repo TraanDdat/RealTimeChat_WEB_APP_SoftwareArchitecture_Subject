@@ -46,3 +46,8 @@ data class GroupMessageDataResponse(
     val createdAt: String,
     val updatedAt: String? = null
 )
+
+data class UnreadCountsResponse(
+    val users: Map<String, Int> = emptyMap(),
+    val groups: Map<String, Int> = emptyMap()
+)
