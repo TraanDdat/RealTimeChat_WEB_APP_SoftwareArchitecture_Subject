@@ -11,5 +11,21 @@ data class AuthUser(
 )
 
 data class UpdateProfileRequest(
-    val profilePic: String
+    val profilePic: String? = null,
+    val username: String? = null,
+    val id: Int
+)
+
+data class UpdateProfileResponse(
+    val profilePic: String? = null,
+    val username: String? = null,
+    val id: Int? = null
+)
+
+data class UserProfile(
+    val name: String? = null,
+    val email: String? = null,
+    val password: String? = null,
+    val avatarBgColorHex: Long = 0xFF38C7FF,
+    val avatarUri: String? = null
 )
