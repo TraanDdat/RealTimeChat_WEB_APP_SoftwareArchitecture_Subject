@@ -24,8 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.zaloclone.data.local.saveUserProfileToJson
-import com.example.zaloclone.ui.model.UserProfile
+import com.example.zaloclone.api.model.*
 import com.example.zaloclone.ui.viewModel.*
 
 @Composable
@@ -33,9 +32,31 @@ fun ChangeNameDialog(
     context: Context,
     userProfile: UserProfile,
     onProfileUpdated: (UserProfile) -> Unit,
+    authUser: AuthUser?,
+    authViewModel: AuthViewModel,
     onDismiss: () -> Unit
 ) {
-    var newNameInput by remember { mutableStateOf(userProfile.name) }
+    var newNameInput by remember { mutableStateOf(authUser?.username ?: "") }
+    val authState by authViewModel.state.collectAsState()
+
+    LaunchedEffect(authState.successMessage, authState.errorMessage) {
+        if (authState.successMessage != null) {
+            Toast.makeText(
+                context,
+                "Đổi tên thành công!",
+                Toast.LENGTH_SHORT
+            ).show()
+            onDismiss()
+        }
+        if (authState.errorMessage != null) {
+            Toast.makeText(
+                context,
+                authState.errorMessage,
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Đổi tên hiển thị", fontWeight = FontWeight.Bold) },
@@ -54,16 +75,17 @@ fun ChangeNameDialog(
         },
         confirmButton = {
             Button(
-                onClick = {
-                    if (newNameInput.isNotBlank()) {
-                        val updated = userProfile.copy(name = newNameInput.trim())
-                        onProfileUpdated(updated)
-                        saveUserProfileToJson(context, updated)
-                        onDismiss()
-                        Toast.makeText(context, "Đổi tên thành công!", Toast.LENGTH_SHORT).show()
-                    }
-                },
-                enabled = newNameInput.isNotBlank()
+            onClick = {
+                if (newNameInput.isNotBlank() && authUser != null) {
+                    val newProfile = UpdateProfileRequest(
+                        profilePic = authUser.profilePic,
+                        username = newNameInput.trim(),
+                        id = authUser.id
+                    )
+                    authViewModel.updateProfile(newProfile)
+                }
+            },
+            enabled = newNameInput.isNotBlank() && !authState.isLoading
             ) {
                 Text("Lưu")
             }
@@ -135,7 +157,6 @@ fun ChangeAvatarDialog(
                                         avatarUri = null
                                     )
                                     onProfileUpdated(updated)
-                                    saveUserProfileToJson(context, updated)
                                     onDismiss()
                                     Toast.makeText(context, "Cập nhật avatar thành công!", Toast.LENGTH_SHORT).show()
                                 },
@@ -238,7 +259,6 @@ fun ChangePasswordDialog(
                         else -> {
                             val updated = userProfile.copy(password = newPassword)
                             onProfileUpdated(updated)
-                            saveUserProfileToJson(context, updated)
                             onDismiss()
                             Toast.makeText(context, "Đổi mật khẩu thành công!", Toast.LENGTH_SHORT).show()
                         }

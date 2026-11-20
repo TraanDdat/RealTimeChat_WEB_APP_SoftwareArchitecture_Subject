@@ -3,8 +3,7 @@ package com.example.zaloclone.ui.screens
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
-import com.example.zaloclone.ui.model.*
-import com.example.zaloclone.data.local.*
+import com.example.zaloclone.api.model.*
 import com.example.zaloclone.ui.model.MessageType
 import com.example.zaloclone.ui.components.CreateGroupDialog as ComponentCreateGroupDialog
 import com.example.zaloclone.ui.viewModel.*
@@ -14,7 +13,6 @@ typealias MessageType = MessageType
 typealias Message = com.example.zaloclone.ui.model.Message
 typealias ChatItem = com.example.zaloclone.ui.model.ChatItem
 typealias FriendItem = com.example.zaloclone.ui.model.FriendItem
-typealias UserProfile = com.example.zaloclone.ui.model.UserProfile
 
 // Local storage delegation helpers
 fun saveMessagesToJson(context: Context, chatId: String, messages: List<Message>) =
@@ -55,10 +53,9 @@ fun addFriendAndChat(
     id: String,
     name: String,
     email: String = "",
-    phone: String = "",
     avatarBgColor: Color,
     avatarUri: String? = null
-) = com.example.zaloclone.data.local.addFriendAndChat(context, id, name, email, phone, avatarBgColor, avatarUri)
+) = com.example.zaloclone.data.local.addFriendAndChat(context, id, name, email, avatarBgColor, avatarUri)
 
 @Composable
 fun CreateGroupDialog(

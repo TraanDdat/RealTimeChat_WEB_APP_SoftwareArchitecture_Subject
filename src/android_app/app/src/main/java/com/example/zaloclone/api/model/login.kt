@@ -7,7 +7,8 @@ data class LoginRequest (
 
 data class LoginResponse(
     val data: LoginData,
-    val error_code: String?
+    val error_code: String?,
+    val access_token: String
 )
 
 data class LoginData(

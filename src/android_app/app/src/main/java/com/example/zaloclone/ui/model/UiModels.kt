@@ -73,7 +73,6 @@ data class FriendItem(
     val status: String,
     val isOnline: Boolean = false,
     val email: String = "",
-    val phone: String = "",
     val avatarBgColor: Color = Color(0xFFD1E3FF),
     val avatarUri: String? = null,
     val nickname: String = "",
@@ -83,12 +82,3 @@ data class FriendItem(
     val safeAvatarBgColor: Color
         get() = avatarBgColor ?: Color(0xFFD1E3FF)
 }
-
-data class UserProfile(
-    val name: String = "Người dùng Zalo",
-    val email: String = "user@gmail.com",
-    val phone: String = "0901234567",
-    val password: String = "123456",
-    val avatarBgColorHex: Long = 0xFF38C7FF,
-    val avatarUri: String? = null
-)
