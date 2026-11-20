@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { UserMinusIcon } from "lucide-react";
 import toast from "react-hot-toast";
 import { useChatStore } from "../store/useChatStore";
 import UsersLoadingSkeleton from "./UsersLoadingSkeleton";
@@ -10,6 +11,7 @@ function ContactList() {
   const { getAllContacts, allContacts, setSelectedUser, isUsersLoading } = useChatStore();
   const { onlineUsers } = useAuthStore();
   const [targetEmail, setTargetEmail] = useState("");
+  const [deletingFriendId, setDeletingFriendId] = useState<number | null>(null);
 
   useEffect(() => {
     // will be modify to only show list friend
@@ -28,6 +30,24 @@ function ContactList() {
       const message = (error as { response?: { data?: { detail?: string } } })
         .response?.data?.detail;
       toast.error(message ?? "Could not send friend request");
+    }
+  };
+
+  const deleteFriend = async (event: React.MouseEvent<HTMLButtonElement>, userId: number, username: string) => {
+    event.stopPropagation();
+    if (!window.confirm(`Remove ${username} from your friends? Your chat history will remain.`)) return;
+
+    setDeletingFriendId(userId);
+    try {
+      await friendApi.deleteFriend(userId);
+      await getAllContacts();
+      toast.success(`${username} removed from friends`);
+    } catch (error) {
+      const message = (error as { response?: { data?: { detail?: string } } })
+        .response?.data?.detail;
+      toast.error(message ?? "Could not remove friend");
+    } finally {
+      setDeletingFriendId(null);
     }
   };
 
@@ -63,7 +83,17 @@ function ContactList() {
                 <img src={contact.profilePic || "/avatar.png"} alt={contact.username} />
               </div>
             </div>
-            <h4 className="text-slate-200 font-medium">{contact.username}</h4>
+            <h4 className="min-w-0 flex-1 truncate text-slate-200 font-medium">{contact.username}</h4>
+            <button
+              type="button"
+              title={`Remove ${contact.username} from friends`}
+              aria-label={`Remove ${contact.username} from friends`}
+              disabled={deletingFriendId === contact._id}
+              onClick={(event) => deleteFriend(event, contact._id, contact.username)}
+              className="flex size-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+            >
+              <UserMinusIcon className="size-4" />
+            </button>
           </div>
         </div>
       ))}
