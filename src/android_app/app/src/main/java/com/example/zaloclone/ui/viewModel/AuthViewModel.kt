@@ -28,7 +28,8 @@ data class AuthState(
     val myPresenceStatus: PresenceStatus = PresenceStatus.OFFLINE,
     val errorMessage: String? = null,
     val successMessage: String? = null,
-    val isSocketReady: Boolean = false
+    val isSocketReady: Boolean = false,
+    val isLoading: Boolean = false
 )
 
 class AuthViewModel(
@@ -54,8 +55,11 @@ class AuthViewModel(
                     return@launch
                 }
                 val user = repository.AuthCheck()
+                val authUser = user.copy(
+                    access_token = token
+                )
                 _state.value = _state.value.copy(
-                    authUser = user,
+                    authUser = authUser,
                     userId = user.id,
                     email = user.email,
                     isCheckingAuth = false
@@ -69,6 +73,7 @@ class AuthViewModel(
                     userId = null,
                     email = null,
                     myPresenceStatus = PresenceStatus.OFFLINE,
+                    isCheckingAuth = false,
                     errorMessage = e.localizedMessage ?: "Error when login"
                 )
             }
@@ -113,13 +118,18 @@ class AuthViewModel(
                 }
                 tokenManager.saveToken(token)
                 val user = repository.AuthCheck()
+                val authUser = user.copy(
+                    access_token = token
+                )
                 _state.value = _state.value.copy(
-                    authUser = user,
-                    userId = user.id,
-                    email = user.email,
+                    authUser = authUser,
+                    userId = authUser.id,
+                    email = authUser.email,
                     myPresenceStatus = PresenceStatus.ONLINE,
                     successMessage = "Logged in successfully"
                 )
+                Log.d("token","${response}")
+                Log.d("authUser","${_state.value.authUser}")
                 connectSocket(token)
             } catch (e: Exception) {
                 tokenManager.clearToken()
@@ -157,14 +167,27 @@ class AuthViewModel(
 
     fun updateProfile(request: UpdateProfileRequest) {
         viewModelScope.launch {
+            _state.value = _state.value.copy(
+                isLoading = true,
+                errorMessage = null,
+                successMessage = null
+            )
+
             try {
                 val user = repository.updateProfile(request)
+                val currentUser = _state.value.authUser
                 _state.value = _state.value.copy(
-                    authUser = user,
+                    authUser = currentUser?.copy(
+                        username = user.username ?: currentUser.username,
+                        profilePic = user.profilePic ?: currentUser.profilePic,
+                        access_token = currentUser.access_token
+                    ),
+                    isLoading = false,
                     successMessage = "Profile updated successfully"
                 )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(
+                    isLoading = false,
                     errorMessage = e.localizedMessage ?: "Unable to update profile"
                 )
             }

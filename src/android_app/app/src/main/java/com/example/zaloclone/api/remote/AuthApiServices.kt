@@ -9,12 +9,13 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.PATCH
 import retrofit2.http.Headers
 import com.example.zaloclone.ApiConfig
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import com.example.zaloclone.api.model.LoginResponse
+import com.example.zaloclone.api.model.*
 
 suspend fun loginUser(request: LoginRequest): Result<LoginResponse>
 {
@@ -39,8 +40,8 @@ interface AuthApiServices {
     @POST(ApiConfig.API_AUTH_LOGOUT)
     suspend fun logout()
 
-    @PUT(ApiConfig.API_AUTH_UPDATE_PROFILE)
-    suspend fun updateProfile( @Body data: UpdateProfileRequest ): AuthUser
+    @PATCH(ApiConfig.API_AUTH_UPDATE_PROFILE)
+    suspend fun updateProfile( @Body data: UpdateProfileRequest ): UpdateProfileResponse
 
     @GET(ApiConfig.API_AUTH_CHECK)
     suspend fun AuthCheck(): AuthUser

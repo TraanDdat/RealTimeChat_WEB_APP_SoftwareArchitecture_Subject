@@ -39,7 +39,8 @@ data class ChatState(
     val allContacts: List<ChatUser> = emptyList(),
     val chats: List<ChatUser> = emptyList(),
     val messages: List<ChatMessage> = emptyList(),
-    val unreadNotifications: List<MessageNotification> = emptyList(),
+    val unreadCounts: Map<Int, Int> = emptyMap(),
+    val groupUnreadCounts: Map<Int, Int> = emptyMap(),
     val activeTab: ActiveTab = ActiveTab.CHATS,
     val selectedUser: ChatUser? = null,
     val selectedGroup: Int? = null,
@@ -61,15 +62,22 @@ class ChatViewModel(
     private var messageListener: Emitter.Listener? = null
     private var groupMessageListener: Emitter.Listener? = null
     private var globalMessageListener: Emitter.Listener? = null
+    private var globalGroupMessageListener: Emitter.Listener? = null
 
     fun startGlobalSocketListener() {
-        val socket = socketClient.getSocket()
-        if (socket == null) {
-            Log.e("CHAT_SOCKET", "Socket is null. Cannot register global listener.")
+        val socket = socketClient.getSocket() ?: run {
+            Log.e("CHAT_SOCKET", "Socket is null")
             return
         }
 
-        globalMessageListener?.let {socket.off("newMessage", it)}
+        globalMessageListener?.let {
+            socket.off("newMessage", it)
+        }
+
+        globalGroupMessageListener?.let {
+            socket.off("newGroupMessage", it)
+        }
+
         val listener = Emitter.Listener { args ->
             if (args.isEmpty()) return@Listener
             try {
@@ -77,11 +85,13 @@ class ChatViewModel(
                     args[0].toString(),
                     ChatMessage::class.java
                 )
+                val currentUserId = sessionManager.currentUserId
+                if (newMessage.senderId == currentUserId) {
+                    return@Listener
+                }
                 val currentState = _state.value
                 val selectedUser = currentState.selectedUser
-
                 val isCurrentChat = selectedUser != null && newMessage.senderId == selectedUser.id
-
                 if (isCurrentChat) {
                     if (!currentState.messages.any { it.id == newMessage.id }) {
                         _state.value = currentState.copy(
@@ -90,40 +100,76 @@ class ChatViewModel(
                     }
                 } else {
                     val senderId = newMessage.senderId
-                    val existingNotifs = currentState.unreadNotifications
-                    if (!existingNotifs.any { it.id == newMessage.id }) {
-                        val senderContact = currentState.allContacts.find { it.id == senderId }
-                            ?: currentState.chats.find { it.id == senderId }
-                        val senderName = senderContact?.username ?: "Người dùng #$senderId"
-
-                        val notif = MessageNotification(
-                            id = newMessage.id,
-                            senderId = senderId,
-                            senderName = senderName,
-                            text = newMessage.text ?: "[Hình ảnh]",
-                            timestamp = newMessage.createdAt
+                    val currentCount = currentState.unreadCounts[senderId] ?: 0
+                    _state.value = currentState.copy(
+                        unreadCounts = currentState.unreadCounts + (
+                            senderId to currentCount + 1
                         )
-                        _state.value = currentState.copy(
-                            unreadNotifications = existingNotifs + notif
-                        )
-                    }
+                    )
                 }
+
             } catch (e: Exception) {
-                // Ignore
+                Log.e("CHAT_SOCKET", "Error processing message", e)
             }
         }
-        globalMessageListener = listener
-        socket.on("newMessage", listener)
-    }
 
-    fun clearMessageNotification(notificationId: String) {
-        val updatedNotifications = _state.value.unreadNotifications.filter { it.id != notificationId }
-        _state.value = _state.value.copy(unreadNotifications = updatedNotifications)
+        val groupListener = Emitter.Listener { args ->
+            if (args.isEmpty()) return@Listener
+            try {
+                val newMessage = gson.fromJson(
+                    args[0].toString(),
+                    ChatMessage::class.java
+                )
+                val groupId = newMessage.groupId ?: return@Listener
+                val currentState = _state.value
+                if (currentState.selectedGroup == groupId) return@Listener
+                val currentCount = currentState.groupUnreadCounts[groupId] ?: 0
+                _state.update {
+                    it.copy(
+                        groupUnreadCounts = it.groupUnreadCounts + (
+                            groupId to currentCount + 1
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("GROUP_CHAT_SOCKET", "Error processing group message", e)
+            }
+        }
+
+        globalMessageListener = listener
+        globalGroupMessageListener = groupListener
+        socket.on("newMessage", listener)
+        socket.on("newGroupMessage", groupListener)
     }
 
     fun clearNotificationsForUser(senderId: Int) {
-        val updatedNotifications = _state.value.unreadNotifications.filter { it.senderId != senderId }
-        _state.value = _state.value.copy(unreadNotifications = updatedNotifications)
+        viewModelScope.launch {
+            try {
+                repository.markRead(senderId)
+                val updatedCounts = _state.value.unreadCounts.toMutableMap()
+                updatedCounts.remove(senderId)
+                _state.value = _state.value.copy(
+                    unreadCounts = updatedCounts,
+                )
+            } catch (e: Exception) {
+                Log.e("MARK_READ", "Failed to mark as read", e)
+            }
+        }
+    }
+
+    fun clearNotificationsForGroup(groupId: Int) {
+        viewModelScope.launch {
+            try {
+                repository.markGroupRead(groupId)
+                val updatedGroupCounts = _state.value.groupUnreadCounts.toMutableMap()
+                updatedGroupCounts.remove(groupId)
+                _state.value = _state.value.copy(
+                    groupUnreadCounts = updatedGroupCounts
+                )
+            } catch (e: Exception) {
+                Log.e("GROUP_MARK_READ", "Failed to mark group as read", e)
+            }
+        }
     }
 
     fun toggleSound() {
@@ -314,7 +360,7 @@ class ChatViewModel(
                     state.copy(messages = (state.messages + newMessage).sortedBy { it.createdAt })
                 }
             } catch (e: Exception) {
-                // Ignore invalid socket payload
+                Log.e("CHAT_SOCKET", "Invalid message payload", e)
             }
         }
         // handle group listener (1-n chat)
@@ -374,10 +420,15 @@ class ChatViewModel(
 
     override fun onCleared() {
         unsubscribeFromMessages()
+        val socket = socketClient.getSocket()
         globalMessageListener?.let {
-            socketClient.getSocket()?.off("newMessage", it)
+            socket?.off("newMessage", it)
+        }
+        globalGroupMessageListener?.let {
+            socket?.off("newGroupMessage", it)
         }
         globalMessageListener = null
+        globalGroupMessageListener = null
         super.onCleared()
     }
 
@@ -432,5 +483,59 @@ class ChatViewModel(
             messages = emptyList(),
             isMessagesLoading = false
         )
+    }
+
+    fun unreadCount() {
+        viewModelScope.launch {
+            try {
+                val response = repository.getUnreadCounts()
+                Log.d("UNREAD_DEBUG", "Users = ${response.users}")
+                Log.d("UNREAD_DEBUG", "Groups = ${response.groups}")
+                val userCounts = response.users.mapNotNull { (id, count) ->
+                    id.toIntOrNull()?.let { it to count }
+                }.toMap()
+                val groupCounts = response.groups.mapNotNull { (id, count) ->
+                    id.toIntOrNull()?.let { it to count }
+                }.toMap()
+                _state.update {
+                    it.copy(
+                        unreadCounts = userCounts,
+                        groupUnreadCounts = groupCounts
+                    )
+                }
+            } catch (e: Exception) {
+                Log.e("UNREAD_COUNT", "Failed to sync unread counts", e)
+            }
+        }
+    }
+
+    fun clearUnreadCount(senderId: Int) {
+        viewModelScope.launch {
+            try {
+                repository.markRead(senderId)
+                val updatedCounts = _state.value.unreadCounts.toMutableMap()
+                updatedCounts.remove(senderId)
+                _state.value = _state.value.copy(
+                    unreadCounts = updatedCounts,
+                )
+            } catch (e: Exception) {
+                Log.e("MARK_READ", "Failed to mark messages as read", e)
+            }
+        }
+    }
+
+    fun clearGroupUnreadCount(groupId: Int) {
+        viewModelScope.launch {
+            try {
+                repository.markGroupRead(groupId)
+                val updatedCounts = _state.value.groupUnreadCounts.toMutableMap()
+                updatedCounts.remove(groupId)
+                _state.value = _state.value.copy(
+                    groupUnreadCounts = updatedCounts
+                )
+            } catch (e: Exception) {
+                Log.e("GROUP_MARK_READ", "Failed to mark group messages as read", e)
+            }
+        }
     }
 }

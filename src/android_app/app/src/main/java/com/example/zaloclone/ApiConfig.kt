@@ -18,6 +18,7 @@ object ApiConfig {
     const val API_MSG_CONTACTS = "/api/messages/contacts";
     const val API_MSG_CHATS = "/api/messages/chats";
     const val API_MSG = "/api/messages";
+    const val API_MSG_UNREAD_CNT = "/api/messages/unread-counts";
 
     // FriendApiServices endpoint
     const val USER_ADDFRIEND_ADD_URL = "/api/user/addfriend/add";

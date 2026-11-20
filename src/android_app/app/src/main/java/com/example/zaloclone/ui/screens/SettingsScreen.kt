@@ -32,11 +32,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.AsyncImage
-import com.example.zaloclone.data.local.loadUserProfileFromJson
-import com.example.zaloclone.data.local.saveUserProfileToJson
 import com.example.zaloclone.ui.screens.settings.*
 import com.example.zaloclone.ui.viewModel.*
+import com.example.zaloclone.api.model.*
 
 @Composable
 fun SettingsScreen(
@@ -46,9 +44,9 @@ fun SettingsScreen(
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    var userProfile by remember { mutableStateOf(loadUserProfileFromJson(context)) }
+    var userProfile by remember { mutableStateOf(UserProfile()) }
     val authState = authViewModel.state.collectAsState()
-    val authUser = authState?.value?.authUser
+    val authUser = authState.value.authUser
 
     // Dialog State
     var showChangeNameDialog by remember { mutableStateOf(false) }
@@ -61,13 +59,15 @@ fun SettingsScreen(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
-            val updated = userProfile.copy(avatarUri = it.toString())
-            userProfile = updated
-            saveUserProfileToJson(context, updated)
-            Toast.makeText(context, "Cập nhật avatar thành công!", Toast.LENGTH_SHORT).show()
+            val imageDataUrl = uriToBase64DataUrl(context, it)
+            authViewModel.updateProfile(
+                UpdateProfileRequest(
+                    profilePic = imageDataUrl,
+                    id = authUser!!.id
+                )
+            )
         }
     }
-
     val cyanHeaderColor = Color(0xFF38C7FF)
     val navActiveColor = Color(0xFF5B61F4)
     val avatarBgColor = Color(userProfile.avatarBgColorHex)
@@ -207,12 +207,15 @@ fun SettingsScreen(
                         )
                     }
 
-                    IconButton(onClick = { showChangeNameDialog = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit Name",
-                            tint = Color(0xFF5B61F4)
-                        )
+                    IconButton(onClick = { 
+                        authViewModel.clearMessages();
+                        showChangeNameDialog = true 
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Name",
+                                tint = Color(0xFF5B61F4)
+                            )
                     }
                 }
             }
@@ -241,7 +244,10 @@ fun SettingsScreen(
                         iconBgColor = Color(0xFF4A90E2),
                         title = "Change nickname",
                         subtitle = authUser?.username?:"null",
-                        onClick = { showChangeNameDialog = true }
+                        onClick = {
+                            authViewModel.clearMessages()
+                            showChangeNameDialog = true
+                        }
                     )
                     HorizontalDivider(modifier = Modifier.padding(start = 56.dp), color = Color(0xFFF0F0F0))
 
@@ -296,10 +302,12 @@ fun SettingsScreen(
         }
     }
 
-    if (showChangeNameDialog) {
+    if (showChangeNameDialog && authUser != null) {
         ChangeNameDialog(
             context = context,
             userProfile = userProfile,
+            authUser = authUser,
+            authViewModel = authViewModel,
             onProfileUpdated = { userProfile = it },
             onDismiss = { showChangeNameDialog = false }
         )

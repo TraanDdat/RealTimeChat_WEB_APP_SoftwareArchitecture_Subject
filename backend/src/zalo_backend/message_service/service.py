@@ -7,7 +7,7 @@ from pymongo.errors import PyMongoError
 
 from . import user_client
 from zalo_backend.core.config import settings
-from zalo_backend.database.l_mongodb import collection
+from zalo_backend.database.l_mongodb import collection, group_messages
 from zalo_backend.database.l_postgres import SessionLocal
 from zalo_backend.models.mongodb.msg import MessageCreate, message_data
 from zalo_backend.schemas.user import UserPublic
@@ -49,6 +49,48 @@ def get_messages(user_id: int, partner_id: int):
     return [_with_media_urls(message_data(document)) for document in messages]
 
 
+def get_unread_counts(user_id: int) -> dict[str, dict[str, int]]:
+    private_counts = collection.aggregate([
+        {"$match": {"receiverId": user_id, "readBy": {"$ne": user_id}}},
+        {"$group": {"_id": "$senderId", "count": {"$sum": 1}}},
+    ])
+    users = {str(item["_id"]): item["count"] for item in private_counts}
+
+    from zalo_backend.models.postgres.group_chat import GroupMember
+
+    with SessionLocal() as db:
+        group_ids = [
+            group_id
+            for (group_id,) in db.query(GroupMember.group_id).filter(GroupMember.user_id == user_id).all()
+        ]
+    groups = {}
+    if group_ids:
+        group_counts = group_messages.aggregate([
+            {"$match": {
+                "groupId": {"$in": group_ids},
+                "senderId": {"$ne": user_id},
+                "readBy": {"$ne": user_id},
+            }},
+            {"$group": {"_id": "$groupId", "count": {"$sum": 1}}},
+        ])
+        groups = {str(item["_id"]): item["count"] for item in group_counts}
+    return {"users": users, "groups": groups}
+
+
+def mark_messages_read(user_id: int, sender_id: int) -> None:
+    try:
+        collection.update_many(
+            {
+                "receiverId": user_id,
+                "senderId": sender_id,
+                "readBy": {"$ne": user_id},
+            },
+            {"$addToSet": {"readBy": user_id}},
+        )
+    except PyMongoError as error:
+        raise HTTPException(status_code=503, detail="Message storage unavailable") from error
+
+
 def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
     if sender_id == receiver_id:
         raise HTTPException(status_code=400, detail="Cannot send messages to yourself.")
@@ -66,6 +108,7 @@ def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
     now = datetime.now(timezone.utc)
     document = {
         "senderId": sender_id, "receiverId": receiver_id, "text": data.text or None,
+        "readBy": [sender_id],
         "image": image_key, "attachment": attachment_key,
         "attachmentName": data.attachmentName, "attachmentMimeType": data.attachmentMimeType,
         "emotion": data.emotion,

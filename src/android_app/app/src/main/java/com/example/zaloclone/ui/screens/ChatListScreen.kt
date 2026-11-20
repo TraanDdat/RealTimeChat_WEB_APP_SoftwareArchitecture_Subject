@@ -50,41 +50,62 @@ fun ChatListScreen(
     var showCreateGroupDialog by remember { mutableStateOf(false) }
     var showNotificationDialog by remember { mutableStateOf(false) }
     val chatState = chatViewModel.state.collectAsState()
+    val groupState = groupViewModel.state.collectAsState()
     val authState = authViewModel.state.collectAsState()
+    val friendState = friendViewModel.state.collectAsState()
     val userPresences = authState.value.userPresences
 
     LaunchedEffect(Unit) {
-        //if (chatViewModel != null) {
-            chatViewModel.getMyChatPartners()
-        //}
+        chatViewModel.getMyChatPartners()
+        chatViewModel.unreadCount()
+        groupViewModel.getGroups()
     }
 
-    LaunchedEffect(chatState?.value?.chats, userPresences) {
-        val mongoChats = chatState?.value?.chats
-        if (!mongoChats.isNullOrEmpty()) {
-            val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2), Color(0xFF38C7FF))
+    LaunchedEffect(chatState.value.unreadCounts) {
+        Log.d(
+            "UNREAD_UI",
+            "Unread counts = ${chatState.value.unreadCounts}"
+        )
+    }
 
-            val items = mongoChats.mapIndexed { index, user ->
-                val presence = userPresences[user.id]
-                ChatItem(
-                    id = user.id.toString(),
-                    name = user.username,
-                    lastMessage = "Press to chat",
-                    time = presence?.lastSeen ?: "",
-                    unreadCount = 0,
-                    avatarBgColor = colors[index % colors.size],
-                    avatarUri = user.profilePic,
-                    presenceStatus = presence?.status ?: PresenceStatus.OFFLINE,
-                    lastSeen = presence?.lastSeen
-                )
-            }
-            chatList.clear()
-            chatList.addAll(items)
-        } /*else if (chatViewModel == null) {
-            val filteredList = savedList.filter { it.lastMessage.isNotBlank() }
-            chatList.clear()
-            chatList.addAll(filteredList)
-        }*/
+    LaunchedEffect(chatState.value.chats, userPresences) {
+        val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2), Color(0xFF38C7FF))
+        val personalChats = chatState.value.chats.mapIndexed { index, user ->
+            val userPresence = userPresences[user.id]
+            Log.d("CHAT_PRESENCE", "userPresences = $userPresences")
+            Log.d("CHAT_PRESENCE", "keys = ${userPresences.keys}")
+            Log.d("CHAT_PRESENCE", "chat user id = ${user.id}")
+            Log.d(
+                "CHAT_PRESENCE",
+                "id=${user.id}, presence=$userPresence"
+            )
+            ChatItem(
+                id = user.id.toString(),
+                name = user.username,
+                lastMessage = "Press to chat",
+                time = userPresence?.lastSeen ?: "",
+                unreadCount = 0,
+                avatarBgColor = colors[index % colors.size],
+                avatarUri = user.profilePic,
+                presenceStatus = userPresence?.status ?: PresenceStatus.OFFLINE,
+                lastSeen = userPresence?.lastSeen
+            )
+        }
+        val groupChats = groupState.value.groups.mapIndexed { index, group ->
+            ChatItem(
+                id = "group_${group.id}",
+                name = group.name,
+                lastMessage = "Press to chat",
+                time = "",
+                unreadCount = 0,
+                avatarBgColor = colors[(personalChats.size + index) % colors.size],
+                avatarUri = null,
+                presenceStatus = PresenceStatus.OFFLINE,
+                lastSeen = null
+            )
+        }
+        chatList.clear()
+        chatList.addAll(personalChats+groupChats)
     }
 
     val cyanHeaderColor = Color(0xFF38C7FF)
@@ -112,34 +133,30 @@ fun ChatListScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        //if (friendViewModel != null && chatViewModel != null) {
-                            val currentState = friendViewModel.state.collectAsState().value
-                            val currentChatState = chatViewModel.state.collectAsState().value
-                            Box {
-                                IconButton(
-                                    onClick = { showNotificationDialog = true }
+                        Box {
+                            IconButton(
+                                onClick = { showNotificationDialog = true }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Notifications,
+                                    contentDescription = "Notifications",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                            val totalUnread = friendState.value.friendRequests.size + chatState.value.unreadCounts.values.sum() + chatState.value.groupUnreadCounts.values.sum()
+                            if (totalUnread > 0) {
+                                Badge(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = (-4).dp, y = 4.dp),
+                                    containerColor = Color.Red,
+                                    contentColor = Color.White
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Notifications,
-                                        contentDescription = "Notifications",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                }
-                                val totalUnread = currentState.friendRequests.size + currentChatState.unreadNotifications.size
-                                if (totalUnread > 0) {
-                                    Badge(
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .offset(x = (-4).dp, y = 4.dp),
-                                        containerColor = Color.Red,
-                                        contentColor = Color.White
-                                    ) {
-                                        Text(text = totalUnread.toString(), fontSize = 10.sp)
-                                    }
+                                    Text(text = totalUnread.toString(), fontSize = 10.sp)
                                 }
                             }
-                        //}
+                        }
 
                         IconButton(onClick = { showCreateGroupDialog = true }) {
                             Icon(
@@ -202,9 +219,13 @@ fun ChatListScreen(
                 .padding(paddingValues)
         ) {
             items(chatList) { chat ->
-                val unreadCount = chatState.value.unreadNotifications.count {
-                    it.senderId.toString() == chat.id
+                val unreadCount = if (chat.id.startsWith("group_")) {
+                    val groupId = chat.id.removePrefix("group_").toIntOrNull()
+                    groupId?.let {chatState.value.groupUnreadCounts[it]} ?: 0
+                } else {
+                    chat.id.toIntOrNull()?.let {chatState.value.unreadCounts[it]} ?: 0
                 }
+                if (unreadCount > 0) {Text(text = unreadCount.toString())}
                 val isUnread = unreadCount > 0
                 ChatItemRow(
                     chat = chat,
@@ -227,7 +248,7 @@ fun ChatListScreen(
             }
         }
     }
-
+    
     if (showCreateGroupDialog) {
         CreateGroupDialog(
             chatViewModel = chatViewModel,
@@ -243,11 +264,10 @@ fun ChatListScreen(
     }
 
     if (showNotificationDialog /*&& chatViewModel != null && friendViewModel != null*/) {
-        val chatState = chatViewModel.state.collectAsState().value
-        val friendState = friendViewModel.state.collectAsState().value
         NotificationDialog(
-            chatState = chatState,
-            friendState = friendState,
+            chatState = chatState.value,
+            groupState = groupState.value,
+            friendState = friendState.value,
             friendViewModel = friendViewModel,
             onDismiss = { showNotificationDialog = false },
             onAcceptFriend = { requestId ->
@@ -258,10 +278,21 @@ fun ChatListScreen(
                 friendViewModel.rejectFriendRequest(requestId)
                 Toast.makeText(context, "Đã từ chối lời mời kết bạn (không cập nhật cơ sở dữ liệu).", Toast.LENGTH_SHORT).show()
             },
-            onNotificationMessageClick = { notif ->
-                chatViewModel.clearNotificationsForUser(notif.senderId)
+            onNotificationMessageClick = { senderId ->
+                val sender = chatState.value.chats.find {it.id == senderId}
+                val senderName = sender?.username?: "Người dùng #$senderId"
+                chatViewModel.clearNotificationsForUser(senderId)
                 showNotificationDialog = false
-                onChatItemClick(notif.senderId.toString(), notif.senderName)
+                onChatItemClick(senderId.toString(), senderName)
+            },
+            onNotificationGroupClick = { groupId ->
+                val group = groupState.value.groups.find { it.id == groupId }
+                chatViewModel.clearNotificationsForGroup(groupId)
+                showNotificationDialog = false
+                onChatItemClick(
+                    "group_$groupId",
+                    group?.name ?: "Group #$groupId"
+                )
             }
         )
     }
@@ -283,11 +314,8 @@ fun ChatItemRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar tròn dạng UserAvatar
         UserAvatar(
             name = chat.name,
-            //avatarBgColor = chat.safeAvatarBgColor,
-            //avatarUri = chat.avatarUri,
             presenceStatus = chat.presenceStatus,
             modifier = Modifier.size(52.dp),
             fontSize = 20.sp
@@ -295,7 +323,6 @@ fun ChatItemRow(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Nội dung tin nhắn
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -315,8 +342,6 @@ fun ChatItemRow(
                 overflow = TextOverflow.Ellipsis
             )
         }
-
-        // Thời gian & Nút xóa hoặc badge số tin chưa đọc
         if (isEditing) {
             IconButton(onClick = onDelete) {
                 Icon(

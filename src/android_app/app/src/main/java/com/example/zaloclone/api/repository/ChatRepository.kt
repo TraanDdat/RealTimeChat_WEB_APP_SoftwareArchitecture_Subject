@@ -20,4 +20,10 @@ class ChatRepository(
     override suspend fun sendGroupMessage(groupId: Int, data: SendMessageDataRequest): GroupMessageDataResponse = chatApi.sendGroupMessage(groupId, data)
 
     override suspend fun deleteFriend(friendId: Int) = chatApi.deleteFriend(friendId)
+
+    override suspend fun getUnreadCounts(): UnreadCountsResponse = chatApi.getUnreadCounts()
+
+    override suspend fun markRead(userId: Int) {chatApi.markRead(userId)}
+
+    override suspend fun markGroupRead(groupId: Int) {chatApi.markGroupRead(groupId)}
 }

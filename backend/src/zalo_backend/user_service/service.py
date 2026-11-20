@@ -56,12 +56,21 @@ def update_user(
     return user_queryset
 
 
-def update_profile_pic(db: Session, user_id: int, profile_pic: str):
+def update_userprofile(
+    db: Session,
+    user_name: str | None,
+    user_id: int,
+    profile_pic: str | None
+):
     user = _find_user(db, user_id=user_id)
     if user:
-        user.profile_pic = profile_pic
+        if user_name is not None:
+            user.username = user_name
+        if profile_pic is not None:
+            user.profile_pic = profile_pic
         db.commit()
         db.refresh(user)
+
     return user
 
 

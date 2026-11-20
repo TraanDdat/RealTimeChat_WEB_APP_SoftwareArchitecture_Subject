@@ -10,25 +10,19 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.example.zaloclone.api.model.ChatUser
+import com.example.zaloclone.api.model.*
 import com.example.zaloclone.api.model.SendMessageDataRequest
 import com.example.zaloclone.data.local.*
 import com.example.zaloclone.ui.model.Message
 import com.example.zaloclone.ui.model.MessageType
 import com.example.zaloclone.ui.screens.chatting.*
 import com.example.zaloclone.ui.viewModel.*
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import android.util.Base64
 import android.content.Context
-import java.io.InputStream
 import android.util.Log
 
 @Composable
@@ -47,32 +41,31 @@ fun ChattingScreen(
     val allContacts = chatState.allContacts
     val currentUserId = chatViewModel.getCurrentUserId()?: return
     val friendId = chatId.toIntOrNull()
-    val reactionByMessageId = remember {
-        mutableStateMapOf<String, String>()
-    }
-
+    val reactionByMessageId = remember {mutableStateMapOf<String, String>()}
     var currentChatName by remember { mutableStateOf(chatName) }
-
     var showChangeGroupNameDialog by remember { mutableStateOf(false) }
     var showIndividualSettingsDialog by remember { mutableStateOf(false) }
     var showGroupInfoDialog by remember { mutableStateOf(false) }
     var showAddMemberDialog by remember { mutableStateOf(false) }
-
     var showAttachPanel by remember { mutableStateOf(false) }
     var showEmotionSheet by remember { mutableStateOf(false) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
+    val isGroup = remember(chatId) {chatId.startsWith("group_")}
+    val groupId = remember(chatId) {chatId.removePrefix("group_").toIntOrNull()}
+    val groupMembers = remember {mutableStateListOf<Int>()}
 
-    val isGroup = remember(chatId) {
-        chatId.startsWith("group_")
-    }
-
-    val groupMembers = remember {
-        mutableStateListOf<Int>()
-    }
-
-    LaunchedEffect(chatName) {
+    LaunchedEffect(chatId) {
         if (chatName.isNotBlank()) {
             currentChatName = chatName
+        }
+        if (isGroup) {
+            groupId?.let {
+                chatViewModel.clearGroupUnreadCount(it)
+            }
+        } else {
+            friendId?.let {
+                chatViewModel.clearUnreadCount(it)
+            }
         }
     }
 
@@ -89,12 +82,16 @@ fun ChattingScreen(
     )
 
     LaunchedEffect(chatId, chatViewModel) {
+        Log.d("CHAT_DEBUG", "chatId = $chatId")
         reactionByMessageId.clear()
         groupMembers.clear()
 
         if(isGroup) {
             val groupId = chatId.removePrefix("group_").toIntOrNull()
-            chatViewModel.setSelectedGroup(groupId)
+            groupId?.let {
+                chatViewModel.clearNotificationsForGroup(groupId)
+                chatViewModel.setSelectedGroup(groupId)
+            }
             //groupMembers.add("Me")
         } else {
             val userId = chatId.toIntOrNull()
@@ -329,7 +326,6 @@ fun ChattingScreen(
                     key = { message -> message.id }
                 ) { message ->
                     if (
-                        message.timestamp != null &&
                         message.text.isEmpty() &&
                         message.mediaUrl == null &&
                         message.emotion == null

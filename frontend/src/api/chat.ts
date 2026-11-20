@@ -1,5 +1,5 @@
 import { axiosInstance } from "../lib/axios";
-import type { ChatUser, ChatMessage, SendMessageDataRequest } from "../types/chat";
+import type { ChatUser, ChatMessage, SendMessageDataRequest, UnreadCountsResponse } from "../types/chat";
 
 export const chatApi = {
   getContacts: () =>
@@ -7,6 +7,12 @@ export const chatApi = {
 
   getChatPartners: () =>
     axiosInstance.get<ChatUser[]>("/messages/chats"),
+
+  getUnreadCounts: () =>
+    axiosInstance.get<UnreadCountsResponse>("/messages/unread-counts"),
+
+  markRead: (userId: number) =>
+    axiosInstance.post<void>(`/messages/${userId}/read`),
 
   getMessages: (userId: number) =>
     axiosInstance.get<ChatMessage[]>(`/messages/${userId}`),
