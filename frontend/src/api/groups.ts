@@ -16,6 +16,9 @@ export const groupApi = {
   getMessages: (groupId: number) =>
     axiosInstance.get<GroupMessageData[]>(`/groups/${groupId}/messages`),
 
+  deleteMessage: (groupId: number, messageId: string) =>
+    axiosInstance.delete(`/groups/${groupId}/messages/${messageId}`),
+
   markRead: (groupId: number) =>
     axiosInstance.post<void>(`/groups/${groupId}/read`),
 

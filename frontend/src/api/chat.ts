@@ -17,6 +17,9 @@ export const chatApi = {
   getMessages: (userId: number) =>
     axiosInstance.get<ChatMessage[]>(`/messages/${userId}`),
 
+  deleteMessage: (messageId: string) =>
+    axiosInstance.delete(`/messages/${messageId}`),
+
   sendMessage: (receiverId: number, data: SendMessageDataRequest) =>
     axiosInstance.post<ChatMessage>(
       `/messages/send/${receiverId}`,

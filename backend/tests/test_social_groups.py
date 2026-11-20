@@ -171,3 +171,56 @@ def test_unread_counts_and_mark_read_cover_private_and_group_messages(db_session
     service.mark_messages_read(1, 2)
     group_service.mark_group_messages_read(db_session, group.id, 1)
     assert service.get_unread_counts(1) == {"users": {}, "groups": {}}
+
+
+def test_private_message_delete_requires_sender_and_cleans_s3(monkeypatch):
+    collection = mongomock.MongoClient().chat.messages
+    keys_deleted = []
+    message_id = collection.insert_one({
+        "senderId": 1,
+        "receiverId": 2,
+        "image": "chat-images/message.png",
+        "attachment": "chat-attachments/file.pdf",
+    }).inserted_id
+    monkeypatch.setattr(service, "collection", collection)
+    monkeypatch.setattr(s3_storage, "delete_image", keys_deleted.append)
+
+    with pytest.raises(HTTPException) as error:
+        service.delete_message(str(message_id), 2)
+    assert error.value.status_code == 404
+    assert collection.count_documents({"_id": message_id}) == 1
+
+    result = service.delete_message(str(message_id), 1)
+
+    assert result == {"messageId": str(message_id), "senderId": 1, "receiverId": 2}
+    assert collection.count_documents({"_id": message_id}) == 0
+    assert keys_deleted == ["chat-images/message.png", "chat-attachments/file.pdf"]
+
+
+def test_group_message_delete_requires_sender_and_cleans_s3(db_session, monkeypatch):
+    collection = mongomock.MongoClient().chat.group_messages
+    keys_deleted = []
+    group = group_service.create_group(db_session, 1, "Delete test", [2])
+    message_id = collection.insert_one({
+        "groupId": group.id,
+        "senderId": 2,
+        "image": "chat-images/group.png",
+        "attachment": None,
+    }).inserted_id
+    monkeypatch.setattr(group_service, "group_messages", collection)
+    monkeypatch.setattr(s3_storage, "delete_image", keys_deleted.append)
+
+    with pytest.raises(HTTPException) as error:
+        group_service.delete_group_message(db_session, group.id, str(message_id), 1)
+    assert error.value.status_code == 404
+    assert collection.count_documents({"_id": message_id}) == 1
+
+    result = group_service.delete_group_message(db_session, group.id, str(message_id), 2)
+
+    assert result == {
+        "messageId": str(message_id),
+        "groupId": group.id,
+        "memberIds": [1, 2],
+    }
+    assert collection.count_documents({"_id": message_id}) == 0
+    assert keys_deleted == ["chat-images/group.png"]

@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
+from bson import ObjectId
 from fastapi import HTTPException
 from pymongo import ASCENDING
 from pymongo.errors import PyMongoError
@@ -47,6 +48,29 @@ def get_messages(user_id: int, partner_id: int):
         {"senderId": partner_id, "receiverId": user_id},
     ]}).sort([("createdAt", ASCENDING), ("_id", ASCENDING)])
     return [_with_media_urls(message_data(document)) for document in messages]
+
+
+def delete_message(message_id: str, user_id: int) -> dict:
+    try:
+        object_id = ObjectId(message_id)
+    except (TypeError, ValueError) as error:
+        raise HTTPException(status_code=404, detail="Message not found") from error
+
+    try:
+        document = collection.find_one_and_delete({"_id": object_id, "senderId": user_id})
+    except PyMongoError as error:
+        raise HTTPException(status_code=503, detail="Message storage unavailable") from error
+    if document is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    for object_key in (document.get("image"), document.get("attachment")):
+        if object_key:
+            s3_storage.delete_image(object_key)
+    return {
+        "messageId": str(document["_id"]),
+        "senderId": document["senderId"],
+        "receiverId": document["receiverId"],
+    }
 
 
 def get_unread_counts(user_id: int) -> dict[str, dict[str, int]]:

@@ -66,6 +66,21 @@ def list_group_messages(
     return group_service.get_group_messages(db, group_id, current_user.id)
 
 
+@groups_router.delete("/{group_id}/messages/{message_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_group_message(
+    group_id: int = Path(gt=0),
+    message_id: str = "",
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    deleted = await run_in_threadpool(
+        group_service.delete_group_message, db, group_id, message_id, current_user.id,
+    )
+    payload = {"messageId": deleted["messageId"], "groupId": deleted["groupId"]}
+    for member_id in deleted["memberIds"]:
+        await sio.emit("messageDeleted", payload, room=str(member_id))
+
+
 @groups_router.post("/{group_id}/read", status_code=status.HTTP_204_NO_CONTENT)
 def mark_group_messages_read(
     group_id: int = Path(gt=0),
