@@ -11,7 +11,6 @@ from zalo_backend.database.l_postgres import create_tables, close_postgres, chec
 
 
 from zalo_backend.message_service.realtime import sio
-from zalo_backend.routers import login
 from zalo_backend.routers import messages
 from zalo_backend.routers import signup
 from zalo_backend.routers import addfriend
@@ -61,7 +60,6 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 # add router
-bkend.include_router(login.login_router, prefix=settings.AUTH_URL)
 bkend.include_router(signup.register_router, prefix=settings.AUTH_URL)
 bkend.include_router(auth.auth_router, prefix=settings.AUTH_URL)
 bkend.include_router(messages.messages_router, prefix=settings.MESSAGES_URL)
