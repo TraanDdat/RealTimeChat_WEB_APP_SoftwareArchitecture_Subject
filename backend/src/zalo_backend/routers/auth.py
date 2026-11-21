@@ -70,14 +70,22 @@ def login_request(
     }
 
 @auth_router.post("/logout")
-def logout(response: Response, client_type: Literal["web", "android"] = Header(default="web", alias="X-Client-Type")):
+def logout(
+        response: Response, 
+        current_user=Depends(get_current_user),
+        client_type: Literal["web", "android"] = Header(default="web", alias="X-Client-Type")
+    ):
     clear_auth_cookie(client_type, response)
     return {
         "error_code": None
     }
 
 @auth_router.patch("/update-profile")
-def update_profile(request: UpdateProfileRequest, db: Session = Depends(get_db)):
+def update_profile(
+    request: UpdateProfileRequest,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
     new_user = update_userprofile(
         db =  db,
         user_name = request.username,
@@ -89,7 +97,6 @@ def update_profile(request: UpdateProfileRequest, db: Session = Depends(get_db))
             status_code=404,
             detail="User not found"
         )
-
     return {
         "id": new_user.id,
         "username": new_user.username,
