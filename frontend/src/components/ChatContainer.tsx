@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { Trash2Icon } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import ChatHeader from "./ChatHeader";
@@ -15,6 +16,7 @@ function ChatContainer() {
     getGroupMessages,
     markUserMessagesRead,
     markGroupMessagesRead,
+    deleteMessage,
     messages,
     isMessagesLoading,
   } = useChatStore();
@@ -93,12 +95,27 @@ function ChatContainer() {
                     ) : (
                         msg.text && <p className="mt-2">{msg.text}</p>
                     )}
-                    <p className="text-xs mt-1 opacity-75 flex items-center gap-1">
+                    <div className="mt-1 flex items-center justify-between gap-4 text-xs opacity-75">
                       {new Date(msg.createdAt).toLocaleTimeString(undefined, {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
-                    </p>
+                      {isOwnMessage && !msg.isOptimistic && (
+                        <button
+                          type="button"
+                          title="Delete message for everyone"
+                          aria-label="Delete message for everyone"
+                          onClick={() => {
+                            if (window.confirm("Delete this message for everyone?")) {
+                              void deleteMessage(msg._id);
+                            }
+                          }}
+                          className="rounded p-1 text-current/70 transition-colors hover:bg-white/15 hover:text-current"
+                        >
+                          <Trash2Icon className="size-3.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
