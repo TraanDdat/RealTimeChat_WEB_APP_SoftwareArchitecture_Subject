@@ -9,7 +9,6 @@ interface IChatRepository {
     suspend fun sendMessage(receiverId: Int, data: SendMessageDataRequest): ChatMessage
     suspend fun getGroupMessages(groupId: Int): List<GroupMessageDataResponse>
     suspend fun sendGroupMessage(groupId: Int, data: SendMessageDataRequest): GroupMessageDataResponse
-    suspend fun deleteFriend(friendId: Int)
     suspend fun getUnreadCounts(): UnreadCountsResponse
     suspend fun markRead(userId: Int)
     suspend fun markGroupRead(groupId: Int)

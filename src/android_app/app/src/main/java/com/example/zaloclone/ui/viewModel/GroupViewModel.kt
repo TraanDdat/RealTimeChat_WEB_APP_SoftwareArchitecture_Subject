@@ -26,7 +26,7 @@ data class GroupState(
 )
 
 class GroupViewModel(
-    private val groupRepository: IGroupRepository
+    private val repository: IGroupRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GroupState())
@@ -36,7 +36,7 @@ class GroupViewModel(
         viewModelScope.launch {
             _state.value = _state.value.copy(isGroupsLoading = true)
             try {
-                val group_response = groupRepository.getGroups()
+                val group_response = repository.getGroups()
                 _state.value = _state.value.copy(groups = group_response)
             } catch (e: Exception) {
                 _state.value = _state.value.copy(error = e.message ?: "Could not load groups")
@@ -49,16 +49,18 @@ class GroupViewModel(
     fun createGroup(
         name: String,
         memberIds: List<Int>,
-        onSuccess: (GetGroupDataResponse) -> Unit = {}
+        onResult: (Boolean) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                val create_request = GroupCreateRequest(name, memberIds)
-                val group_created = groupRepository.createGroup(create_request)
-                _state.value = _state.value.copy(groups = listOf(group_created) + _state.value.groups)
-                onSuccess(group_created)
+                val request = GroupCreateRequest(
+                    name = name,
+                    member_ids = memberIds
+                )
+                repository.createGroup(request)
+                onResult(true)
             } catch (e: Exception) {
-                _state.value = _state.value.copy(error = e.message ?: "Could not create groups")
+                onResult(false)
             }
         }
     }
@@ -76,24 +78,23 @@ class GroupViewModel(
     fun addGroupMember(
         groupId: Int,
         userId: Int,
-        role: String = "member"
+        role: String = "member",
+        onResult: (Boolean) -> Unit = {}
     ) {
         viewModelScope.launch {
             try {
-                val addgrmem_request = GroupMemberAddRequest(
+                val request = GroupMemberAddRequest(
                     user_id = userId,
-                    role = GroupMemberRoleData(
-                        role = if (role.equals("admin", ignoreCase = true)) {
-                            GroupMemberRole.ADMIN
-                        } else {
-                            GroupMemberRole.MEMBER
-                        }
-                    )
+                    role = role.lowercase()
                 )
-                val addgrmem_response = groupRepository.addMember(groupId, addgrmem_request)
-                updateGroup(addgrmem_response)
+                val response = repository.addMember(groupId, request)
+                updateGroup(response)
+                onResult(true)
             } catch (e: Exception) {
-                _state.value = _state.value.copy(error = e.message ?: "Could not add member to group")
+                _state.value = _state.value.copy(
+                    error = e.message ?: "Could not add member to group"
+                )
+                onResult(false)
             }
         }
     }
@@ -101,11 +102,11 @@ class GroupViewModel(
     fun updateGroupMemberRole(
         groupId: Int,
         userId: Int,
-        role: GroupMemberRoleData
+        role: String
     ) {
         viewModelScope.launch {
             try {
-                val response = groupRepository.updateMemberRole(groupId, userId, role)
+                val response = repository.updateMemberRole(groupId, userId, role)
                 updateGroup(response)
             } catch (e: Exception) {
                 _state.value = _state.value.copy(error = e.message ?: "Could not update member role")
@@ -116,7 +117,7 @@ class GroupViewModel(
     fun refreshGroup(groupId: Int) {
         viewModelScope.launch {
             try {
-                val groupResponse = groupRepository.getGroups()
+                val groupResponse = repository.getGroups()
                 val group = groupResponse.find {it.id == groupId} ?: return@launch
                 updateGroup(group)
             } catch (e: Exception) {

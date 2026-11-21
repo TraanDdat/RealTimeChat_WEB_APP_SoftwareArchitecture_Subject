@@ -3,7 +3,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from zalo_backend.message_service import service
 from zalo_backend.message_service.dependencies import current_user
-from zalo_backend.message_service.realtime import notify_receiver
+from zalo_backend.message_service.realtime import notify_receiver, sio
 from zalo_backend.models.mongodb.msg import Message, MessageCreate
 from zalo_backend.schemas.user import UserPublic
 
@@ -37,6 +37,17 @@ def mark_messages_read(
 @messages_router.get("/{partner_id}", response_model=list[Message])
 def get_messages(partner_id: int = Path(gt=0), user: UserPublic = Depends(current_user)):
     return service.get_messages(user.id, partner_id)
+
+
+@messages_router.delete("/{message_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_message(
+    message_id: str,
+    user: UserPublic = Depends(current_user),
+):
+    deleted = await run_in_threadpool(service.delete_message, message_id, user.id)
+    payload = {key: value for key, value in deleted.items() if key != "receiverId"}
+    await sio.emit("messageDeleted", payload, room=str(deleted["receiverId"]))
+    await sio.emit("messageDeleted", payload, room=str(deleted["senderId"]))
 
 
 @messages_router.post("/send/{receiver_id}", status_code=status.HTTP_201_CREATED, response_model=Message)

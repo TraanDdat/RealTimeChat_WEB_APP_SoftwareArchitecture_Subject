@@ -21,7 +21,7 @@ function ProfileHeader() {
     reader.onloadend = async () => {
       if (typeof reader.result !== "string") return;
       setSelectedImg(reader.result);
-      await updateProfile({ profilePic: reader.result });
+      await updateProfile({ profilePic: reader.result, username: null });
     };
   };
 

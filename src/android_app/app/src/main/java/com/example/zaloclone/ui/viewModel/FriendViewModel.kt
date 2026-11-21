@@ -96,9 +96,27 @@ class FriendViewModel(
                     friendRequests = _state.value.friendRequests.filter {it.id != friendship_id},
                     errorMessage = null
                 )
-
             } catch (e: Exception) {
                 _state.value = _state.value.copy(errorMessage = e.localizedMessage?: "Unable to reject friend request")
+            }
+        }
+    }
+
+    fun deleteFriendship(
+        otherUserId: Int,
+        onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = repository.deleteFriendshipRequest(otherUserId)
+                onResult(response.isSuccessful)
+                _state.value = _state.value.copy(
+                    errorMessage = null
+                )
+            } catch (e: Exception) {
+                onResult(false)
+                _state.value = _state.value.copy(
+                    errorMessage = e.localizedMessage ?: "Unable to delete friendship"
+                )
             }
         }
     }

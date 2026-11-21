@@ -18,5 +18,12 @@ export const friendApi = {
     rejectRequest: (requestId: number) =>
         axiosInstance.post(`/user/addfriend/requests/${requestId}/reject`),
 
+    deleteFriend: (userId: number) =>
+        axiosInstance.post(
+            "/user/addfriend/requests/deleted",
+            null,
+            { params: { other_user_id: userId } },
+        ),
+
     // getFriends: () => axiosInstance.get<ChatUser[]>("/user/addfriend/friends"),
 };

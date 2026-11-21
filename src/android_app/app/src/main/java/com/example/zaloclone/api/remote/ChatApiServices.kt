@@ -26,11 +26,6 @@ interface ChatApiServices {
         @Body data: SendMessageDataRequest
     ): ChatMessage
 
-    @DELETE("/friends/{friendId}")
-    suspend fun deleteFriend(
-        @Path("friendId") friendId: Int
-    )
-
     @GET("/api/groups/{groupId}/messages")
     suspend fun getGroupMessages(@Path("groupId") groupId: Int): List<GroupMessageDataResponse>
 

@@ -67,6 +67,25 @@ def _update_request(friendship_id: int, new_status: str, db: Session, current_us
         raise HTTPException(status_code=404, detail="Pending friend request not found")
     return {"data": {"id": friendship.id, "status": friendship.status}, "error_code": None}
 
+def _delete_friendship(
+    db: Session,
+    current_user_id: int,
+    other_user_id: int
+):
+    friendship = addfr_service.check_friendship(
+        db,
+        current_user_id,
+        other_user_id
+    )
+    if not friendship or friendship.status != "accepted":
+        raise HTTPException(
+            status_code=404,
+            detail="Friendship not found"
+        )
+    db.delete(friendship)
+    db.commit()
+
+    return {"message": "Friendship deleted successfully"}
 
 @addfriend_router.post("/requests/{friendship_id}/accept")
 def accept_friend_request(
@@ -85,6 +104,17 @@ def reject_friend_request(
 ):
     return _update_request(friendship_id, "rejected", db, current_user)
 
+@addfriend_router.post("/requests/deleted")
+def delete_friendship_request(
+    other_user_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    return _delete_friendship(
+        db,
+        current_user.id,
+        other_user_id
+    )
 
 @addfriend_router.get("/friends", response_model=list[UserPublic])
 def get_friends(

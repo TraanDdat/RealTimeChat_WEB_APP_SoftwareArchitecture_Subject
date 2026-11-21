@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+from bson import ObjectId
 from fastapi import HTTPException
 from pymongo.errors import PyMongoError
 from sqlalchemy.orm import Session
@@ -151,6 +152,35 @@ def get_group_messages(db: Session, group_id: int, user_id: int) -> list[GroupMe
         ]
     except PyMongoError as error:
         raise HTTPException(status_code=503, detail="Group message storage unavailable") from error
+
+
+def delete_group_message(db: Session, group_id: int, message_id: str, user_id: int) -> dict:
+    _group_or_404(db, group_id)
+    _membership(db, group_id, user_id)
+    try:
+        object_id = ObjectId(message_id)
+    except (TypeError, ValueError) as error:
+        raise HTTPException(status_code=404, detail="Message not found") from error
+
+    try:
+        document = group_messages.find_one_and_delete({
+            "_id": object_id,
+            "groupId": group_id,
+            "senderId": user_id,
+        })
+    except PyMongoError as error:
+        raise HTTPException(status_code=503, detail="Group message storage unavailable") from error
+    if document is None:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    for object_key in (document.get("image"), document.get("attachment")):
+        if object_key:
+            s3_storage.delete_image(object_key)
+    member_ids = [
+        member_id
+        for (member_id,) in db.query(GroupMember.user_id).filter(GroupMember.group_id == group_id).all()
+    ]
+    return {"messageId": str(document["_id"]), "groupId": group_id, "memberIds": member_ids}
 
 
 def mark_group_messages_read(db: Session, group_id: int, user_id: int) -> None:

@@ -43,6 +43,7 @@ interface ChatStore {
   getMessagesByUserId: (userId: number) => Promise<void>;
   getGroupMessages: (groupId: number) => Promise<void>;
   sendMessage: (messageData: SendMessageDataRequest) => Promise<void>;
+  deleteMessage: (messageId: string) => Promise<void>;
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
 }
@@ -61,6 +62,7 @@ const toUnreadMap = (counts: UnreadCountsResponse) => ({
 
 let messageListener: ((message: ChatMessage) => void) | null = null;
 let groupMessageListener: ((message: ChatMessage) => void) | null = null;
+let messageDeletedListener: ((payload: { messageId: string }) => void) | null = null;
 
 export const useChatStore = create<ChatStore>()((set, get) => ({
   allContacts: [],
@@ -298,6 +300,21 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     }
   },
 
+  deleteMessage: async (messageId) => {
+    const { selectedUser, selectedGroup } = get();
+    if (!selectedUser && !selectedGroup) return;
+    try {
+      if (selectedGroup) await groupApi.deleteMessage(selectedGroup.id, messageId);
+      else await chatApi.deleteMessage(messageId);
+      set((state) => ({
+        messages: state.messages.filter((message) => message._id !== messageId),
+      }));
+      toast.success("Message deleted");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  },
+
   subscribeToMessages: () => {
     const socket = useAuthStore.getState().socket;
     if (!socket) return;
@@ -307,6 +324,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       socket.off("newMessage", messageListener);
     }
     if (groupMessageListener) socket.off("newGroupMessage", groupMessageListener);
+    if (messageDeletedListener) socket.off("messageDeleted", messageDeletedListener);
 
   messageListener = (newMessage: ChatMessage) => {
     const { selectedUser, isSoundEnabled, messages } = get();
@@ -348,8 +366,17 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     }));
     void get().markGroupMessagesRead(newMessage.groupId!);
   };
+
+  messageDeletedListener = ({ messageId }) => {
+    set((state) => ({
+      messages: state.messages.filter((message) => message._id !== messageId),
+    }));
+    void get().getUnreadCounts();
+  };
+
   socket.on("newMessage", messageListener);
   socket.on("newGroupMessage", groupMessageListener);
+  socket.on("messageDeleted", messageDeletedListener);
 },
 
   unsubscribeFromMessages: () => {
@@ -358,7 +385,9 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       socket.off("newMessage", messageListener);
     }
     if (socket && groupMessageListener) socket.off("newGroupMessage", groupMessageListener);
+    if (socket && messageDeletedListener) socket.off("messageDeleted", messageDeletedListener);
     messageListener = null;
     groupMessageListener = null;
+    messageDeletedListener = null;
   },
 }));
