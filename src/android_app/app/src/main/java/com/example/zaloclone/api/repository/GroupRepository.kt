@@ -28,7 +28,7 @@ class GroupRepository(
     override suspend fun updateMemberRole(
         groupId: Int,
         userId: Int,
-        data: GroupMemberRoleData
+        data: String
     ): GetGroupDataResponse {
         return groupdApi.updateMemberRole(groupId, userId, data)
     }

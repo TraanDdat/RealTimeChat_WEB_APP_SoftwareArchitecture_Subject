@@ -12,6 +12,6 @@ interface IGroupRepository {
     suspend fun updateMemberRole(
         groupId: Int,
         userId: Int,
-        data: GroupMemberRoleData
+        data: String
     ): GetGroupDataResponse
 }
