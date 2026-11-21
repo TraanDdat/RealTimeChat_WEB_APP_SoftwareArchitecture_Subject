@@ -311,7 +311,22 @@ fun FriendsScreen(
                             user = user,
                             isEditing = isEditing,
                             onDelete = {
-                                friendViewModel.deleteFriendship(user.id)
+                                friendViewModel.deleteFriendship(user.id) { success: Boolean ->
+                                    if (success) {
+                                        chatViewModel.getAllContacts()
+                                        Toast.makeText(
+                                            context,
+                                            "Deleted successfully",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } else {
+                                        Toast.makeText(
+                                            context,
+                                            "Delete failed",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
                             },
                             onClick = {
                                 onFriendSelect(user)

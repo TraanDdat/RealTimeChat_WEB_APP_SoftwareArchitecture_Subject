@@ -8,6 +8,7 @@ import retrofit2.http.POST
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.Response
 
 interface FriendApiServices {
 
@@ -24,5 +25,5 @@ interface FriendApiServices {
     suspend fun rejectRequest( @Path("friendship_id") friendship_id: Int): FriendRequestResponse
 
     @POST("/api/user/addfriend/requests/deleted")
-    suspend fun deleteFriendshipRequest( @Query("other_user_id") otherUserId: Int )
+    suspend fun deleteFriendshipRequest( @Query("other_user_id") otherUserId: Int ): Response<Unit>
 }
