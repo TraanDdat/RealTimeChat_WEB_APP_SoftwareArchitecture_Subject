@@ -102,14 +102,18 @@ class FriendViewModel(
         }
     }
 
-    fun deleteFriendship(otherUserId: Int) {
+    fun deleteFriendship(
+        otherUserId: Int,
+        onResult: (Boolean) -> Unit) {
         viewModelScope.launch {
             try {
-                repository.deleteFriendshipRequest(otherUserId)
+                val response = repository.deleteFriendshipRequest(otherUserId)
+                onResult(response.isSuccessful)
                 _state.value = _state.value.copy(
                     errorMessage = null
                 )
             } catch (e: Exception) {
+                onResult(false)
                 _state.value = _state.value.copy(
                     errorMessage = e.localizedMessage ?: "Unable to delete friendship"
                 )
