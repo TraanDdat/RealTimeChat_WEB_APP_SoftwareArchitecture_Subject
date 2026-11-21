@@ -10,10 +10,10 @@ import retrofit2.http.PATCH
 import retrofit2.http.Path
 
 interface GroupApiServices {
-    @GET(ApiConfig.GROUP_URL)
+    @GET(ApiConfig.API_GROUP_URL)
     suspend fun getGroups(): List<GetGroupDataResponse>
 
-    @POST(ApiConfig.GROUP_URL)
+    @POST(ApiConfig.API_GROUP_URL)
     suspend fun createGroup(@Body data: GroupCreateRequest): GetGroupDataResponse
 
     @POST("api/groups/{groupId}/members")
@@ -26,6 +26,6 @@ interface GroupApiServices {
     suspend fun updateMemberRole(
         @Path("groupId") groupId: Int,
         @Path("userId") userId: Int,
-        @Body data: GroupMemberRoleData
+        @Body data: String
     ): GetGroupDataResponse
 }

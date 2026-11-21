@@ -52,7 +52,7 @@ fun ChattingScreen(
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
     val isGroup = remember(chatId) {chatId.startsWith("group_")}
     val groupId = remember(chatId) {chatId.removePrefix("group_").toIntOrNull()}
-    val groupMembers = remember {mutableStateListOf<Int>()}
+    val groupMembers = remember {mutableStateListOf<GetGroupMemberResponse>()}
 
     LaunchedEffect(chatId) {
         if (chatName.isNotBlank()) {
@@ -67,6 +67,20 @@ fun ChattingScreen(
                 chatViewModel.clearUnreadCount(it)
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        groupViewModel.getGroups()
+    }
+
+    LaunchedEffect(groupState.groups, groupId) {
+        val selectedGroup = groupState.groups.firstOrNull {
+            it.id == groupId
+        }
+        groupMembers.clear()
+        groupMembers.addAll(selectedGroup?.members.orEmpty())
+        Log.d("GROUP_DEBUG", "Group ID: $groupId")
+        Log.d("GROUP_DEBUG", "Members count: ${groupMembers.size}")
     }
 
     Text(
@@ -84,7 +98,6 @@ fun ChattingScreen(
     LaunchedEffect(chatId, chatViewModel) {
         Log.d("CHAT_DEBUG", "chatId = $chatId")
         reactionByMessageId.clear()
-        groupMembers.clear()
 
         if(isGroup) {
             val groupId = chatId.removePrefix("group_").toIntOrNull()
@@ -358,9 +371,7 @@ fun ChattingScreen(
     if (showGroupInfoDialog && isGroup) {
         GroupInfoDialog(
             groupName = currentChatName,
-            members = groupMembers.mapNotNull { id ->
-                allContacts.find { contact -> contact.id == id }?.username
-            },
+            members = groupMembers.map { it.username },
             onDismiss = { showGroupInfoDialog = false },
             onAddMemberClick = { showAddMemberDialog = true },
             onChangeGroupNameClick = { showChangeGroupNameDialog = true }
@@ -395,13 +406,23 @@ fun ChattingScreen(
 
     if (showAddMemberDialog && isGroup) {
         AddMemberDialog(
-            //context = context,
-            currentMembers = groupMembers,
+            currentMembers = groupMembers.map { it.user_id },
             allContacts = allContacts,
             onDismiss = { showAddMemberDialog = false },
             onMembersAdded = { newIds ->
                 showAddMemberDialog = false
-                groupMembers.addAll(newIds)
+                newIds.forEach { userId ->
+                    groupId?.let { id ->
+                        groupViewModel.addGroupMember(
+                            groupId = id,
+                            userId = userId
+                        ) { success: Boolean ->
+                            if (success) {
+                                groupViewModel.getGroups()
+                            }
+                        }
+                    }
+                }
             }
         )
     }

@@ -19,6 +19,7 @@ import java.util.Date
 import java.util.Locale
 import com.example.zaloclone.ui.viewModel.*
 import com.example.zaloclone.api.model.*
+import android.widget.Toast
 
 @Composable
 fun CreateGroupDialog(
@@ -111,8 +112,23 @@ fun CreateGroupDialog(
                         groupViewModel.createGroup(
                             name = groupNameInput.trim(),
                             memberIds = memberIds
-                        )
-                        onDismiss()
+                        ) { success: Boolean ->
+                            if (success) {
+                                groupViewModel.getGroups()
+                                onDismiss()
+                                Toast.makeText(
+                                    context,
+                                    "Group created successfully",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    "Failed to create group",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
                     }
                 },
                 enabled = selectedFriends.any { it.value }

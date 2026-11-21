@@ -14,19 +14,15 @@ enum class GroupMemberRole {
     ADMIN
 }
 
-data class GroupMemberRoleData(
-    val role: GroupMemberRole = GroupMemberRole.MEMBER
-)
-
 data class GroupMemberAddRequest(
     val user_id: Int,
-    val role: GroupMemberRoleData
+    val role: String = "member"
 )
 
 data class GroupMemberRoleUpdateRequest(
     val groupId: Int,
     val userId: Int,
-    val role: GroupMemberRoleData
+    val role: String
 )
 
 data class GetGroupMemberResponse(
