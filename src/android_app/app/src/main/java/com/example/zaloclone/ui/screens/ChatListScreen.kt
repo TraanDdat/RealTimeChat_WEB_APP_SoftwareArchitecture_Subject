@@ -59,26 +59,13 @@ fun ChatListScreen(
         chatViewModel.getMyChatPartners()
         chatViewModel.unreadCount()
         groupViewModel.getGroups()
-    }
-
-    LaunchedEffect(chatState.value.unreadCounts) {
-        Log.d(
-            "UNREAD_UI",
-            "Unread counts = ${chatState.value.unreadCounts}"
-        )
+        friendViewModel.getRequest()
     }
 
     LaunchedEffect(chatState.value.chats, userPresences) {
         val colors = listOf(Color(0xFFE2C4B1), Color(0xFFD1E3FF), Color(0xFFE0C1C6), Color(0xFFD7BDE2), Color(0xFF38C7FF))
         val personalChats = chatState.value.chats.mapIndexed { index, user ->
             val userPresence = userPresences[user.id]
-            Log.d("CHAT_PRESENCE", "userPresences = $userPresences")
-            Log.d("CHAT_PRESENCE", "keys = ${userPresences.keys}")
-            Log.d("CHAT_PRESENCE", "chat user id = ${user.id}")
-            Log.d(
-                "CHAT_PRESENCE",
-                "id=${user.id}, presence=$userPresence"
-            )
             ChatItem(
                 id = user.id.toString(),
                 name = user.username,

@@ -134,8 +134,7 @@ class ChatViewModel(
             } catch (e: Exception) {
                 Log.e("GROUP_CHAT_SOCKET", "Error processing group message", e)
             }
-        }
-
+        }	
         globalMessageListener = listener
         globalGroupMessageListener = groupListener
         socket.on("newMessage", listener)
@@ -402,7 +401,7 @@ class ChatViewModel(
             errorMessage = null
         )
     }
-    
+
     override fun onCleared() {
         unsubscribeFromMessages()
         val socket = socketClient.getSocket()

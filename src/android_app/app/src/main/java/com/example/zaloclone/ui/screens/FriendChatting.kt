@@ -66,6 +66,7 @@ fun FriendsScreen(
         chatViewModel.getAllContacts()
         groupViewModel.getGroups()
         chatViewModel.getMyChatPartners()
+        friendViewModel.getRequest()
     }
 
     // Filter contacts
