@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import io.socket.client.Socket
 import kotlinx.coroutines.flow.update
 
 data class AuthState(
@@ -198,10 +199,9 @@ class AuthViewModel(
         _state.update {it.copy(myPresenceStatus = status)}
         socketService.updatePresenceStatus(status)
     }
-
-    private fun connectSocket(token: String) {
-        socketService.stopHeartbeat()
-        socketService.removeListeners()
+    
+    fun connectSocket(token: String) {
+        _state.update { it.copy(isSocketReady = false) }
         val socket = socketClient.create(token)
         socketService.listenEvents(
             SocketCallbacks(

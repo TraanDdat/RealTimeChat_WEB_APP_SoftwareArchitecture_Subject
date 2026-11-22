@@ -79,8 +79,6 @@ fun ChattingScreen(
         }
         groupMembers.clear()
         groupMembers.addAll(selectedGroup?.members.orEmpty())
-        Log.d("GROUP_DEBUG", "Group ID: $groupId")
-        Log.d("GROUP_DEBUG", "Members count: ${groupMembers.size}")
     }
 
     Text(
@@ -119,25 +117,6 @@ fun ChattingScreen(
                 chatViewModel.setSelectedUser(targetUser)
             }
         }
-    }
-
-    LaunchedEffect(chatState.messages) {
-        Log.d(
-            "CHAT_DEBUG",
-            "State messages count = ${chatState.messages.size}"
-        )
-
-        chatState.messages.forEach {
-            Log.d(
-                "CHAT_DEBUG",
-                "Message id=${it.id}, sender=${it.senderId}, text=${it.text}"
-            )
-        }
-
-        Log.d(
-            "CHAT_DEBUG",
-            "UI messages count = ${chatState.messages.size}"
-        )
     }
 
     val messages = remember(
