@@ -9,9 +9,23 @@ async def notify_rev_newMessage(receiver_id: int, message: Message):
         message.model_dump(mode="json", by_alias=True),
     )
 
-async def notify_rev_friendRequest(receiver_id: int, message: Message):
+async def notify_rev_friendRequest(receiver_id: int, payload: dict):
     await emit_to_user(
         receiver_id,
         "friendRequest",
-        message.model_dump(mode="json", by_alias=True),
+        payload
+    )
+
+async def notify_rev_acceptFriendRequest(receiver_id: int, payload: dict):
+    await emit_to_user(
+        receiver_id,
+        "acceptFriendRequest",
+        payload
+    )
+
+async def notify_rev_rejectFriendRequest(receiver_id: int, payload: dict):
+    await emit_to_user(
+        receiver_id,
+        "rejectFriendRequest",
+        payload
     )

@@ -128,3 +128,18 @@ def get_friends(db: Session, user_id: int):
         .filter(Friendship.status == "accepted")
         .all()
     )
+
+def get_friendship_users(db: Session, friendship_id: int):
+    friendship = (
+        db.query(Friendship)
+        .filter(Friendship.id == friendship_id)
+        .first()
+    )
+
+    if friendship is None:
+        return None
+
+    return {
+        "requester_id": friendship.requester_id,
+        "addressee_id": friendship.addressee_id
+    }

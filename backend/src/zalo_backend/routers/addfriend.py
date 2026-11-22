@@ -6,7 +6,7 @@ from zalo_backend.database.l_postgres import get_db
 from zalo_backend.schemas.user import AddFriendRequest, AddFriendResponse, FriendRequestResponse, UserPublic
 from zalo_backend.user_service import addfr_service
 from zalo_backend.user_service.service import get_user
-from zalo_backend.socket.eventNotify import notify_rev_friendRequest
+from zalo_backend.socket.eventNotify import *
 
 addfriend_router = APIRouter()
 
@@ -26,9 +26,14 @@ async def addfriend_request(
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
-    notify_rev_friendRequest(
+    await notify_rev_friendRequest(
         target_user.id,
-        {"id": friendship.id, "sender_id": current_user.id}
+        {
+            "id": friendship.id,
+            "sender_id": current_user.id,
+            "username": current_user.username,
+            "email": current_user.email
+        }
     )
     return {
         "data": AddFriendResponse(
@@ -87,20 +92,43 @@ def _delete_friendship(
     return {"message": "Friendship deleted successfully"}
 
 @addfriend_router.post("/requests/{friendship_id}/accept")
-def accept_friend_request(
+async def accept_friend_request(
     friendship_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+    friendship = addfr_service.get_friendship_users(db, friendship_id)
+    if friendship is None:
+        raise HTTPException(status_code=404, detail="Friendship not found")
+
+    req_id = friendship["requester_id"]
+    await notify_rev_acceptFriendRequest(
+        receiver_id = req_id,
+        payload = {
+            "addressee_id": current_user.id,
+            "username": current_user.username
+        }
+    )
     return _update_request(friendship_id, "accepted", db, current_user)
 
-
 @addfriend_router.post("/requests/{friendship_id}/reject")
-def reject_friend_request(
+async def reject_friend_request(
     friendship_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+    friendship = addfr_service.get_friendship_users(db, friendship_id)
+    if friendship is None:
+        raise HTTPException(status_code=404, detail="Friendship not found")
+
+    req_id = friendship["requester_id"]
+    await notify_rev_rejectFriendRequest(
+        receiver_id = req_id,
+        payload = {
+            "addressee_id": current_user.id,
+            "username": current_user.username
+        }
+    )
     return _update_request(friendship_id, "rejected", db, current_user)
 
 @addfriend_router.post("/requests/deleted")
