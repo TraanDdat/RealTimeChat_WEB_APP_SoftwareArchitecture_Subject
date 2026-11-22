@@ -99,7 +99,6 @@ class FriendViewModel(
 
         val acceptedListener = Emitter.Listener { args ->
             Log.d("FRIEND_SOCKET", "acceptFriendRequest RECEIVED")
-
             viewModelScope.launch {
                 try {
                     if (args.isEmpty()) return@launch
@@ -151,7 +150,6 @@ class FriendViewModel(
                         jsonStr,
                         FriendActionEvent::class.java
                     )
-
                     _state.update {
                         it.copy(
                             friendActionMessage =
@@ -167,7 +165,6 @@ class FriendViewModel(
                     } catch (e: Exception) {
                         Log.e("FRIEND_SOCKET", "Refresh failed", e)
                     }
-
                 } catch (e: Exception) {
                     Log.e("FRIEND_SOCKET", "Reject event handling failed", e)
                 }
@@ -291,5 +288,9 @@ class FriendViewModel(
         _state.update {
             it.copy(friendActionMessage = null)
         }
+    }
+
+    fun clearSession() {
+        _state.value = FriendState()
     }
 }

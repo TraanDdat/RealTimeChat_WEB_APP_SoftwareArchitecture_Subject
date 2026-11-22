@@ -125,4 +125,8 @@ class GroupViewModel(
             }
         }
     }
+
+    fun clearSession() {
+        _state.value = GroupState()
+    }
 }
