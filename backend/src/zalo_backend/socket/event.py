@@ -24,6 +24,19 @@ async def connect(sid, environ, auth):
     except HTTPException as e:
         logger.warning("SOCKET USER NOT FOUND: user_id=%s", user_id)
         return False
+    old_sids = online_users.get(user.id, set()).copy()
+    for old_sid in old_sids:
+        await sio.emit(
+            "forceLogout",
+            {"message": "Your account was logged in on another device"},
+            to=old_sid
+        )
+        await sio.disconnect(old_sid)
+    await sio.enter_room(sid, str(user.id))
+    online_users[user.id] = {sid}
+    connected_users[sid] = user.id
+
+    await sio.emit("getOnlineUsers", list(online_users.keys()))
     await sio.enter_room(sid, str(user.id))
     online_users.setdefault(user.id, set()).add(sid)
     connected_users[sid] = user.id

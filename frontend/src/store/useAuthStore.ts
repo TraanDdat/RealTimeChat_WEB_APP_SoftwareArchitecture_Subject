@@ -122,6 +122,20 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       newSocket.off("connect");
       newSocket.off("disconnect");
       newSocket.off("connect_error");
+      newSocket.off("forceLogout");
+      newSocket.on("forceLogout", async (data: { message?: string }) => {
+        toast.error(
+          data?.message || "Your account has been logged in on another device"
+        );
+        set({
+          authUser: null,
+          isCheckingAuth: false,
+          socket: null,
+          onlineUsers: [],
+        });
+        socketService.removeListeners();
+        socketClient.disconnect();
+      });
       set({ socket: newSocket });
       newSocket.connect();
   },
