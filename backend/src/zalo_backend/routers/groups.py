@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from zalo_backend.core.security import get_current_user
 from zalo_backend.database.l_postgres import get_db
 from zalo_backend.message_service import group_service
-from zalo_backend.message_service.realtime import sio
+from zalo_backend.socket.event import sio
 from zalo_backend.models.mongodb.msg import GroupMessage, MessageCreate
 from zalo_backend.schemas.groups import (
     GroupCreateRequest,

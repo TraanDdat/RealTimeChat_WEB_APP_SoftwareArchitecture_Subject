@@ -3,9 +3,10 @@ from fastapi.concurrency import run_in_threadpool
 
 from zalo_backend.message_service import service
 from zalo_backend.message_service.dependencies import current_user
-from zalo_backend.message_service.realtime import notify_receiver, sio
 from zalo_backend.models.mongodb.msg import Message, MessageCreate
 from zalo_backend.schemas.user import UserPublic
+from zalo_backend.socket.event import sio
+from zalo_backend.socket.eventNotify import notify_rev_newMessage
 
 messages_router = APIRouter()
 
@@ -57,5 +58,5 @@ async def send_message(
     user: UserPublic = Depends(current_user),
 ):
     message = await run_in_threadpool(service.send_message, data, user.id, receiver_id)
-    await notify_receiver(receiver_id, message)
+    await notify_rev_newMessage(receiver_id, message)
     return message

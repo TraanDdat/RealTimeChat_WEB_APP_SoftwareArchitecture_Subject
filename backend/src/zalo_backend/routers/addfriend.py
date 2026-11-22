@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 
 from zalo_backend.core.security import get_current_user
 from zalo_backend.database.l_postgres import get_db
-from zalo_backend.message_service.realtime import sio
 from zalo_backend.schemas.user import AddFriendRequest, AddFriendResponse, FriendRequestResponse, UserPublic
 from zalo_backend.user_service import addfr_service
 from zalo_backend.user_service.service import get_user
+from zalo_backend.socket.eventNotify import notify_rev_friendRequest
 
 addfriend_router = APIRouter()
 
@@ -26,10 +26,9 @@ async def addfriend_request(
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
-    await sio.emit(
-        "friendRequest",
-        {"id": friendship.id, "sender_id": current_user.id, "sender_username": current_user.username},
-        room=str(target_user.id),
+    notify_rev_friendRequest(
+        target_user.id,
+        {"id": friendship.id, "sender_id": current_user.id}
     )
     return {
         "data": AddFriendResponse(

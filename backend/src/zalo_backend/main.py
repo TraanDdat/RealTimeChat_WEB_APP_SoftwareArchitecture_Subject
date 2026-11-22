@@ -10,7 +10,7 @@ from zalo_backend.database.l_mongodb import create_indexes, close_mongodb
 from zalo_backend.database.l_postgres import create_tables, close_postgres, check_postgres
 
 
-from zalo_backend.message_service.realtime import sio
+from zalo_backend.socket.event import sio
 from zalo_backend.routers import messages
 from zalo_backend.routers import signup
 from zalo_backend.routers import addfriend
