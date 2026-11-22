@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.zaloclone.api.model.*
 import com.example.zaloclone.api.model.SendMessageDataRequest
 import com.example.zaloclone.data.local.*
@@ -24,6 +25,7 @@ import com.example.zaloclone.ui.viewModel.*
 import android.util.Base64
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.DisposableEffect
 
 @Composable
 fun ChattingScreen(
@@ -53,6 +55,17 @@ fun ChattingScreen(
     val isGroup = remember(chatId) {chatId.startsWith("group_")}
     val groupId = remember(chatId) {chatId.removePrefix("group_").toIntOrNull()}
     val groupMembers = remember {mutableStateListOf<GetGroupMemberResponse>()}
+
+    DisposableEffect(friendId, isGroup) {
+        if (!isGroup && friendId != null) {
+            chatViewModel.setCurrentChatUser(friendId)
+        } else {
+            chatViewModel.setCurrentChatUser(null)
+        }
+        onDispose {
+            chatViewModel.setCurrentChatUser(null)
+        }
+    }
 
     LaunchedEffect(chatId) {
         if (chatName.isNotBlank()) {
@@ -269,9 +282,31 @@ fun ChattingScreen(
                     )
                 }
 
+                // Typing indicator
+                if (!isGroup && chatState.isOtherUserTyping) {
+                    Text(
+                        text = "$currentChatName đang nhập...",
+                        color = Color.Gray,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(
+                            start = 16.dp,
+                            top = 4.dp,
+                            bottom = 6.dp
+                        )
+                    )
+                }
+		
                 ChatInputBar(
                     text = messageText,
-                    onTextChange = { messageText = it },
+                    onTextChange = { text ->
+                        messageText = text
+                        if (!isGroup && friendId != null) {
+                            chatViewModel.onMessageInputChanged(
+                                receiverId = friendId,
+                                message = text
+                            )
+                        }
+                    },
                     onSend = {
                         if (messageText.isNotBlank()) {
                             sendMediaMessage(
@@ -305,14 +340,14 @@ fun ChattingScreen(
                 .background(Color.White)
                 .padding(paddingValues)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                 items(
                     items = messages,
                     key = { message -> message.id }
