@@ -51,3 +51,7 @@ data class UnreadCountsResponse(
     val users: Map<String, Int> = emptyMap(),
     val groups: Map<String, Int> = emptyMap()
 )
+
+data class TypingEvent(
+    val sender_id: Int
+)

@@ -21,6 +21,8 @@ import com.example.zaloclone.ui.model.UserPresence
 import com.example.zaloclone.session.SessionManager
 import android.util.Log
 import retrofit2.HttpException
+import kotlinx.coroutines.*
+import org.json.JSONObject
 
 enum class ActiveTab {
     CHATS,
@@ -48,7 +50,9 @@ data class ChatState(
     val isMessagesLoading: Boolean = false,
     val isSoundEnabled: Boolean = false,
     val errorMessage: String? = null,
-    val emotion: String? = null
+    val emotion: String? = null,
+    val isOtherUserTyping: Boolean = false,
+    val typingUserId: Int? = null
 )
 
 class ChatViewModel(
@@ -63,6 +67,12 @@ class ChatViewModel(
     private var groupMessageListener: Emitter.Listener? = null
     private var globalMessageListener: Emitter.Listener? = null
     private var globalGroupMessageListener: Emitter.Listener? = null
+    private var currentChatUserId: Int? = null
+    private var typingJob: Job? = null
+    private var typingListener: Emitter.Listener? = null
+    private var stopTypingListener: Emitter.Listener? = null
+    private var isTypingSent = false
+    private var typingReceiverId: Int? = null
 
     fun startGlobalSocketListener() {
         val socket = socketClient.getSocket() ?: run {
@@ -76,6 +86,14 @@ class ChatViewModel(
 
         globalGroupMessageListener?.let {
             socket.off("newGroupMessage", it)
+        }
+
+        typingListener?.let {
+            socket.off("userTyping", it)
+        }
+
+        stopTypingListener?.let {
+            socket.off("userStopTyping", it)
         }
 
         val listener = Emitter.Listener { args ->
@@ -135,10 +153,55 @@ class ChatViewModel(
                 Log.e("GROUP_CHAT_SOCKET", "Error processing group message", e)
             }
         }	
+
+        val typing = Emitter.Listener { args ->
+            if (args.isEmpty()) return@Listener
+            try {
+                val jsonStr = args[0].toString()
+                val event = Gson().fromJson(jsonStr, TypingEvent::class.java)
+                viewModelScope.launch {
+                    if (event.sender_id == currentChatUserId) {
+                        _state.update {
+                            it.copy(
+                                isOtherUserTyping = true,
+                                typingUserId = event.sender_id
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CHAT_SOCKET", "Typing event error", e)
+            }
+        }
+
+        val stopTyping = Emitter.Listener { args ->
+            if (args.isEmpty()) return@Listener
+            try {
+                val jsonStr = args[0].toString()
+                val event = Gson().fromJson(jsonStr, TypingEvent::class.java)
+                viewModelScope.launch {
+                    if (event.sender_id == currentChatUserId) {
+                        _state.update {
+                            it.copy(
+                                isOtherUserTyping = false,
+                                typingUserId = null
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CHAT_SOCKET", "Stop typing event error", e)
+            }
+        }
+
         globalMessageListener = listener
         globalGroupMessageListener = groupListener
+        typingListener = typing
+        stopTypingListener = stopTyping
         socket.on("newMessage", listener)
         socket.on("newGroupMessage", groupListener)
+        socket.on("userTyping", typing)
+        socket.on("userStopTyping", stopTyping)
     }
 
     fun clearNotificationsForUser(senderId: Int) {
@@ -521,5 +584,48 @@ class ChatViewModel(
                 Log.e("GROUP_MARK_READ", "Failed to mark group messages as read", e)
             }
         }
+    }
+
+    fun setCurrentChatUser(userId: Int?) {
+        currentChatUserId = userId
+        _state.update {
+            it.copy(
+                isOtherUserTyping = false,
+                typingUserId = null
+            )
+        }
+    }
+
+    fun onMessageInputChanged(receiverId: Int, message: String) {
+        val socket = socketClient.getSocket() ?: return
+        if (message.isBlank()) {
+            stopTyping(receiverId)
+            return
+        }
+        if (!isTypingSent) {
+            socket.emit(
+                "typing",
+                JSONObject().put("receiver_id", receiverId)
+            )
+            isTypingSent = true
+            typingReceiverId = receiverId
+        }
+        typingJob?.cancel()
+        typingJob = viewModelScope.launch {
+            delay(1500)
+            stopTyping(receiverId)
+        }
+    }
+
+    private fun stopTyping(receiverId: Int) {
+        typingJob?.cancel()
+        if (isTypingSent) {
+            socketClient.getSocket()?.emit(
+                "stopTyping",
+                JSONObject().put("receiver_id", receiverId)
+            )
+        }
+        isTypingSent = false
+        typingReceiverId = null
     }
 }
