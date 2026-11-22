@@ -3,6 +3,7 @@ import useKeyboardSound from "../hooks/useKeyboardSound";
 import { useChatStore } from "../store/useChatStore";
 import toast from "react-hot-toast";
 import { PaperclipIcon, SendIcon, SmileIcon, XIcon } from "lucide-react";
+import { useAuthStore } from "../store/useAuthStore";
 
 const MAX_UPLOAD_SIZE_BYTES = 5 * 1024 * 1024;
 const UPLOAD_TYPES: Record<string, string> = {
@@ -58,7 +59,11 @@ function MessageInput() {
   const emojiButtonRef = useRef<HTMLButtonElement | null>(null);
   const emojiPickerRef = useRef<HTMLDivElement | null>(null);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const { sendMessage, isSoundEnabled } = useChatStore();
+  const { sendMessage, isSoundEnabled, selectedUser, selectedGroup } = useChatStore();
+  const socket = useAuthStore((state) => state.socket);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isTypingSentRef = useRef(false);
+  const typingReceiverIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!isEmojiPickerOpen) return;
@@ -76,11 +81,26 @@ function MessageInput() {
     return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
   }, [isEmojiPickerOpen]);
 
+  useEffect(() => {
+    return () => {
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+      const receiverId = typingReceiverIdRef.current;
+      if (isTypingSentRef.current && receiverId !== null) {
+        socket?.emit("stopTyping", {
+          receiver_id: receiverId,
+        });
+      }
+    };
+  }, [socket]);
+
   const insertEmoji = (emoji: string) => {
     const input = textInputRef.current;
     const start = input?.selectionStart ?? text.length;
     const end = input?.selectionEnd ?? text.length;
     const nextText = `${text.slice(0, start)}${emoji}${text.slice(end)}`;
+    handleTyping(nextText);
     setText(nextText);
     setIsEmojiPickerOpen(false);
     requestAnimationFrame(() => {
@@ -91,6 +111,7 @@ function MessageInput() {
 
   const handleSendMessage = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    stopTyping();
     if (!text.trim() && !selectedFile) return;
     if (isSoundEnabled) playRandomKeyStrokeSound();
 
@@ -147,6 +168,43 @@ function MessageInput() {
     setImagePreview(mimeType.startsWith("image/") ? URL.createObjectURL(file) : null);
   };
 
+  const stopTyping = () => {
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+    const receiverId = typingReceiverIdRef.current;
+    if (isTypingSentRef.current && receiverId !== null) {
+      socket?.emit("stopTyping", {
+        receiver_id: receiverId,
+      });
+    }
+    isTypingSentRef.current = false;
+    typingReceiverIdRef.current = null;
+  };
+
+  const handleTyping = (value: string) => {
+    if (!socket || !selectedUser || selectedGroup) return;
+    const receiverId = Number(selectedUser._id);
+    if (!value.trim()) {
+      stopTyping();
+      return;
+    }
+    if (!isTypingSentRef.current || typingReceiverIdRef.current !== receiverId)
+      {
+        stopTyping();
+        socket.emit("typing", {
+          receiver_id: receiverId,
+        });
+        isTypingSentRef.current = true;
+        typingReceiverIdRef.current = receiverId;
+      }
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      stopTyping();
+    }, 1500);
+  };
+
   return (
     <div className="p-4 border-t border-slate-700/50">
       {selectedFile && (
@@ -177,7 +235,9 @@ function MessageInput() {
           maxLength={2000}
           value={text}
           onChange={(event) => {
-            setText(event.target.value);
+            const value = event.target.value;
+            setText(value);
+            handleTyping(value);
             if (isSoundEnabled) playRandomKeyStrokeSound();
           }}
           onKeyDown={(event) => {

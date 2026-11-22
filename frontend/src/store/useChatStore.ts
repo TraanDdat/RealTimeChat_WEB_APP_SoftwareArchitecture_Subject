@@ -46,6 +46,7 @@ interface ChatStore {
   deleteMessage: (messageId: string) => Promise<void>;
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
+  isOtherUserTyping: boolean;
 }
 
 const getErrorMessage = (error: unknown) => {
@@ -63,6 +64,8 @@ const toUnreadMap = (counts: UnreadCountsResponse) => ({
 let messageListener: ((message: ChatMessage) => void) | null = null;
 let groupMessageListener: ((message: ChatMessage) => void) | null = null;
 let messageDeletedListener: ((payload: { messageId: string }) => void) | null = null;
+let userTypingListener: ((data: { sender_id: number }) => void) | null = null;
+let userStopTypingListener: ((data: { sender_id: number }) => void) | null = null;
 
 export const useChatStore = create<ChatStore>()((set, get) => ({
   allContacts: [],
@@ -76,6 +79,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   isUsersLoading: false,
   isMessagesLoading: false,
   isSoundEnabled: JSON.parse(localStorage.getItem("isSoundEnabled") ?? "false") === true,
+  isOtherUserTyping: false,
 
   toggleSound: () => {
     const enabled = !get().isSoundEnabled;
@@ -87,11 +91,12 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
 
   setSelectedUser: (selectedUser) =>
     set({
-    selectedUser,
-    selectedGroup: null,
-    messages: [],
-    isMessagesLoading: selectedUser !== null,
-  }),
+      selectedUser,
+      selectedGroup: null,
+      messages: [],
+      isMessagesLoading: selectedUser !== null,
+      isOtherUserTyping: false,
+    }),
 
   setSelectedGroup: (selectedGroup) =>
     set({
@@ -99,6 +104,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       selectedUser: null,
       messages: [],
       isMessagesLoading: selectedGroup !== null,
+      isOtherUserTyping: false,
     }),
 
   getAllContacts: async () => {
@@ -325,6 +331,8 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     }
     if (groupMessageListener) socket.off("newGroupMessage", groupMessageListener);
     if (messageDeletedListener) socket.off("messageDeleted", messageDeletedListener);
+    if (userTypingListener) socket.off("userTyping", userTypingListener);
+    if (userStopTypingListener) socket.off("userStopTyping", userStopTypingListener);
 
   messageListener = (newMessage: ChatMessage) => {
     const { selectedUser, isSoundEnabled, messages } = get();
@@ -374,9 +382,31 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     void get().getUnreadCounts();
   };
 
+  userTypingListener = (data) => {
+    const selectedUser = get().selectedUser;
+    if (
+      selectedUser &&
+      Number(data.sender_id) === Number(selectedUser._id)
+    ) {
+      set({ isOtherUserTyping: true });
+    }
+  };
+
+  userStopTypingListener = (data) => {
+    const selectedUser = get().selectedUser;
+    if (
+      selectedUser &&
+      Number(data.sender_id) === Number(selectedUser._id)
+    ) {
+      set({ isOtherUserTyping: false });
+    }
+  };
+
   socket.on("newMessage", messageListener);
   socket.on("newGroupMessage", groupMessageListener);
   socket.on("messageDeleted", messageDeletedListener);
+  socket.on("userTyping", userTypingListener);
+  socket.on("userStopTyping", userStopTypingListener);
 },
 
   unsubscribeFromMessages: () => {
@@ -386,8 +416,12 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     }
     if (socket && groupMessageListener) socket.off("newGroupMessage", groupMessageListener);
     if (socket && messageDeletedListener) socket.off("messageDeleted", messageDeletedListener);
+    if (socket && userTypingListener) socket.off("userTyping", userTypingListener);
+    if (socket && userStopTypingListener) socket.off("userStopTyping", userStopTypingListener);
     messageListener = null;
     groupMessageListener = null;
     messageDeletedListener = null;
+    userTypingListener = null;
+    userStopTypingListener = null;
   },
 }));

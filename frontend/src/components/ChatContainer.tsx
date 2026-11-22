@@ -19,6 +19,7 @@ function ChatContainer() {
     deleteMessage,
     messages,
     isMessagesLoading,
+    isOtherUserTyping,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef<HTMLDivElement>(null);
@@ -128,7 +129,11 @@ function ChatContainer() {
           <NoChatHistoryPlaceholder name={selectedGroup?.name ?? selectedUser?.username ?? ""} />
         )}
       </div>
-
+      {!selectedGroup && isOtherUserTyping && (
+        <div className="px-6 py-2 text-sm italic text-slate-400">
+          {selectedUser?.username} đang nhập...
+        </div>
+      )}
       <MessageInput />
     </>
   );
