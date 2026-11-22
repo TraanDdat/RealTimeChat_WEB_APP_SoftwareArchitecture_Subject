@@ -14,7 +14,8 @@ import kotlin.time.Duration.Companion.seconds
 
 data class SocketCallbacks(
     val onOnlineUsers: ((List<Int>) -> Unit)? = null,
-    val onPresenceChanged: ((UserPresence) -> Unit)? = null
+    val onPresenceChanged: ((UserPresence) -> Unit)? = null,
+    val onForceLogout: ((String) -> Unit)? = null
 )
 
 interface ISocketService {
@@ -35,6 +36,7 @@ class SocketService(
         socket = socketClient.getSocket()
         socket?.off("getOnlineUsers")
         socket?.off("presenceChanged")
+        socket?.off("forceLogout")
 
         socket?.on("getOnlineUsers") { args ->
             val data = args.getOrNull(1) ?: args.firstOrNull()
@@ -83,12 +85,22 @@ class SocketService(
                 }
             }
         }
+
+        socket?.on("forceLogout") { args ->
+            val data = args.firstOrNull() as? JSONObject
+            val message = data?.optString(
+                "message",
+                "User log in from another device"
+            ) ?: "User log in from another device"
+            callbacks.onForceLogout?.invoke(message)
+        }
     }
 
     override fun removeListeners() {
         stopHeartbeat()
         socket?.off("getOnlineUsers")
         socket?.off("presenceChanged")
+        socket?.off("forceLogout")
         socket = null
     }
 

@@ -628,4 +628,9 @@ class ChatViewModel(
         isTypingSent = false
         typingReceiverId = null
     }
+
+    fun clearSession() {
+        unsubscribeFromMessages()
+        _state.value = ChatState()
+    }
 }

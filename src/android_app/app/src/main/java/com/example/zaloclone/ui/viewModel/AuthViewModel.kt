@@ -30,7 +30,8 @@ data class AuthState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val isSocketReady: Boolean = false,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val forceLogoutMessage: String? = null
 )
 
 class AuthViewModel(
@@ -205,6 +206,17 @@ class AuthViewModel(
         val socket = socketClient.create(token)
         socketService.listenEvents(
             SocketCallbacks(
+                onForceLogout = { message ->
+                    viewModelScope.launch {
+                        tokenManager.clearToken()
+                        disconnectSocket()
+                        _state.value = AuthState(
+                            isCheckingAuth = false,
+                            forceLogoutMessage = message,
+                            authUser = null
+                        )
+                    }
+                },
                 onOnlineUsers = { userIds ->
                     _state.update { current ->
                         val updatedPresences = current.userPresences.toMutableMap()

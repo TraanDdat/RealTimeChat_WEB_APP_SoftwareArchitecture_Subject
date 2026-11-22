@@ -98,6 +98,12 @@ fun MainAppNavigation(appContainer: AppContainer) {
         )
     )
 
+    fun clearUserSession() {
+        chatViewModel.clearSession()
+        friendViewModel.clearSession()
+        groupViewModel.clearSession()
+    }
+
     LaunchedEffect(authState.isSocketReady) {
         if (authState.isSocketReady) {
             chatViewModel.startGlobalSocketListener()
@@ -116,12 +122,6 @@ fun MainAppNavigation(appContainer: AppContainer) {
 
     LaunchedEffect(Unit) {
         authViewModel.AuthCheck()
-    }
-
-    LaunchedEffect(authState.authUser) {
-        if (authState.authUser != null) {
-            currentScreen = "chat_list"
-        }
     }
 
     LaunchedEffect(authState.errorMessage) {
@@ -148,92 +148,111 @@ fun MainAppNavigation(appContainer: AppContainer) {
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-    when (currentScreen) {    
-        "welcome" -> WelcomeScreen(
-            onNavigateToLogin = { currentScreen = "login" },
-            onNavigateToRegister = { currentScreen = "signup" },
-            onNavigateToForgotPassword = { currentScreen = "forgot_password" }
-        )
-
-        "login" -> LoginScreen(
-            onLoginClick = { email, password ->
-                authViewModel.login(
-                    LoginRequest( email = email, password = password )
-                )
-            },
-            onNavigateToForgotPassword = { currentScreen = "forgot_password" },
-            onNavigateToWelcome = { currentScreen = "welcome" }
-        )
-        "forgot_password" -> ForgotPasswordScreen(
-            onNavigateToWelcome = { currentScreen = "welcome" },
-            onPasswordResetSuccess = { currentScreen = "login" }
-        )
-        "signup" -> RegisterScreen(
-            onRegisterClick = { email, username, password, confirmPassword ->
-                scope.launch {
-                    val result = handleRegister(
-                        RegisterConfirmRequest(
-                            email = email,
-                            username = username,
-                            password = password,
-                            confirmPassword = confirmPassword
-                        )
-                    )
-                    result.onSuccess { currentScreen = "login" }
-                }
-            },
-            onNavigateToWelcome = { currentScreen = "welcome" }
-        )
-        "chat_list" -> ChatListScreen(
-            chatViewModel = chatViewModel,
-            friendViewModel = friendViewModel,
-            groupViewModel = groupViewModel,
-            authViewModel = authViewModel,
-            onNavigateToFriends = { currentScreen = "friends" },
-            onNavigateToSettings = { currentScreen = "settings" },
-            onChatItemClick = { chatId, chatName ->
-                selectedChatId = chatId
-                selectedChatName = chatName
-                currentScreen = "chatting"
-            }
-        )
-        "friends" -> FriendsScreen(
-            onNavigateToChats = { currentScreen = "chat_list" },
-            onNavigateToSettings = { currentScreen = "settings" },
-            chatViewModel = chatViewModel,
-            friendViewModel = friendViewModel,
-            groupViewModel = groupViewModel,
-            onGroupSelect = { group ->
-                selectedChatId = "group_${group.id}"
-                selectedChatName = group.name
-                currentScreen = "chatting"
-            },
-            onFriendSelect = { friend ->
-                selectedChatId = friend.id.toString()
-                selectedChatName = friend.username
-                chatViewModel.setSelectedUser(friend)
-                currentScreen = "chatting"
-        })
-        "chatting" -> ChattingScreen(
-            chatId = selectedChatId,
-            chatName = selectedChatName,
-            chatViewModel = chatViewModel,
-            groupViewModel = groupViewModel,
-            onNavigateBack = { 
-                chatViewModel.clearSelectedChat()
-                currentScreen = "chat_list" }
-        )
-        "settings" -> SettingsScreen(
-            authViewModel = authViewModel,
-            onNavigateToChats = { currentScreen = "chat_list" },
-            onNavigateToFriends = { currentScreen = "friends" },
-            onLogout = { 
-                authViewModel.logout()
-                currentScreen = "welcome" }
-        )
+    LaunchedEffect(authState.forceLogoutMessage) {
+        authState.forceLogoutMessage?.let { message ->
+            Toast.makeText(
+                context,
+                message,
+                Toast.LENGTH_LONG
+            ).show()
+        }
     }
 
+    LaunchedEffect(authState.authUser, authState.isCheckingAuth) {
+        if (authState.isCheckingAuth) return@LaunchedEffect
+
+        if (authState.authUser != null) {
+            currentScreen = "chat_list"
+        } else {
+            clearUserSession()
+            currentScreen = "welcome"
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (currentScreen) {
+            "welcome" -> WelcomeScreen(
+                onNavigateToLogin = { currentScreen = "login" },
+                onNavigateToRegister = { currentScreen = "signup" },
+                onNavigateToForgotPassword = { currentScreen = "forgot_password" }
+            )
+            "login" -> LoginScreen(
+                onLoginClick = { email, password ->
+                    authViewModel.login(
+                        LoginRequest( email = email, password = password )
+                    )
+                },
+                onNavigateToForgotPassword = { currentScreen = "forgot_password" },
+                onNavigateToWelcome = { currentScreen = "welcome" }
+            )
+            "forgot_password" -> ForgotPasswordScreen(
+                onNavigateToWelcome = { currentScreen = "welcome" },
+                onPasswordResetSuccess = { currentScreen = "login" }
+            )
+            "signup" -> RegisterScreen(
+                onRegisterClick = { email, username, password, confirmPassword ->
+                    scope.launch {
+                        val result = handleRegister(
+                            RegisterConfirmRequest(
+                                email = email,
+                                username = username,
+                                password = password,
+                                confirmPassword = confirmPassword
+                            )
+                        )
+                        result.onSuccess { currentScreen = "login" }
+                    }
+                },
+                onNavigateToWelcome = { currentScreen = "welcome" }
+            )
+            "chat_list" -> ChatListScreen(
+                chatViewModel = chatViewModel,
+                friendViewModel = friendViewModel,
+                groupViewModel = groupViewModel,
+                authViewModel = authViewModel,
+                onNavigateToFriends = { currentScreen = "friends" },
+                onNavigateToSettings = { currentScreen = "settings" },
+                onChatItemClick = { chatId, chatName ->
+                    selectedChatId = chatId
+                    selectedChatName = chatName
+                    currentScreen = "chatting"
+                }
+            )
+            "friends" -> FriendsScreen(
+                onNavigateToChats = { currentScreen = "chat_list" },
+                onNavigateToSettings = { currentScreen = "settings" },
+                chatViewModel = chatViewModel,
+                friendViewModel = friendViewModel,
+                groupViewModel = groupViewModel,
+                onGroupSelect = { group ->
+                    selectedChatId = "group_${group.id}"
+                    selectedChatName = group.name
+                    currentScreen = "chatting"
+                },
+                onFriendSelect = { friend ->
+                    selectedChatId = friend.id.toString()
+                    selectedChatName = friend.username
+                    chatViewModel.setSelectedUser(friend)
+                    currentScreen = "chatting"
+            })
+            "chatting" -> ChattingScreen(
+                chatId = selectedChatId,
+                chatName = selectedChatName,
+                chatViewModel = chatViewModel,
+                groupViewModel = groupViewModel,
+                onNavigateBack = {
+                    chatViewModel.clearSelectedChat()
+                    currentScreen = "chat_list" }
+            )
+            "settings" -> SettingsScreen(
+                authViewModel = authViewModel,
+                onNavigateToChats = { currentScreen = "chat_list" },
+                onNavigateToFriends = { currentScreen = "friends" },
+                onLogout = {
+                    authViewModel.logout()
+                }
+            )
+        }
         if (friendState.showFriendRequestPopup) {
             FriendRequestBanner(
                 friendState = friendState,
