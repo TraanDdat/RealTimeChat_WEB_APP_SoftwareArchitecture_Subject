@@ -89,7 +89,7 @@ def update_profile(
     new_user = update_userprofile(
         db =  db,
         user_name = request.username,
-        user_id = request.id,
+        user_id = current_user.id,
         profile_pic = request.profilePic
     )
     if not new_user:

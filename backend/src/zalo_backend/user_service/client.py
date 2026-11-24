@@ -3,12 +3,12 @@ from zalo_backend.schemas.user import UserPublic
 from zalo_backend.user_service import service as user_service
 
 
-def get_user(user_id: int):
+def get_user(user_id: int) -> UserPublic | None:
     with SessionLocal() as db:
         user = user_service.get_user(db, user_id=user_id)
         return UserPublic.from_user(user) if user else None
 
 
-def get_users():
+def get_users() -> list[UserPublic]:
     with SessionLocal() as db:
         return [UserPublic.from_user(user) for user in user_service.get_users(db)]

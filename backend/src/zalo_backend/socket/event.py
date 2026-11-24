@@ -1,7 +1,6 @@
-from fastapi import HTTPException
 from fastapi.concurrency import run_in_threadpool
-from zalo_backend.message_service.dependencies import resolve_user
 from zalo_backend.socket.socketService import get_socket_user_id
+from zalo_backend.user_service.client import get_user
 import socketio
 import logging
 
@@ -19,9 +18,8 @@ async def connect(sid, environ, auth):
     user_id = get_socket_user_id(environ)
     if user_id is None:
         return False
-    try:
-        user = await run_in_threadpool(resolve_user, user_id)
-    except HTTPException as e:
+    user = await run_in_threadpool(get_user, user_id)
+    if user is None:
         logger.warning("SOCKET USER NOT FOUND: user_id=%s", user_id)
         return False
     old_sids = online_users.get(user.id, set()).copy()

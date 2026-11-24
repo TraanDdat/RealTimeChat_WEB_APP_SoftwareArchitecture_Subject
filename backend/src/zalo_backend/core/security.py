@@ -62,11 +62,12 @@ def get_current_user(
 ):
     from zalo_backend.user_service.service import get_user_by_id
     auth_header = request.headers.get("Authorization")
-
     token = None
 
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ", 1)[1]
+    if auth_header:
+        scheme, separator, credentials = auth_header.partition(" ")
+        if separator and scheme.lower() == "bearer" and credentials:
+            token = credentials.strip()
 
     if not token:
         token = request.cookies.get(AUTH_COOKIE)

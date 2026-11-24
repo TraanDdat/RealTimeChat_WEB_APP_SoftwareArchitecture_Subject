@@ -68,17 +68,6 @@ def check_friendship(
     ).first()
 
 
-def get_friend_requests(db: Session, user_id: int):
-    return (
-        db.query(Friendship, User)
-        .join(User, Friendship.requester_id == User.id)
-        .filter(
-            Friendship.addressee_id == user_id,
-            Friendship.status == "pending"
-        )
-        .all()
-    )
-
 def update_friendship_status(
     db: Session,
     friendship_id: int,
@@ -108,6 +97,16 @@ def update_friendship_status(
     db.refresh(friendship)
 
     return friendship
+
+
+def delete_friendship(db: Session, user_id_1: int, user_id_2: int) -> bool:
+    friendship = check_friendship(db, user_id_1, user_id_2)
+    if friendship is None or friendship.status != "accepted":
+        return False
+
+    db.delete(friendship)
+    db.commit()
+    return True
 
 def get_friends(db: Session, user_id: int):
     return (

@@ -6,7 +6,6 @@ from pymongo.errors import PyMongoError
 from sqlalchemy.orm import Session
 
 from zalo_backend.database.l_mongodb import group_messages
-from zalo_backend.message_service.service import upload_image
 from zalo_backend.message_service import s3_storage
 from zalo_backend.models.mongodb.msg import GroupMessage, MessageCreate
 from zalo_backend.models.postgres.group_chat import GroupChat, GroupMember
@@ -208,7 +207,7 @@ def send_group_message(
     _group_or_404(db, group_id)
     _membership(db, group_id, sender_id)
     sender = db.query(User).filter(User.id == sender_id).first()
-    image_key = upload_image(data.image) if data.image else None
+    image_key = s3_storage.store_image_data_url(data.image) if data.image else None
     attachment_key = None
     attachment_size = None
     if data.attachment:
