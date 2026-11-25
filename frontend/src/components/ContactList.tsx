@@ -6,12 +6,14 @@ import UsersLoadingSkeleton from "./UsersLoadingSkeleton";
 import { useAuthStore } from "../store/useAuthStore";
 import { friendApi } from "../api/addfriend";
 import FriendRequestsPanel from "./FriendRequestsPanel";
+import SentRequestsPanel from "./SentRequestsPanel";
 
 function ContactList() {
   const { getAllContacts, allContacts, setSelectedUser, isUsersLoading } = useChatStore();
   const { onlineUsers } = useAuthStore();
   const [targetEmail, setTargetEmail] = useState("");
   const [deletingFriendId, setDeletingFriendId] = useState<number | null>(null);
+  const [sentRequestsVersion, setSentRequestsVersion] = useState(0);
 
   useEffect(() => {
     // will be modify to only show list friend
@@ -26,6 +28,7 @@ function ContactList() {
       await friendApi.sendRequest({ target_email: email });
       toast.success("Friend request sent");
       setTargetEmail("");
+      setSentRequestsVersion((version) => version + 1);
     } catch (error) {
       const message = (error as { response?: { data?: { detail?: string } } })
         .response?.data?.detail;
@@ -70,6 +73,7 @@ function ContactList() {
         </button>
       </form>
       <FriendRequestsPanel />
+      <SentRequestsPanel refreshKey={sentRequestsVersion} />
       <h3 className="px-1 pb-1 text-xs font-semibold uppercase text-slate-400">Friends</h3>
       {allContacts.map((contact) => (
         <div

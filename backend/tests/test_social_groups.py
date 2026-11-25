@@ -77,6 +77,111 @@ def test_contacts_only_include_accepted_friendships(db_session):
     assert [(friend.id, friend.username) for _, friend in friends] == [(2, "Two")]
 
 
+@pytest.fixture
+def friend_response_env(db_session, monkeypatch):
+    from zalo_backend.database.l_postgres import get_db
+    from zalo_backend.routers import addfriend
+
+    sent = []
+
+    async def accept(receiver_id, payload):
+        sent.append(("acceptFriendRequest", receiver_id, payload))
+
+    async def reject(receiver_id, payload):
+        sent.append(("rejectFriendRequest", receiver_id, payload))
+
+    monkeypatch.setattr(addfriend, "notify_rev_acceptFriendRequest", accept)
+    monkeypatch.setattr(addfriend, "notify_rev_rejectFriendRequest", reject)
+
+    current = {"user": None}
+    app = FastAPI()
+    app.include_router(addfriend.addfriend_router, prefix="/api/friends")
+    app.dependency_overrides[get_db] = lambda: db_session
+    app.dependency_overrides[get_current_user] = lambda: current["user"]
+
+    request = Friendship(requester_id=1, addressee_id=2, status="pending")
+    db_session.add(request)
+    db_session.commit()
+
+    def act_as(user_id):
+        current["user"] = db_session.query(User).filter(User.id == user_id).one()
+
+    with TestClient(app) as client:
+        yield client, request.id, act_as, sent
+
+
+@pytest.mark.parametrize(
+    ("action", "event"),
+    [("accept", "acceptFriendRequest"), ("reject", "rejectFriendRequest")],
+)
+def test_responding_to_friend_request_notifies_requester(friend_response_env, action, event):
+    client, request_id, act_as, sent = friend_response_env
+    act_as(2)
+
+    response = client.post(f"/api/friends/requests/{request_id}/{action}")
+
+    assert response.status_code == 200
+    assert response.json()["data"]["status"] == f"{action}ed"
+    assert len(sent) == 1
+    sent_event, receiver_id, payload = sent[0]
+    assert (sent_event, receiver_id) == (event, 1)
+    assert payload["addressee_id"] == 2
+    assert payload["username"] == "Two"
+
+
+@pytest.mark.parametrize("action", ["accept", "reject"])
+def test_requester_sees_outcome_in_sent_requests(friend_response_env, action):
+    client, request_id, act_as, _ = friend_response_env
+
+    act_as(1)
+    pending = client.get("/api/friends/requests/sent").json()["data"]
+    assert [(r["id"], r["username"], r["status"]) for r in pending] == [
+        (request_id, "Two", "pending")
+    ]
+
+    act_as(2)
+    assert client.post(f"/api/friends/requests/{request_id}/{action}").status_code == 200
+
+    act_as(1)
+    sent = client.get("/api/friends/requests/sent").json()["data"]
+    assert [(r["id"], r["status"]) for r in sent] == [(request_id, f"{action}ed")]
+
+
+def test_rejected_request_can_be_sent_again(db_session):
+    from zalo_backend.user_service.addfr_service import (
+        create_friend_request,
+        get_pending_friend_requests,
+    )
+
+    first = create_friend_request(db_session, 1, 2)
+    update_friendship_status(db_session, first.id, 2, "rejected")
+    assert get_pending_friend_requests(db_session, 2) == []
+    assert get_friends(db_session, 1) == []
+
+    # The rejected user may try again; the original row is reused.
+    again = create_friend_request(db_session, 1, 2)
+    assert (again.id, again.status) == (first.id, "pending")
+
+    # The other user may also send a request in the reverse direction.
+    update_friendship_status(db_session, again.id, 2, "rejected")
+    reverse = create_friend_request(db_session, 2, 1)
+    assert (reverse.id, reverse.requester_id, reverse.addressee_id) == (first.id, 2, 1)
+
+    # Pending or accepted pairs still cannot be duplicated.
+    with pytest.raises(ValueError):
+        create_friend_request(db_session, 1, 2)
+
+
+def test_only_addressee_can_respond_and_no_notification_on_failure(friend_response_env):
+    client, request_id, act_as, sent = friend_response_env
+    act_as(3)
+
+    response = client.post(f"/api/friends/requests/{request_id}/accept")
+
+    assert response.status_code == 404
+    assert sent == []
+
+
 def test_group_creation_and_admin_assignment(db_session, monkeypatch):
     collection = mongomock.MongoClient().chat.group_messages
     monkeypatch.setattr(group_service, "group_messages", collection)

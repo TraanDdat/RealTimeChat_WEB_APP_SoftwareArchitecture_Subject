@@ -1,5 +1,10 @@
 import { axiosInstance } from "../lib/axios";
-import type { AddFriendRequest, AddFriendResponse, FriendRequestItem } from "../types/friend";
+import type {
+    AddFriendRequest,
+    AddFriendResponse,
+    FriendRequestItem,
+    SentFriendRequestItem,
+} from "../types/friend";
 
 interface DataEnvelope<T> {
     data: T;
@@ -11,6 +16,9 @@ export const friendApi = {
 
     getRequests: () =>
         axiosInstance.get<DataEnvelope<FriendRequestItem[]>>("/user/addfriend/requests"),
+
+    getSentRequests: () =>
+        axiosInstance.get<DataEnvelope<SentFriendRequestItem[]>>("/user/addfriend/requests/sent"),
 
     acceptRequest: (requestId: number) =>
         axiosInstance.post(`/user/addfriend/requests/${requestId}/accept`),

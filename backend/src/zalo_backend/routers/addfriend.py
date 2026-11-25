@@ -66,14 +66,50 @@ def get_addfriend_requests(
     ]
     return {"data": request_list, "error_code": None}
 
+@addfriend_router.get("/requests/sent")
+def get_sent_addfriend_requests(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Friend requests the current user sent, with status pending/accepted/rejected."""
+    requests = addfr_service.get_sent_friend_requests(db, current_user.id)
+    request_list = [
+        FriendRequestResponse(
+            id=friendship.id,
+            email=addressee.email,
+            username=addressee.username,
+            status=friendship.status,
+        )
+        for friendship, addressee in requests
+    ]
+    return {"data": request_list, "error_code": None}
 
-def _update_request(friendship_id: int, new_status: str, db: Session, current_user):
+
+async def _update_request(friendship_id: int, new_status: str, db: Session, current_user):
     friendship = addfr_service.update_friendship_status(
         db, friendship_id, current_user.id, new_status,
     )
     if friendship is None:
         raise HTTPException(status_code=404, detail="Pending friend request not found")
-    return {"data": {"id": friendship.id, "status": friendship.status}, "error_code": None}
+
+    # Notify the original sender only after the addressee has been verified
+    # and the status change has been committed.
+    notify = (
+        notify_rev_acceptFriendRequest
+        if new_status == "accepted"
+        else notify_rev_rejectFriendRequest
+    )
+    await notify(
+        friendship.requester_id,
+        {
+            "id": friendship_id,
+            "addressee_id": current_user.id,
+            "username": current_user.username,
+            "email": current_user.email,
+            "status": new_status,
+        },
+    )
+    return {"data": {"id": friendship_id, "status": new_status}, "error_code": None}
 
 @addfriend_router.post("/requests/{friendship_id}/accept")
 async def accept_friend_request(
@@ -81,19 +117,7 @@ async def accept_friend_request(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    friendship = addfr_service.get_friendship_users(db, friendship_id)
-    if friendship is None:
-        raise HTTPException(status_code=404, detail="Friendship not found")
-
-    req_id = friendship["requester_id"]
-    await notify_rev_acceptFriendRequest(
-        receiver_id = req_id,
-        payload = {
-            "addressee_id": current_user.id,
-            "username": current_user.username
-        }
-    )
-    return _update_request(friendship_id, "accepted", db, current_user)
+    return await _update_request(friendship_id, "accepted", db, current_user)
 
 @addfriend_router.post("/requests/{friendship_id}/reject")
 async def reject_friend_request(
@@ -101,19 +125,7 @@ async def reject_friend_request(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    friendship = addfr_service.get_friendship_users(db, friendship_id)
-    if friendship is None:
-        raise HTTPException(status_code=404, detail="Friendship not found")
-
-    req_id = friendship["requester_id"]
-    await notify_rev_rejectFriendRequest(
-        receiver_id = req_id,
-        payload = {
-            "addressee_id": current_user.id,
-            "username": current_user.username
-        }
-    )
-    return _update_request(friendship_id, "rejected", db, current_user)
+    return await _update_request(friendship_id, "rejected", db, current_user)
 
 @addfriend_router.post("/requests/deleted")
 def delete_friendship_request(
