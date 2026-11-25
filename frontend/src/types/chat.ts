@@ -20,6 +20,7 @@ export interface ChatMessage {
   attachmentName?: string | null;
   attachmentMimeType?: string | null;
   attachmentSize?: number | null;
+  isRecalled?: boolean;
   createdAt: string;
   updatedAt?: string;
   isOptimistic?: boolean;

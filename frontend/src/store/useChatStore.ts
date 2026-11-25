@@ -63,7 +63,24 @@ const toUnreadMap = (counts: UnreadCountsResponse) => ({
 
 let messageListener: ((message: ChatMessage) => void) | null = null;
 let groupMessageListener: ((message: ChatMessage) => void) | null = null;
-let messageDeletedListener: ((payload: { messageId: string }) => void) | null = null;
+const markMessageRecalled = (messages: ChatMessage[], messageId: string): ChatMessage[] =>
+  messages.map((message) =>
+    message._id === messageId
+      ? {
+          ...message,
+          isRecalled: true,
+          text: null,
+          image: null,
+          emotion: null,
+          attachment: null,
+          attachmentName: null,
+          attachmentMimeType: null,
+          attachmentSize: null,
+        }
+      : message
+  );
+
+let messageDeletedListener:((payload: { messageId: string }) => void) | null = null;
 let userTypingListener: ((data: { sender_id: number }) => void) | null = null;
 let userStopTypingListener: ((data: { sender_id: number }) => void) | null = null;
 
@@ -312,10 +329,8 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     try {
       if (selectedGroup) await groupApi.deleteMessage(selectedGroup.id, messageId);
       else await chatApi.deleteMessage(messageId);
-      set((state) => ({
-        messages: state.messages.filter((message) => message._id !== messageId),
-      }));
-      toast.success("Message deleted");
+      set((state) => ({ messages: markMessageRecalled(state.messages, messageId) }));
+      toast.success("Đã thu hồi tin nhắn");
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -376,9 +391,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   };
 
   messageDeletedListener = ({ messageId }) => {
-    set((state) => ({
-      messages: state.messages.filter((message) => message._id !== messageId),
-    }));
+    set((state) => ({ messages: markMessageRecalled(state.messages, messageId) }));
     void get().getUnreadCounts();
   };
 

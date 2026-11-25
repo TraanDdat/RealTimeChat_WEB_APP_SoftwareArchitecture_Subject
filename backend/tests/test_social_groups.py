@@ -193,8 +193,14 @@ def test_private_message_delete_requires_sender_and_cleans_s3(monkeypatch):
     result = service.delete_message(str(message_id), 1)
 
     assert result == {"messageId": str(message_id), "senderId": 1, "receiverId": 2}
-    assert collection.count_documents({"_id": message_id}) == 0
+    recalled = collection.find_one({"_id": message_id})
+    assert recalled["isRecalled"] is True
+    assert recalled["image"] is None and recalled["attachment"] is None
     assert keys_deleted == ["chat-images/message.png", "chat-attachments/file.pdf"]
+
+    with pytest.raises(HTTPException) as error:
+        service.delete_message(str(message_id), 1)
+    assert error.value.status_code == 404
 
 
 def test_group_message_delete_requires_sender_and_cleans_s3(db_session, monkeypatch):
@@ -222,5 +228,7 @@ def test_group_message_delete_requires_sender_and_cleans_s3(db_session, monkeypa
         "groupId": group.id,
         "memberIds": [1, 2],
     }
-    assert collection.count_documents({"_id": message_id}) == 0
+    recalled = collection.find_one({"_id": message_id})
+    assert recalled["isRecalled"] is True
+    assert recalled["image"] is None
     assert keys_deleted == ["chat-images/group.png"]

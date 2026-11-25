@@ -61,11 +61,18 @@ function ChatContainer() {
                 >
                   <div
                     className={`relative min-w-0 max-w-[75%] break-words rounded-lg px-4 py-3 ${
-                      isOwnMessage ? "bg-cyan-600 text-white" : "bg-slate-800 text-slate-200"
+                      msg.isRecalled
+                        ? "border border-slate-600 bg-transparent text-slate-400"
+                        : isOwnMessage
+                          ? "bg-cyan-600 text-white"
+                          : "bg-slate-800 text-slate-200"
                     }`}
                   >
                     {selectedGroup && !isOwnMessage && (
                       <p className="mb-1 text-xs font-semibold opacity-80">{msg.senderUsername}</p>
+                    )}
+                    {msg.isRecalled && (
+                      <p className="italic opacity-70">Tin nhắn đã được thu hồi</p>
                     )}
                     {msg.image && (
                       <img src={msg.image} alt="Shared" className="rounded-lg h-48 object-cover" />
@@ -101,13 +108,13 @@ function ChatContainer() {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
-                      {isOwnMessage && !msg.isOptimistic && (
+                      {isOwnMessage && !msg.isOptimistic && !msg.isRecalled && (
                         <button
                           type="button"
-                          title="Delete message for everyone"
-                          aria-label="Delete message for everyone"
+                          title="Thu hồi tin nhắn"
+                          aria-label="Thu hồi tin nhắn"
                           onClick={() => {
-                            if (window.confirm("Delete this message for everyone?")) {
+                            if (window.confirm("Thu hồi tin nhắn này với mọi người?")) {
                               void deleteMessage(msg._id);
                             }
                           }}
