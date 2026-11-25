@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
-import { Trash2Icon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ForwardIcon, Trash2Icon } from "lucide-react";
+import type { ChatMessage } from "../types/chat";
+import ForwardMessageModal from "./ForwardMessageModal";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import ChatHeader from "./ChatHeader";
@@ -23,6 +25,8 @@ function ChatContainer() {
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const [forwardingMessage, setForwardingMessage] = useState<ChatMessage | null>(null);
+  const closeForwardModal = useCallback(() => setForwardingMessage(null), []);
   const userId = selectedUser?._id;
   const groupId = selectedGroup?.id;
 
@@ -71,6 +75,12 @@ function ChatContainer() {
                     {selectedGroup && !isOwnMessage && (
                       <p className="mb-1 text-xs font-semibold opacity-80">{msg.senderUsername}</p>
                     )}
+                    {msg.isForwarded && !msg.isRecalled && (
+                      <p className="mb-1 flex items-center gap-1 text-xs italic opacity-70">
+                        <ForwardIcon className="size-3" />
+                        Đã chuyển tiếp
+                      </p>
+                    )}
                     {msg.isRecalled && (
                       <p className="italic opacity-70">Tin nhắn đã được thu hồi</p>
                     )}
@@ -108,20 +118,33 @@ function ChatContainer() {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
-                      {isOwnMessage && !msg.isOptimistic && !msg.isRecalled && (
-                        <button
-                          type="button"
-                          title="Thu hồi tin nhắn"
-                          aria-label="Thu hồi tin nhắn"
-                          onClick={() => {
-                            if (window.confirm("Thu hồi tin nhắn này với mọi người?")) {
-                              void deleteMessage(msg._id);
-                            }
-                          }}
-                          className="rounded p-1 text-current/70 transition-colors hover:bg-white/15 hover:text-current"
-                        >
-                          <Trash2Icon className="size-3.5" />
-                        </button>
+                      {!msg.isOptimistic && !msg.isRecalled && (
+                        <span className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            title="Chuyển tiếp"
+                            aria-label="Chuyển tiếp tin nhắn"
+                            onClick={() => setForwardingMessage(msg)}
+                            className="rounded p-1 text-current/70 transition-colors hover:bg-white/15 hover:text-current"
+                          >
+                            <ForwardIcon className="size-3.5" />
+                          </button>
+                          {isOwnMessage && (
+                            <button
+                              type="button"
+                              title="Thu hồi tin nhắn"
+                              aria-label="Thu hồi tin nhắn"
+                              onClick={() => {
+                                if (window.confirm("Thu hồi tin nhắn này với mọi người?")) {
+                                  void deleteMessage(msg._id);
+                                }
+                              }}
+                              className="rounded p-1 text-current/70 transition-colors hover:bg-white/15 hover:text-current"
+                            >
+                              <Trash2Icon className="size-3.5" />
+                            </button>
+                          )}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -142,6 +165,9 @@ function ChatContainer() {
         </div>
       )}
       <MessageInput />
+      {forwardingMessage && (
+        <ForwardMessageModal message={forwardingMessage} onClose={closeForwardModal} />
+      )}
     </>
   );
 }

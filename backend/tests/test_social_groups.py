@@ -10,8 +10,8 @@ from sqlalchemy.pool import StaticPool
 
 from zalo_backend.core.security import get_current_user
 from zalo_backend.database.l_postgres import Base
-from zalo_backend.message_service import group_service, s3_storage, service
-from zalo_backend.models.mongodb.msg import MessageCreate
+from zalo_backend.message_service import forward_service, group_service, s3_storage, service
+from zalo_backend.models.mongodb.msg import ForwardRequest, MessageCreate
 from zalo_backend.models.postgres.friendship import Friendship
 from zalo_backend.models.postgres.group_chat import GroupMember
 from zalo_backend.models.postgres.user import User
@@ -232,3 +232,97 @@ def test_group_message_delete_requires_sender_and_cleans_s3(db_session, monkeypa
     assert recalled["isRecalled"] is True
     assert recalled["image"] is None
     assert keys_deleted == ["chat-images/group.png"]
+
+
+@pytest.fixture
+def forward_env(monkeypatch):
+    client = mongomock.MongoClient()
+    private, groups = client.chat.messages, client.chat.group_messages
+    copies = []
+
+    def fake_copy(key):
+        if not key:
+            return key
+        copies.append(key)
+        return f"copy-{len(copies)}-{key}"
+
+    monkeypatch.setattr(forward_service, "collection", private)
+    monkeypatch.setattr(forward_service, "group_messages", groups)
+    monkeypatch.setattr(s3_storage, "copy_object", fake_copy)
+    monkeypatch.setattr(s3_storage, "image_url", lambda key: key)
+    monkeypatch.setattr(s3_storage, "attachment_url", lambda key: key)
+    return private, groups, copies
+
+
+def test_forward_video_to_user_and_group_copies_media(db_session, forward_env):
+    private, groups, copies = forward_env
+    group = group_service.create_group(db_session, 1, "Forward test", [3])
+    source_id = private.insert_one({
+        "senderId": 2,
+        "receiverId": 1,
+        "text": None,
+        "attachment": "chat-attachments/clip.mp4",
+        "attachmentName": "clip.mp4",
+        "attachmentMimeType": "video/mp4",
+        "attachmentSize": 1234,
+    }).inserted_id
+
+    messages, group_results = forward_service.forward_message(
+        db_session, 1, ForwardRequest(messageId=str(source_id), receiverIds=[3], groupIds=[group.id]),
+    )
+
+    assert len(messages) == 1 and len(group_results) == 1
+    forwarded = messages[0]
+    assert forwarded.senderId == 1 and forwarded.receiverId == 3
+    assert forwarded.isForwarded is True
+    assert forwarded.attachmentName == "clip.mp4"
+    assert forwarded.attachmentMimeType == "video/mp4"
+    group_message, member_ids = group_results[0]
+    assert group_message.groupId == group.id and group_message.senderUsername == "One"
+    assert sorted(member_ids) == [1, 3]
+    # every copy has its own S3 object, distinct from the original
+    assert copies == ["chat-attachments/clip.mp4", "chat-attachments/clip.mp4"]
+    assert forwarded.attachment != group_message.attachment
+    assert "chat-attachments/clip.mp4" not in (forwarded.attachment, group_message.attachment)
+    assert private.count_documents({}) == 2 and groups.count_documents({}) == 1
+
+
+def test_forward_rejects_foreign_recalled_or_self(db_session, forward_env):
+    private, _, _ = forward_env
+    foreign_id = private.insert_one({"senderId": 2, "receiverId": 3, "text": "secret"}).inserted_id
+    recalled_id = private.insert_one({"senderId": 1, "receiverId": 2, "isRecalled": True}).inserted_id
+    own_id = private.insert_one({"senderId": 1, "receiverId": 2, "text": "hi"}).inserted_id
+
+    cases = [
+        (ForwardRequest(messageId=str(foreign_id), receiverIds=[2]), 404),
+        (ForwardRequest(messageId=str(recalled_id), receiverIds=[3]), 400),
+        (ForwardRequest(messageId=str(own_id), receiverIds=[1]), 400),
+        (ForwardRequest(messageId=str(own_id), receiverIds=[99]), 404),
+        (ForwardRequest(messageId="not-an-id", receiverIds=[2]), 404),
+    ]
+    for request, status_code in cases:
+        with pytest.raises(HTTPException) as error:
+            forward_service.forward_message(db_session, 1, request)
+        assert error.value.status_code == status_code
+    assert private.count_documents({}) == 3
+
+
+def test_forward_group_message_requires_membership(db_session, forward_env):
+    _, groups, _ = forward_env
+    group = group_service.create_group(db_session, 1, "Members only", [2])
+    message_id = groups.insert_one({
+        "groupId": group.id, "senderId": 2, "senderUsername": "Two", "image": "chat-images/a.png",
+    }).inserted_id
+
+    with pytest.raises(HTTPException) as error:
+        forward_service.forward_message(
+            db_session, 3,
+            ForwardRequest(messageId=str(message_id), sourceGroupId=group.id, receiverIds=[1]),
+        )
+    assert error.value.status_code == 403
+
+    messages, _ = forward_service.forward_message(
+        db_session, 1,
+        ForwardRequest(messageId=str(message_id), sourceGroupId=group.id, receiverIds=[3]),
+    )
+    assert messages[0].image == "copy-1-chat-images/a.png"

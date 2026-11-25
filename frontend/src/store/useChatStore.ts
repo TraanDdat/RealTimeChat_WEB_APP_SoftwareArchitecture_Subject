@@ -44,6 +44,7 @@ interface ChatStore {
   getGroupMessages: (groupId: number) => Promise<void>;
   sendMessage: (messageData: SendMessageDataRequest) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
+  forwardMessage: (message: ChatMessage, receiverIds: number[], groupIds: number[]) => Promise<boolean>;
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
   isOtherUserTyping: boolean;
@@ -333,6 +334,36 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       toast.success("Đã thu hồi tin nhắn");
     } catch (error) {
       toast.error(getErrorMessage(error));
+    }
+  },
+
+  forwardMessage: async (message, receiverIds, groupIds) => {
+    try {
+      const res = await chatApi.forwardMessage({
+        messageId: message._id,
+        sourceGroupId: message.groupId ?? null,
+        receiverIds,
+        groupIds,
+      });
+      const { selectedUser, selectedGroup } = get();
+      const forwardedHere = [
+        ...res.data.messages.filter(
+          (item) => selectedUser && Number(item.receiverId) === Number(selectedUser._id)
+        ),
+        ...res.data.groupMessages.filter(
+          (item) => selectedGroup && Number(item.groupId) === Number(selectedGroup.id)
+        ),
+      ];
+      if (forwardedHere.length > 0) {
+        set((state) => ({ messages: [...state.messages, ...forwardedHere] }));
+      }
+      if (receiverIds.length > 0) void get().getMyChatPartners();
+      const total = receiverIds.length + groupIds.length;
+      toast.success(`Đã chuyển tiếp tới ${total} cuộc trò chuyện`);
+      return true;
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      return false;
     }
   },
 

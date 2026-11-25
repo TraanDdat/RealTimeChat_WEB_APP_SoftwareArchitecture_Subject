@@ -21,6 +21,7 @@ export interface ChatMessage {
   attachmentMimeType?: string | null;
   attachmentSize?: number | null;
   isRecalled?: boolean;
+  isForwarded?: boolean;
   createdAt: string;
   updatedAt?: string;
   isOptimistic?: boolean;
@@ -33,6 +34,18 @@ export interface SendMessageDataRequest {
   attachment: string | null;
   attachmentName: string | null;
   attachmentMimeType: string | null;
+}
+
+export interface ForwardMessageRequest {
+  messageId: string;
+  sourceGroupId: number | null;
+  receiverIds: number[];
+  groupIds: number[];
+}
+
+export interface ForwardMessageResponse {
+  messages: ChatMessage[];
+  groupMessages: GroupMessageData[];
 }
 
 export interface ApiErrorBody {
