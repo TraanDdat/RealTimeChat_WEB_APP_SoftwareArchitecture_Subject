@@ -35,6 +35,15 @@ interface ChatApiServices {
         @Body data: SendMessageDataRequest
     ): GroupMessageDataResponse
 
+    @DELETE("/api/messages/{messageId}")
+    suspend fun recallMessage(@Path("messageId") messageId: String)
+
+    @DELETE("/api/groups/{groupId}/messages/{messageId}")
+    suspend fun recallGroupMessage(
+        @Path("groupId") groupId: Int,
+        @Path("messageId") messageId: String
+    )
+
     @GET("/api/messages/unread-counts")
     suspend fun getUnreadCounts(): UnreadCountsResponse
 

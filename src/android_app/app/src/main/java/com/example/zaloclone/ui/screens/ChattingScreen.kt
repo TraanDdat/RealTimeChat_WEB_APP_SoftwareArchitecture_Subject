@@ -156,7 +156,8 @@ fun ChattingScreen(
                 emotion = chatMsg.emotion,
                 mediaUrl = chatMsg.image ?: chatMsg.attachment,
                 fileName = chatMsg.attachmentName,
-                reaction = reactionByMessageId[chatMsg.id]
+                reaction = if (chatMsg.isRecalled) null else reactionByMessageId[chatMsg.id],
+                isRecalled = chatMsg.isRecalled
             )
         }
     }
@@ -353,6 +354,7 @@ fun ChattingScreen(
                     key = { message -> message.id }
                 ) { message ->
                     if (
+                        !message.isRecalled &&
                         message.text.isEmpty() &&
                         message.mediaUrl == null &&
                         message.emotion == null
@@ -367,7 +369,8 @@ fun ChattingScreen(
                                 val currentReaction = reactionByMessageId[msg.id]
                                 if (currentReaction == reaction) {reactionByMessageId.remove(msg.id)} 
                                 else {reactionByMessageId[msg.id] = reaction}
-                            }
+                            },
+                            onRecall = { msg -> chatViewModel.recallMessage(msg.id) }
                         )
                     }
                 }

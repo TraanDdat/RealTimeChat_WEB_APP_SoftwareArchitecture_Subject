@@ -23,7 +23,25 @@ data class ChatMessage(
     val createdAt: String,
     val updatedAt: String? = null,
     val isOptimistic: Boolean? = false,
-    val emotion: String? = null
+    val emotion: String? = null,
+    val isRecalled: Boolean = false
+) {
+    /** Mirrors backend `recalled_message_fields()`: content is wiped, the record stays as a placeholder. */
+    fun asRecalled(): ChatMessage = copy(
+        isRecalled = true,
+        text = null,
+        image = null,
+        emotion = null,
+        attachment = null,
+        attachmentName = null,
+        attachmentMimeType = null
+    )
+}
+
+data class MessageDeletedEvent(
+    val messageId: String,
+    val senderId: Int? = null,
+    val groupId: Int? = null
 )
 
 data class SendMessageDataRequest(
@@ -44,7 +62,8 @@ data class GroupMessageDataResponse(
     val text: String? = null,
     val image: String? = null,
     val createdAt: String,
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    val isRecalled: Boolean = false
 )
 
 data class UnreadCountsResponse(

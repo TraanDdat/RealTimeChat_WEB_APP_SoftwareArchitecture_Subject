@@ -71,6 +71,7 @@ class ChatViewModel(
     private var typingJob: Job? = null
     private var typingListener: Emitter.Listener? = null
     private var stopTypingListener: Emitter.Listener? = null
+    private var messageDeletedListener: Emitter.Listener? = null
     private var isTypingSent = false
     private var typingReceiverId: Int? = null
 
@@ -94,6 +95,10 @@ class ChatViewModel(
 
         stopTypingListener?.let {
             socket.off("userStopTyping", it)
+        }
+
+        messageDeletedListener?.let {
+            socket.off("messageDeleted", it)
         }
 
         val listener = Emitter.Listener { args ->
@@ -194,14 +199,57 @@ class ChatViewModel(
             }
         }
 
+        // Someone (possibly us on another device) recalled a message
+        val messageDeleted = Emitter.Listener { args ->
+            if (args.isEmpty()) return@Listener
+            try {
+                val event = gson.fromJson(args[0].toString(), MessageDeletedEvent::class.java)
+                markMessageRecalled(event.messageId)
+                // A recalled message no longer counts as unread
+                unreadCount()
+            } catch (e: Exception) {
+                Log.e("CHAT_SOCKET", "Invalid messageDeleted payload", e)
+            }
+        }
+
         globalMessageListener = listener
         globalGroupMessageListener = groupListener
         typingListener = typing
         stopTypingListener = stopTyping
+        messageDeletedListener = messageDeleted
         socket.on("newMessage", listener)
         socket.on("newGroupMessage", groupListener)
         socket.on("userTyping", typing)
         socket.on("userStopTyping", stopTyping)
+        socket.on("messageDeleted", messageDeleted)
+    }
+
+    private fun markMessageRecalled(messageId: String) {
+        _state.update { state ->
+            state.copy(messages = state.messages.map { if (it.id == messageId) it.asRecalled() else it })
+        }
+    }
+
+    /** Recall ("thu hồi") one of the current user's own messages in the open chat. */
+    fun recallMessage(messageId: String) {
+        viewModelScope.launch {
+            val currentState = _state.value
+            try {
+                val groupId = currentState.selectedGroup
+                when {
+                    groupId != null -> repository.recallGroupMessage(groupId, messageId)
+                    currentState.selectedUser != null -> repository.recallMessage(messageId)
+                    else -> return@launch
+                }
+                markMessageRecalled(messageId)
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                _state.update { it.copy(errorMessage = errorBody ?: "Không thể thu hồi tin nhắn") }
+            } catch (e: Exception) {
+                Log.e("CHAT_API", "Recall message failed", e)
+                _state.update { it.copy(errorMessage = e.localizedMessage ?: "Không thể thu hồi tin nhắn") }
+            }
+        }
     }
 
     fun clearNotificationsForUser(senderId: Int) {
@@ -474,8 +522,12 @@ class ChatViewModel(
         globalGroupMessageListener?.let {
             socket?.off("newGroupMessage", it)
         }
+        messageDeletedListener?.let {
+            socket?.off("messageDeleted", it)
+        }
         globalMessageListener = null
         globalGroupMessageListener = null
+        messageDeletedListener = null
         super.onCleared()
     }
 
@@ -518,7 +570,8 @@ class ChatViewModel(
             text = text,
             image = image,
             createdAt = createdAt,
-            updatedAt = updatedAt
+            updatedAt = updatedAt,
+            isRecalled = isRecalled
         )
     }
 
