@@ -34,7 +34,8 @@ data class Message(
     val emotion: String? = null,
     val reaction: String? = null,
     val image: String? = null,
-    val isRecalled: Boolean = false
+    val isRecalled: Boolean = false,
+    val isForwarded: Boolean = false
 )
 
 const val RECALLED_MESSAGE_TEXT = "Tin nhắn đã được thu hồi"

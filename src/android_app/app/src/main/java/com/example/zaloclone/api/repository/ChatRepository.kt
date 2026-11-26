@@ -28,4 +28,6 @@ class ChatRepository(
     override suspend fun recallMessage(messageId: String) {chatApi.recallMessage(messageId)}
 
     override suspend fun recallGroupMessage(groupId: Int, messageId: String) {chatApi.recallGroupMessage(groupId, messageId)}
+
+    override suspend fun forwardMessage(data: ForwardMessageRequest): ForwardMessageResponse = chatApi.forwardMessage(data)
 }

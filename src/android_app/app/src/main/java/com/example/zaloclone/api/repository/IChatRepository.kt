@@ -14,4 +14,5 @@ interface IChatRepository {
     suspend fun markGroupRead(groupId: Int)
     suspend fun recallMessage(messageId: String)
     suspend fun recallGroupMessage(groupId: Int, messageId: String)
+    suspend fun forwardMessage(data: ForwardMessageRequest): ForwardMessageResponse
 }

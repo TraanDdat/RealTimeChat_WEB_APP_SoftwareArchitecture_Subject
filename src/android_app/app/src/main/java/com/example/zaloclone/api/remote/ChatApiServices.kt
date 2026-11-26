@@ -44,6 +44,9 @@ interface ChatApiServices {
         @Path("messageId") messageId: String
     )
 
+    @POST("/api/messages/forward")
+    suspend fun forwardMessage(@Body data: ForwardMessageRequest): ForwardMessageResponse
+
     @GET("/api/messages/unread-counts")
     suspend fun getUnreadCounts(): UnreadCountsResponse
 

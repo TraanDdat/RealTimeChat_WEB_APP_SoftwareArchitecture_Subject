@@ -25,6 +25,7 @@ import com.example.zaloclone.ui.viewModel.*
 import android.util.Base64
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.DisposableEffect
 
 @Composable
@@ -52,6 +53,8 @@ fun ChattingScreen(
     var showAttachPanel by remember { mutableStateOf(false) }
     var showEmotionSheet by remember { mutableStateOf(false) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
+    var forwardingMessageId by remember { mutableStateOf<String?>(null) }
+    var isForwarding by remember { mutableStateOf(false) }
     val isGroup = remember(chatId) {chatId.startsWith("group_")}
     val groupId = remember(chatId) {chatId.removePrefix("group_").toIntOrNull()}
     val groupMembers = remember {mutableStateListOf<GetGroupMemberResponse>()}
@@ -157,7 +160,8 @@ fun ChattingScreen(
                 mediaUrl = chatMsg.image ?: chatMsg.attachment,
                 fileName = chatMsg.attachmentName,
                 reaction = if (chatMsg.isRecalled) null else reactionByMessageId[chatMsg.id],
-                isRecalled = chatMsg.isRecalled
+                isRecalled = chatMsg.isRecalled,
+                isForwarded = chatMsg.isForwarded
             )
         }
     }
@@ -370,7 +374,11 @@ fun ChattingScreen(
                                 if (currentReaction == reaction) {reactionByMessageId.remove(msg.id)} 
                                 else {reactionByMessageId[msg.id] = reaction}
                             },
-                            onRecall = { msg -> chatViewModel.recallMessage(msg.id) }
+                            onRecall = { msg -> chatViewModel.recallMessage(msg.id) },
+                            onForward = { msg ->
+                                if (allContacts.isEmpty()) chatViewModel.getAllContacts()
+                                forwardingMessageId = msg.id
+                            }
                         )
                     }
                 }
@@ -382,6 +390,28 @@ fun ChattingScreen(
         FullscreenImageViewerDialog(
             imageUrl = url,
             onDismiss = { previewImageUrl = null }
+        )
+    }
+
+    forwardingMessageId?.let { messageId ->
+        ForwardMessageDialog(
+            contacts = allContacts.filter { it.id != currentUserId },
+            groups = groupState.groups,
+            isSending = isForwarding,
+            onDismiss = { forwardingMessageId = null },
+            onForward = { receiverIds, groupIds ->
+                isForwarding = true
+                chatViewModel.forwardMessage(messageId, receiverIds, groupIds) { error ->
+                    isForwarding = false
+                    if (error == null) {
+                        forwardingMessageId = null
+                        val total = receiverIds.size + groupIds.size
+                        Toast.makeText(context, "Đã chuyển tiếp tới $total cuộc trò chuyện", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
         )
     }
 

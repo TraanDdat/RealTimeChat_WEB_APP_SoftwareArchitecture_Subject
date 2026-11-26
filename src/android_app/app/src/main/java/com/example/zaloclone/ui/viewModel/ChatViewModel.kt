@@ -230,6 +230,48 @@ class ChatViewModel(
         }
     }
 
+    /**
+     * Forward ("chuyển tiếp") a message of the open chat — text, emoji, image, video or document —
+     * to friends and/or groups. [onResult] gets null on success, or an error text.
+     */
+    fun forwardMessage(
+        messageId: String,
+        receiverIds: List<Int>,
+        groupIds: List<Int>,
+        onResult: (String?) -> Unit
+    ) {
+        if (receiverIds.isEmpty() && groupIds.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val response = repository.forwardMessage(
+                    ForwardMessageRequest(
+                        messageId = messageId,
+                        sourceGroupId = _state.value.selectedGroup,
+                        receiverIds = receiverIds,
+                        groupIds = groupIds
+                    )
+                )
+                // Show copies that landed in the chat currently on screen
+                _state.update { state ->
+                    val landedHere = response.messages.filter { it.receiverId == state.selectedUser?.id } +
+                        response.groupMessages.filter { it.groupId == state.selectedGroup }.map { it.toChatMessage() }
+                    val newOnes = landedHere.filter { copy -> state.messages.none { it.id == copy.id } }
+                    if (newOnes.isEmpty()) state
+                    else state.copy(messages = (state.messages + newOnes).sortedBy { it.createdAt })
+                }
+                // New private conversations may have been started
+                if (receiverIds.isNotEmpty()) getMyChatPartners()
+                onResult(null)
+            } catch (e: HttpException) {
+                Log.e("CHAT_API", "Forward message failed", e)
+                onResult(e.response()?.errorBody()?.string() ?: "Không thể chuyển tiếp tin nhắn")
+            } catch (e: Exception) {
+                Log.e("CHAT_API", "Forward message failed", e)
+                onResult(e.localizedMessage ?: "Không thể chuyển tiếp tin nhắn")
+            }
+        }
+    }
+
     /** Recall ("thu hồi") one of the current user's own messages in the open chat. */
     fun recallMessage(messageId: String) {
         viewModelScope.launch {
@@ -569,9 +611,14 @@ class ChatViewModel(
             senderUsername = senderUsername,
             text = text,
             image = image,
+            emotion = emotion,
+            attachment = attachment,
+            attachmentName = attachmentName,
+            attachmentMimeType = attachmentMimeType,
             createdAt = createdAt,
             updatedAt = updatedAt,
-            isRecalled = isRecalled
+            isRecalled = isRecalled,
+            isForwarded = isForwarded
         )
     }
 

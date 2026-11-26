@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.filled.Shortcut
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.ui.text.font.FontStyle
 import coil.compose.AsyncImage
@@ -42,7 +43,8 @@ fun MessageBubble(
     senderName: String,
     onImageClick: (String) -> Unit = {},
     onReactionSelect: (Message, String) -> Unit = { _, _ -> },
-    onRecall: (Message) -> Unit = {}
+    onRecall: (Message) -> Unit = {},
+    onForward: (Message) -> Unit = {}
 ) {
     val context = LocalContext.current
     var showReactionMenu by remember { mutableStateOf(false) }
@@ -111,6 +113,30 @@ fun MessageBubble(
                 }
             }
 
+            if (message.isForwarded && !message.isRecalled) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(
+                        start = if (message.isMe) 0.dp else 40.dp,
+                        bottom = 2.dp
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shortcut,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Đã chuyển tiếp",
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        fontStyle = FontStyle.Italic
+                    )
+                }
+            }
+
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start
@@ -153,10 +179,8 @@ fun MessageBubble(
                         modifier = Modifier.combinedClickable(
                             onClick = { showReactionMenu = !showReactionMenu },
                             onLongClick = {
-                                if (canRecall) {
-                                    showReactionMenu = false
-                                    showActionMenu = true
-                                }
+                                showReactionMenu = false
+                                showActionMenu = true
                             }
                         )
                     ) {
@@ -227,13 +251,23 @@ fun MessageBubble(
                         onDismissRequest = { showActionMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Thu hồi") },
-                            leadingIcon = { Icon(Icons.Default.Undo, contentDescription = null) },
+                            text = { Text("Chuyển tiếp") },
+                            leadingIcon = { Icon(Icons.Default.Shortcut, contentDescription = null) },
                             onClick = {
                                 showActionMenu = false
-                                showRecallConfirm = true
+                                onForward(message)
                             }
                         )
+                        if (canRecall) {
+                            DropdownMenuItem(
+                                text = { Text("Thu hồi") },
+                                leadingIcon = { Icon(Icons.Default.Undo, contentDescription = null) },
+                                onClick = {
+                                    showActionMenu = false
+                                    showRecallConfirm = true
+                                }
+                            )
+                        }
                     }
 
                     message.reaction?.let { reactionText ->
