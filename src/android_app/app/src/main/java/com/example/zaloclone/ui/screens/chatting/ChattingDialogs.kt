@@ -1,6 +1,7 @@
 package com.example.zaloclone.ui.screens.chatting
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,11 +67,15 @@ fun FullscreenImageViewerDialog(imageUrl: String, onDismiss: () -> Unit) {
 @Composable
 fun GroupInfoDialog(
     groupName: String,
-    members: List<String>,
+    members: List<GetGroupMemberResponse>,
+    groupId: Int,
+    currentUserId: Int,
+    groupViewModel: GroupViewModel,
     onDismiss: () -> Unit,
     onAddMemberClick: () -> Unit,
     onChangeGroupNameClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val colors = listOf(
         Color(0xFF38C7FF), Color(0xFF5B61F4), Color(0xFF34C759),
         Color(0xFFFF9500), Color(0xFFAF52DE), Color(0xFFE2C4B1)
@@ -162,9 +168,9 @@ fun GroupInfoDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     items(members.size) { index ->
-                        val memberName = members[index]
-                        val memberColor = colors[memberName.hashCode().let { if (it < 0) -it else it } % colors.size]
-                        val isLeader = index == 0 || memberName.contains("Bạn")
+                        val member = members[index]
+                        val memberColor = colors[member.hashCode().let { if (it < 0) -it else it } % colors.size]
+                        val isLeader = member.role == "admin"
 
                         Row(
                             modifier = Modifier
@@ -180,7 +186,7 @@ fun GroupInfoDialog(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = memberName.take(1),
+                                    text = member.username.take(1),
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
                                     fontSize = 16.sp
@@ -188,7 +194,7 @@ fun GroupInfoDialog(
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
-                                text = memberName,
+                                text = member.username,
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.weight(1f)
@@ -207,11 +213,48 @@ fun GroupInfoDialog(
                                     )
                                 }
                             } else {
-                                Text(
-                                    text = "Thành viên",
-                                    fontSize = 12.sp,
-                                    color = Color.Gray
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.End
+                                ) {
+                                    Text(
+                                        text = "Thành viên",
+                                        fontSize = 12.sp,
+                                        color = Color.Gray
+                                    )
+                                    val currentUserRole = members.find { it.user_id == currentUserId }?.role
+                                    if (currentUserRole == "admin") {
+                                        TextButton(
+                                            onClick = {
+                                                groupViewModel.removeGroupMember(
+                                                    groupId = groupId,
+                                                    userId = member.user_id,
+                                                    role = "member"
+                                                ) { success ->
+                                                    if (success) {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Member removed successfully",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    } else {
+                                                        Toast.makeText(
+                                                            context,
+                                                            "Failed to remove member",
+                                                            Toast.LENGTH_SHORT
+                                                        ).show()
+                                                    }
+                                                }
+                                            },
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                        ) {
+                                            Text(
+                                                text = "Delete",
+                                                color = Color.Red,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                         if (index < members.size - 1) {

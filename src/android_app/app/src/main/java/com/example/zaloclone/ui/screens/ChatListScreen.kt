@@ -60,6 +60,7 @@ fun ChatListScreen(
         chatViewModel.unreadCount()
         groupViewModel.getGroups()
         friendViewModel.getRequest()
+        friendViewModel.getPendingRequest()
     }
 
     LaunchedEffect(chatState.value.chats, userPresences) {
@@ -131,7 +132,8 @@ fun ChatListScreen(
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
-                            val totalUnread = friendState.value.friendRequests.size + chatState.value.unreadCounts.values.sum() + chatState.value.groupUnreadCounts.values.sum()
+                            val pendingReq = friendState.value.sentRequests.filter { it.status == "pending" }
+                            val totalUnread = friendState.value.friendRequests.size + chatState.value.unreadCounts.values.sum() + chatState.value.groupUnreadCounts.values.sum() + pendingReq.size
                             if (totalUnread > 0) {
                                 Badge(
                                     modifier = Modifier

@@ -18,4 +18,6 @@ class FriendRepository(
     override suspend fun rejectRequest(friendship_id: Int): FriendRequestResponse = friendApi.rejectRequest(friendship_id)
 
     override suspend fun deleteFriendshipRequest(otherUserId: Int): Response<Unit> = friendApi.deleteFriendshipRequest(otherUserId)
+
+    override suspend fun getPendingRequest(): FriendListResponse = friendApi.getPendingRequest()
 }

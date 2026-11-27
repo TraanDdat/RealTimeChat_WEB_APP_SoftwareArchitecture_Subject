@@ -27,7 +27,8 @@ data class FriendState(
     val errorMessage: String? = null,
     val showFriendRequestPopup: Boolean = false,
     val latestFriendRequest: FriendRequestEvent? = null,
-    val friendActionMessage: String? = null
+    val friendActionMessage: String? = null,
+    val sentRequests: List<FriendRequestResponse> = emptyList()
 )
 
 class FriendViewModel(
@@ -251,6 +252,26 @@ class FriendViewModel(
                 )
             } catch (e: Exception) {
                 _state.value = _state.value.copy(errorMessage = e.localizedMessage ?: "Unable to reject friend request")
+            }
+        }
+    }
+
+    fun getPendingRequest() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(isLoading = true)
+            try {
+                val response = repository.getPendingRequest()
+                _state.value = _state.value.copy(
+                    sentRequests = response.data,
+                    errorMessage = null
+                )
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    errorMessage = e.localizedMessage
+                        ?: "Unable to load sent pending requests"
+                )
+            } finally {
+                _state.value = _state.value.copy(isLoading = false)
             }
         }
     }

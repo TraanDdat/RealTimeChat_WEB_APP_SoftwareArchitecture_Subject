@@ -24,6 +24,9 @@ interface FriendApiServices {
     @POST("/api/user/addfriend/requests/{friendship_id}/reject")
     suspend fun rejectRequest( @Path("friendship_id") friendship_id: Int): FriendRequestResponse
 
-    @POST("/api/user/addfriend/requests/deleted")
+    @POST(ApiConfig.USER_ADDFRIEND_DELETE_URL)
     suspend fun deleteFriendshipRequest( @Query("other_user_id") otherUserId: Int ): Response<Unit>
+
+    @GET(ApiConfig.USER_ADDFRIEND_GET_REQUEST_SENT_URL)
+    suspend fun getPendingRequest(): FriendListResponse
 }

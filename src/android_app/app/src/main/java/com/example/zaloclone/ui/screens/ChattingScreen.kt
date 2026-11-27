@@ -357,8 +357,26 @@ fun ChattingScreen(
                     items = messages,
                     key = { message -> message.id }
                 ) { message ->
-                    if (
-                        !message.isRecalled &&
+                    if (message.isRecalled) {
+                        MessageBubble(
+                            message = message,
+                            senderName = currentChatName,
+                            onImageClick = { url -> previewImageUrl = url },
+                            onReactionSelect = { msg, reaction ->
+                                val currentReaction = reactionByMessageId[msg.id]
+                                if (currentReaction == reaction) {
+                                    reactionByMessageId.remove(msg.id)
+                                } else {
+                                    reactionByMessageId[msg.id] = reaction
+                                }
+                            },
+                            onRecall = { msg -> chatViewModel.recallMessage(msg.id) },
+                            onForward = { msg ->
+                                if (allContacts.isEmpty()) chatViewModel.getAllContacts()
+                                forwardingMessageId = msg.id
+                            }
+                        )
+                    } else if (
                         message.text.isEmpty() &&
                         message.mediaUrl == null &&
                         message.emotion == null
@@ -416,9 +434,13 @@ fun ChattingScreen(
     }
 
     if (showGroupInfoDialog && isGroup) {
+        val groupIdInt = chatId.removePrefix("group_").toIntOrNull() ?: 0
         GroupInfoDialog(
             groupName = currentChatName,
-            members = groupMembers.map { it.username },
+            members = groupMembers,
+            groupId = groupIdInt,
+            currentUserId = currentUserId,
+            groupViewModel = groupViewModel,
             onDismiss = { showGroupInfoDialog = false },
             onAddMemberClick = { showAddMemberDialog = true },
             onChangeGroupNameClick = { showChangeGroupNameDialog = true }
@@ -466,6 +488,13 @@ fun ChattingScreen(
                         ) { success: Boolean ->
                             if (success) {
                                 groupViewModel.getGroups()
+                            }
+                            else {
+                                Toast.makeText(
+                                    context,
+                                    "Only admin can add member",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     }

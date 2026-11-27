@@ -67,6 +67,7 @@ fun FriendsScreen(
         groupViewModel.getGroups()
         chatViewModel.getMyChatPartners()
         friendViewModel.getRequest()
+        friendViewModel.getPendingRequest()
     }
 
     // Filter contacts
@@ -108,7 +109,8 @@ fun FriendsScreen(
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
-                            val totalUnread = friendState.friendRequests.size + chatState.unreadCounts.values.sum() + chatState.groupUnreadCounts.values.sum()
+                            val pendingReq = friendState.sentRequests.filter { it.status == "pending" }
+                            val totalUnread = friendState.friendRequests.size + chatState.unreadCounts.values.sum() + chatState.groupUnreadCounts.values.sum() + pendingReq.size
                             if (totalUnread > 0) {
                                 Badge(
                                     modifier = Modifier

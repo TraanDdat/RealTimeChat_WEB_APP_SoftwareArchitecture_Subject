@@ -165,8 +165,9 @@ fun NotificationDialog(
     var selectedTab by remember { mutableStateOf(0) }
 
     LaunchedEffect(selectedTab) {
-        if (selectedTab == 0) {
-            friendViewModel.getRequest()
+        when (selectedTab) {
+            0 -> friendViewModel.getRequest()
+            2 -> friendViewModel.getPendingRequest()
         }
     }
 
@@ -191,22 +192,45 @@ fun NotificationDialog(
                     .heightIn(max = 400.dp)
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    TextButton(onClick = { selectedTab = 0 }) {
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = { selectedTab = 0 }
+                    ) {
                         Text(
-                            text = "Friend Requests (${friendState.friendRequests.size})",
+                            text = "Requests (${friendState.friendRequests.size})",
                             color = if (selectedTab == 0) Color(0xFF00BCD4) else Color.Gray,
-                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal
+                            fontWeight = if (selectedTab == 0) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp,
+                            maxLines = 1
                         )
                     }
-                    TextButton(onClick = { selectedTab = 1 }) {
-                        val unreadCnt = chatState.unreadCounts.values.sum() + chatState.groupUnreadCounts.values.sum()
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = { selectedTab = 1 }
+                    ) {
+                        val unreadCnt = chatState.unreadCounts.values.sum() +
+                                chatState.groupUnreadCounts.values.sum()
                         Text(
-                            text = "Message (${unreadCnt})",
+                            text = "Message ($unreadCnt)",
                             color = if (selectedTab == 1) Color(0xFF00BCD4) else Color.Gray,
-                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal
+                            fontWeight = if (selectedTab == 1) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp,
+                            maxLines = 1
+                        )
+                    }
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                            onClick = { selectedTab = 2 }
+                    ) {
+                        val pendingReq = friendState.sentRequests.filter{it.status == "pending"}
+                        Text(
+                            text = "Pending (${pendingReq.size})",
+                            color = if (selectedTab == 2) Color(0xFF00BCD4) else Color.Gray,
+                            fontWeight = if (selectedTab == 2) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 11.sp,
+                            maxLines = 1
                         )
                     }
                 }
@@ -288,7 +312,7 @@ fun NotificationDialog(
                                 Spacer(modifier = Modifier.height(8.dp))
                             }
                         }
-                    } else {
+                    } else if (selectedTab == 1) {
                         val hasuncntItems = chatState.unreadCounts.filter { it.value > 0 }.map { Triple("user", it.key, it.value) } + chatState.groupUnreadCounts.filter { it.value > 0 }.map { Triple("group", it.key, it.value) }
                         if (hasuncntItems.isEmpty()) {
                             item {
@@ -306,14 +330,16 @@ fun NotificationDialog(
                                 items = hasuncntItems,
                                 key = { "${it.first}_${it.second}" }
                             ) { (type, notificationId, count) ->
-			    	            val isGroup = type == "group"
-                                val displayName = 
-                                    if (isGroup) 
-                                    {
-                                        val group = groupState.groups.find { it.id == notificationId }
+                                val isGroup = type == "group"
+                                val displayName =
+                                    if (isGroup) {
+                                        val group =
+                                            groupState.groups.find { it.id == notificationId }
                                         group?.name ?: "Group #$group.id"
                                     } else {
-                                        val sender = chatState.allContacts.find { it.id == notificationId }?: chatState.chats.find { it.id == notificationId }
+                                        val sender =
+                                            chatState.allContacts.find { it.id == notificationId }
+                                                ?: chatState.chats.find { it.id == notificationId }
                                         sender?.username ?: "Người dùng #$notificationId"
                                     }
                                 Card(
@@ -342,7 +368,8 @@ fun NotificationDialog(
                                         ) {
                                             Box(contentAlignment = Alignment.Center) {
                                                 Text(
-                                                    text = displayName.firstOrNull()?.uppercase() ?: "?",
+                                                    text = displayName.firstOrNull()?.uppercase()
+                                                        ?: "?",
                                                     color = Color.White,
                                                     fontWeight = FontWeight.Bold
                                                 )
@@ -350,14 +377,104 @@ fun NotificationDialog(
                                         }
                                         Spacer(modifier = Modifier.width(12.dp))
                                         Column(modifier = Modifier.weight(1f)) {
-                                            Text(text = displayName, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                            Text(text = "$count unread", fontSize = 13.sp, color = Color.DarkGray, maxLines = 1)
+                                            Text(
+                                                text = displayName,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 15.sp
+                                            )
+                                            Text(
+                                                text = "$count unread",
+                                                fontSize = 13.sp,
+                                                color = Color.DarkGray,
+                                                maxLines = 1
+                                            )
                                         }
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                             }
                         }
+                    } else if (selectedTab == 2) {
+                        val pendingRequests = friendState.sentRequests.filter {
+                            it.status == "pending"
+                        }
+                        if (pendingRequests.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("No friend requests", color = Color.Gray)
+                                }
+                            }
+                        } else {
+                            items(pendingRequests, key = { it.id }) { req ->
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F7)),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Surface(
+                                                modifier = Modifier.size(40.dp),
+                                                shape = CircleShape,
+                                                color = Color(0xFF00BCD4)
+                                            ) {
+                                                Box(contentAlignment = Alignment.Center) {
+                                                    Text(
+                                                        text = req.username.firstOrNull()?.uppercase() ?: "?",
+                                                        color = Color.White,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                            }
+
+                                            Spacer(modifier = Modifier.width(12.dp))
+
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(
+                                                    text = req.username,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 15.sp
+                                                )
+                                                Text(
+                                                    text = req.email,
+                                                    fontSize = 12.sp,
+                                                    color = Color.Gray
+                                                )
+                                            }
+
+                                            if (req.status == "pending") {
+                                                Surface(
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    color = Color(0xFFFFF3E0)
+                                                ) {
+                                                    Text(
+                                                        text = "Pending",
+                                                        color = Color(0xFFEF8C00),
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        modifier = Modifier.padding(
+                                                            horizontal = 10.dp,
+                                                            vertical = 5.dp
+                                                        )
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(6.dp))
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+                        }
+                    }
+                    else {
+                        /* Do nothing */
                     }
                 }
             }

@@ -22,6 +22,8 @@ object ApiConfig {
     // FriendApiServices endpoint
     const val USER_ADDFRIEND_ADD_URL = "/api/user/addfriend/add";
     const val USER_ADDFRIEND_GET_REQUEST_URL = "/api/user/addfriend/requests";
+    const val USER_ADDFRIEND_GET_REQUEST_SENT_URL = "/api/user/addfriend/requests/sent";
+    const val USER_ADDFRIEND_DELETE_URL = "/api/user/addfriend/requests/deleted";
 
     // GroupApiServices endpoint
     const val API_GROUP_URL = "/api/groups";

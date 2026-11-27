@@ -25,6 +25,13 @@ class GroupRepository(
         return groupdApi.addMember(groupId, data)
     }
 
+    override suspend fun removeMember(
+        groupId: Int,
+        data: GroupMemberRemoveRequest
+    ): GetGroupDataResponse {
+        return groupdApi.removeMember(groupId, data)
+    }
+
     override suspend fun updateMemberRole(
         groupId: Int,
         userId: Int,
