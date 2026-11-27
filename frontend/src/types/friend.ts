@@ -15,3 +15,9 @@ export interface FriendRequestItem {
     username: string;
     status: string;
 }
+
+export type SentFriendRequestStatus = "pending" | "accepted" | "rejected";
+
+export interface SentFriendRequestItem extends FriendRequestItem {
+    status: SentFriendRequestStatus;
+}

@@ -44,6 +44,7 @@ interface ChatStore {
   getGroupMessages: (groupId: number) => Promise<void>;
   sendMessage: (messageData: SendMessageDataRequest) => Promise<void>;
   deleteMessage: (messageId: string) => Promise<void>;
+  forwardMessage: (message: ChatMessage, receiverIds: number[], groupIds: number[]) => Promise<boolean>;
   subscribeToMessages: () => void;
   unsubscribeFromMessages: () => void;
   isOtherUserTyping: boolean;
@@ -63,7 +64,24 @@ const toUnreadMap = (counts: UnreadCountsResponse) => ({
 
 let messageListener: ((message: ChatMessage) => void) | null = null;
 let groupMessageListener: ((message: ChatMessage) => void) | null = null;
-let messageDeletedListener: ((payload: { messageId: string }) => void) | null = null;
+const markMessageRecalled = (messages: ChatMessage[], messageId: string): ChatMessage[] =>
+  messages.map((message) =>
+    message._id === messageId
+      ? {
+          ...message,
+          isRecalled: true,
+          text: null,
+          image: null,
+          emotion: null,
+          attachment: null,
+          attachmentName: null,
+          attachmentMimeType: null,
+          attachmentSize: null,
+        }
+      : message
+  );
+
+let messageDeletedListener:((payload: { messageId: string }) => void) | null = null;
 let userTypingListener: ((data: { sender_id: number }) => void) | null = null;
 let userStopTypingListener: ((data: { sender_id: number }) => void) | null = null;
 
@@ -312,12 +330,40 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     try {
       if (selectedGroup) await groupApi.deleteMessage(selectedGroup.id, messageId);
       else await chatApi.deleteMessage(messageId);
-      set((state) => ({
-        messages: state.messages.filter((message) => message._id !== messageId),
-      }));
-      toast.success("Message deleted");
+      set((state) => ({ messages: markMessageRecalled(state.messages, messageId) }));
+      toast.success("Đã thu hồi tin nhắn");
     } catch (error) {
       toast.error(getErrorMessage(error));
+    }
+  },
+
+  forwardMessage: async (message, receiverIds, groupIds) => {
+    try {
+      const res = await chatApi.forwardMessage({
+        messageId: message._id,
+        sourceGroupId: message.groupId ?? null,
+        receiverIds,
+        groupIds,
+      });
+      const { selectedUser, selectedGroup } = get();
+      const forwardedHere = [
+        ...res.data.messages.filter(
+          (item) => selectedUser && Number(item.receiverId) === Number(selectedUser._id)
+        ),
+        ...res.data.groupMessages.filter(
+          (item) => selectedGroup && Number(item.groupId) === Number(selectedGroup.id)
+        ),
+      ];
+      if (forwardedHere.length > 0) {
+        set((state) => ({ messages: [...state.messages, ...forwardedHere] }));
+      }
+      if (receiverIds.length > 0) void get().getMyChatPartners();
+      const total = receiverIds.length + groupIds.length;
+      toast.success(`Đã chuyển tiếp tới ${total} cuộc trò chuyện`);
+      return true;
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+      return false;
     }
   },
 
@@ -376,9 +422,7 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
   };
 
   messageDeletedListener = ({ messageId }) => {
-    set((state) => ({
-      messages: state.messages.filter((message) => message._id !== messageId),
-    }));
+    set((state) => ({ messages: markMessageRecalled(state.messages, messageId) }));
     void get().getUnreadCounts();
   };
 

@@ -315,6 +315,127 @@ fun AddMemberDialog(
     )
 }
 
+/**
+ * Pick the friends and groups a message should be forwarded to.
+ * [onForward] receives (receiverIds, groupIds).
+ */
+@Composable
+fun ForwardMessageDialog(
+    contacts: List<ChatUser>,
+    groups: List<GetGroupDataResponse>,
+    isSending: Boolean,
+    onDismiss: () -> Unit,
+    onForward: (List<Int>, List<Int>) -> Unit
+) {
+    var query by remember { mutableStateOf("") }
+    val selectedUsers = remember { mutableStateListOf<Int>() }
+    val selectedGroups = remember { mutableStateListOf<Int>() }
+    val filteredGroups = remember(groups, query) {
+        groups.filter { it.name.contains(query.trim(), ignoreCase = true) }
+    }
+    val filteredContacts = remember(contacts, query) {
+        contacts.filter { it.username.contains(query.trim(), ignoreCase = true) }
+    }
+    val total = selectedUsers.size + selectedGroups.size
+
+    @Composable
+    fun TargetRow(name: String, subtitle: String?, checked: Boolean, onToggle: () -> Unit) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(enabled = !isSending, onClick = onToggle)
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(checked = checked, onCheckedChange = { onToggle() }, enabled = !isSending)
+            Spacer(modifier = Modifier.width(8.dp))
+            UserAvatar(name = name, modifier = Modifier.size(36.dp), fontSize = 14.sp)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(text = name, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                subtitle?.let { Text(text = it, fontSize = 12.sp, color = Color.Gray) }
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = { if (!isSending) onDismiss() },
+        title = { Text("Chuyển tiếp tin nhắn", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text("Tìm bạn bè hoặc nhóm") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 360.dp)
+                ) {
+                    if (filteredGroups.isNotEmpty()) {
+                        item {
+                            Text("Nhóm", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Gray,
+                                modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                        items(filteredGroups, key = { "group_${it.id}" }) { group ->
+                            TargetRow(
+                                name = group.name,
+                                subtitle = "${group.members.size} thành viên",
+                                checked = group.id in selectedGroups
+                            ) {
+                                if (group.id in selectedGroups) selectedGroups.remove(group.id)
+                                else selectedGroups.add(group.id)
+                            }
+                        }
+                    }
+                    if (filteredContacts.isNotEmpty()) {
+                        item {
+                            Text("Bạn bè", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.Gray,
+                                modifier = Modifier.padding(vertical = 4.dp))
+                        }
+                        items(filteredContacts, key = { "user_${it.id}" }) { user ->
+                            TargetRow(
+                                name = user.username,
+                                subtitle = null,
+                                checked = user.id in selectedUsers
+                            ) {
+                                if (user.id in selectedUsers) selectedUsers.remove(user.id)
+                                else selectedUsers.add(user.id)
+                            }
+                        }
+                    }
+                    if (filteredGroups.isEmpty() && filteredContacts.isEmpty()) {
+                        item {
+                            Text("Không tìm thấy cuộc trò chuyện nào.", color = Color.Gray,
+                                modifier = Modifier.padding(vertical = 16.dp))
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onForward(selectedUsers.toList(), selectedGroups.toList()) },
+                enabled = total > 0 && !isSending,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5B61F4))
+            ) {
+                if (isSending) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                } else {
+                    Text(if (total > 0) "Gửi ($total)" else "Gửi")
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isSending) { Text("Hủy") }
+        }
+    )
+}
+
 @Composable
 fun ChangeGroupNameDialog(
     currentName: String,

@@ -8,7 +8,7 @@ from pymongo.errors import PyMongoError
 
 from zalo_backend.database.l_mongodb import collection, group_messages
 from zalo_backend.database.l_postgres import SessionLocal
-from zalo_backend.models.mongodb.msg import MessageCreate, message_data
+from zalo_backend.models.mongodb.msg import MessageCreate, message_data, recalled_message_fields
 from zalo_backend.schemas.user import UserPublic
 from zalo_backend.user_service.addfr_service import get_friends
 from zalo_backend.user_service.client import get_user, get_users
@@ -52,7 +52,10 @@ def delete_message(message_id: str, user_id: int) -> dict:
         raise HTTPException(status_code=404, detail="Message not found") from error
 
     try:
-        document = collection.find_one_and_delete({"_id": object_id, "senderId": user_id})
+        document = collection.find_one_and_update(
+            {"_id": object_id, "senderId": user_id, "isRecalled": {"$ne": True}},
+            {"$set": recalled_message_fields()},
+        )
     except PyMongoError as error:
         raise HTTPException(status_code=503, detail="Message storage unavailable") from error
     if document is None:
@@ -70,7 +73,7 @@ def delete_message(message_id: str, user_id: int) -> dict:
 
 def get_unread_counts(user_id: int) -> dict[str, dict[str, int]]:
     private_counts = collection.aggregate([
-        {"$match": {"receiverId": user_id, "readBy": {"$ne": user_id}}},
+        {"$match": {"receiverId": user_id, "readBy": {"$ne": user_id}, "isRecalled": {"$ne": True}}},
         {"$group": {"_id": "$senderId", "count": {"$sum": 1}}},
     ])
     users = {str(item["_id"]): item["count"] for item in private_counts}
@@ -89,6 +92,7 @@ def get_unread_counts(user_id: int) -> dict[str, dict[str, int]]:
                 "groupId": {"$in": group_ids},
                 "senderId": {"$ne": user_id},
                 "readBy": {"$ne": user_id},
+                "isRecalled": {"$ne": True},
             }},
             {"$group": {"_id": "$groupId", "count": {"$sum": 1}}},
         ])

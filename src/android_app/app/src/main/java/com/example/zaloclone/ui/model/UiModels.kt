@@ -33,10 +33,15 @@ data class Message(
     val fileSize: String? = null,
     val emotion: String? = null,
     val reaction: String? = null,
-    val image: String? = null
+    val image: String? = null,
+    val isRecalled: Boolean = false,
+    val isForwarded: Boolean = false
 )
 
+const val RECALLED_MESSAGE_TEXT = "Tin nhắn đã được thu hồi"
+
 fun getPreviewTextForMessage(message: Message): String {
+    if (message.isRecalled) return RECALLED_MESSAGE_TEXT
     return when (message.type) {
         MessageType.TEXT -> message.text
         MessageType.AUDIO -> "[Ghi âm]"

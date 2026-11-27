@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -28,6 +28,21 @@ class MessageCreate(BaseModel):
         return self
 
 
+class ForwardRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    messageId: str = Field(min_length=1, max_length=64)
+    sourceGroupId: Optional[int] = Field(default=None, gt=0)
+    receiverIds: list[int] = Field(default_factory=list, max_length=50)
+    groupIds: list[int] = Field(default_factory=list, max_length=50)
+
+    @model_validator(mode="after")
+    def require_target(self):
+        if not self.receiverIds and not self.groupIds:
+            raise ValueError("Choose at least one conversation to forward to.")
+        return self
+
+
 class PublicUser(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
@@ -46,6 +61,8 @@ class Message(BaseModel):
     attachmentName: Optional[str] = None
     attachmentMimeType: Optional[str] = None
     attachmentSize: Optional[int] = None
+    isRecalled: bool = False
+    isForwarded: bool = False
     createdAt: datetime
     updatedAt: datetime
 
@@ -62,8 +79,30 @@ class GroupMessage(BaseModel):
     attachmentName: Optional[str] = None
     attachmentMimeType: Optional[str] = None
     attachmentSize: Optional[int] = None
+    isRecalled: bool = False
+    isForwarded: bool = False
     createdAt: datetime
     updatedAt: datetime
+
+
+class ForwardResponse(BaseModel):
+    messages: list[Message]
+    groupMessages: list[GroupMessage]
+
+
+def recalled_message_fields() -> dict:
+    """Fields set on a recalled message: content is wiped, the record stays as a placeholder."""
+    return {
+        "isRecalled": True,
+        "text": None,
+        "image": None,
+        "emotion": None,
+        "attachment": None,
+        "attachmentName": None,
+        "attachmentMimeType": None,
+        "attachmentSize": None,
+        "updatedAt": datetime.now(timezone.utc),
+    }
 
 
 def message_data(document):

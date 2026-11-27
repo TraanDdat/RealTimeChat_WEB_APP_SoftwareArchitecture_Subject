@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from zalo_backend.database.l_mongodb import group_messages
 from zalo_backend.message_service import s3_storage
-from zalo_backend.models.mongodb.msg import GroupMessage, MessageCreate
+from zalo_backend.models.mongodb.msg import GroupMessage, MessageCreate, recalled_message_fields
 from zalo_backend.models.postgres.group_chat import GroupChat, GroupMember
 from zalo_backend.models.postgres.user import User
 from zalo_backend.schemas.groups import GroupMemberResponse, GroupResponse
@@ -162,11 +162,15 @@ def delete_group_message(db: Session, group_id: int, message_id: str, user_id: i
         raise HTTPException(status_code=404, detail="Message not found") from error
 
     try:
-        document = group_messages.find_one_and_delete({
-            "_id": object_id,
-            "groupId": group_id,
-            "senderId": user_id,
-        })
+        document = group_messages.find_one_and_update(
+            {
+                "_id": object_id,
+                "groupId": group_id,
+                "senderId": user_id,
+                "isRecalled": {"$ne": True},
+            },
+            {"$set": recalled_message_fields()},
+        )
     except PyMongoError as error:
         raise HTTPException(status_code=503, detail="Group message storage unavailable") from error
     if document is None:

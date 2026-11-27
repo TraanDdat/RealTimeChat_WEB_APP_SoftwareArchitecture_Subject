@@ -1,9 +1,16 @@
 from fastapi import APIRouter, Depends, Path, status
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy.orm import Session
 
 from zalo_backend.core.security import get_current_user
-from zalo_backend.message_service import service
-from zalo_backend.models.mongodb.msg import Message, MessageCreate
+from zalo_backend.database.l_postgres import get_db
+from zalo_backend.message_service import forward_service, service
+from zalo_backend.models.mongodb.msg import (
+    ForwardRequest,
+    ForwardResponse,
+    Message,
+    MessageCreate,
+)
 from zalo_backend.models.postgres.user import User
 from zalo_backend.schemas.user import UserPublic
 from zalo_backend.socket.event import sio
@@ -50,6 +57,27 @@ async def delete_message(
     payload = {key: value for key, value in deleted.items() if key != "receiverId"}
     await sio.emit("messageDeleted", payload, room=str(deleted["receiverId"]))
     await sio.emit("messageDeleted", payload, room=str(deleted["senderId"]))
+
+
+@messages_router.post("/forward", status_code=status.HTTP_201_CREATED, response_model=ForwardResponse)
+async def forward_message(
+    data: ForwardRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    private_messages, group_results = await run_in_threadpool(
+        forward_service.forward_message, db, user.id, data,
+    )
+    for message in private_messages:
+        await notify_rev_newMessage(message.receiverId, message)
+    for message, member_ids in group_results:
+        payload = message.model_dump(mode="json", by_alias=True)
+        for member_id in member_ids:
+            await sio.emit("newGroupMessage", payload, room=str(member_id))
+    return ForwardResponse(
+        messages=private_messages,
+        groupMessages=[message for message, _ in group_results],
+    )
 
 
 @messages_router.post("/send/{receiver_id}", status_code=status.HTTP_201_CREATED, response_model=Message)

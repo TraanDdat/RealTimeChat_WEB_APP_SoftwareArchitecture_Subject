@@ -173,6 +173,28 @@ def _object_url(object_ref: str | None, object_type: str) -> str | None:
         raise HTTPException(status_code=502, detail=f"Could not access {object_type}") from error
 
 
+def copy_object(object_key: str | None) -> str | None:
+    """Duplicate a stored image/attachment under a new key so the copy outlives a recall of the original."""
+    if not object_key or object_key.startswith(("https://", "http://")):
+        return object_key
+    if not settings.S3_BUCKET:
+        raise HTTPException(status_code=503, detail="S3 storage is not configured")
+    folder, _, filename = object_key.rpartition("/")
+    extension = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+    new_key = f"{folder}/{uuid.uuid4().hex}.{extension}" if folder else f"{uuid.uuid4().hex}.{extension}"
+    try:
+        _client().copy_object(
+            Bucket=settings.S3_BUCKET,
+            Key=new_key,
+            CopySource={"Bucket": settings.S3_BUCKET, "Key": object_key},
+            ServerSideEncryption="AES256",
+        )
+    except (BotoCoreError, ClientError) as error:
+        logger.exception("S3 copy of %s failed", object_key)
+        raise HTTPException(status_code=502, detail="Could not forward media") from error
+    return new_key
+
+
 def delete_image(image_key: str | None) -> None:
     if not image_key or not settings.S3_BUCKET:
         return

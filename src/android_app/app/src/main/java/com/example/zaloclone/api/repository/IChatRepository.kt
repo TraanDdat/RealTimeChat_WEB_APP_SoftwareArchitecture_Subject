@@ -12,4 +12,7 @@ interface IChatRepository {
     suspend fun getUnreadCounts(): UnreadCountsResponse
     suspend fun markRead(userId: Int)
     suspend fun markGroupRead(groupId: Int)
+    suspend fun recallMessage(messageId: String)
+    suspend fun recallGroupMessage(groupId: Int, messageId: String)
+    suspend fun forwardMessage(data: ForwardMessageRequest): ForwardMessageResponse
 }

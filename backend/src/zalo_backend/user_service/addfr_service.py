@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, func
 
 from zalo_backend.models.postgres.user import User
 from zalo_backend.models.postgres.friendship import Friendship
@@ -20,6 +20,17 @@ def create_friend_request(
         requester_id,
         addressee_id
     )
+
+    if existing and existing.status == "rejected":
+        # A rejected request may be sent again (by either user). Reuse the row
+        # because the DB allows only one friendship row per pair of users.
+        existing.requester_id = requester_id
+        existing.addressee_id = addressee_id
+        existing.status = "pending"
+        existing.updated_at = func.now()
+        db.commit()
+        db.refresh(existing)
+        return existing
 
     if existing:
         raise ValueError("Friendship request already exists")
@@ -45,6 +56,17 @@ def get_pending_friend_requests(db: Session, user_id: int):
             Friendship.addressee_id == user_id,
             Friendship.status == "pending",
         )
+        .all()
+    )
+
+
+def get_sent_friend_requests(db: Session, user_id: int):
+    """Requests this user sent, with their current status, newest change first."""
+    return (
+        db.query(Friendship, User)
+        .join(User, Friendship.addressee_id == User.id)
+        .filter(Friendship.requester_id == user_id)
+        .order_by(Friendship.updated_at.desc(), Friendship.id.desc())
         .all()
     )
 
@@ -86,12 +108,10 @@ def update_friendship_status(
     if friendship is None:
         return None
 
-    if new_status == "rejected":
-        db.delete(friendship)
-        db.commit()
-        return friendship
-
+    # Keep rejected requests (instead of deleting them) so the requester can
+    # see the outcome via get_sent_friend_requests.
     friendship.status = new_status
+    friendship.updated_at = func.now()
 
     db.commit()
     db.refresh(friendship)

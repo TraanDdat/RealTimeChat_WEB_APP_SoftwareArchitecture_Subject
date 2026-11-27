@@ -24,4 +24,10 @@ class ChatRepository(
     override suspend fun markRead(userId: Int) {chatApi.markRead(userId)}
 
     override suspend fun markGroupRead(groupId: Int) {chatApi.markGroupRead(groupId)}
+
+    override suspend fun recallMessage(messageId: String) {chatApi.recallMessage(messageId)}
+
+    override suspend fun recallGroupMessage(groupId: Int, messageId: String) {chatApi.recallGroupMessage(groupId, messageId)}
+
+    override suspend fun forwardMessage(data: ForwardMessageRequest): ForwardMessageResponse = chatApi.forwardMessage(data)
 }
