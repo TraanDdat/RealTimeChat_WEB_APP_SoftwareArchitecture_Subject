@@ -4,8 +4,8 @@ import type { SentFriendRequestItem, SentFriendRequestStatus } from "../types/fr
 
 const STATUS_STYLES: Record<SentFriendRequestStatus, { label: string; className: string }> = {
   pending: { label: "Pending", className: "bg-slate-700 text-slate-300" },
-  accepted: { label: "Accepted", className: "bg-emerald-600/20 text-emerald-400" },
-  rejected: { label: "Declined", className: "bg-red-600/20 text-red-400" },
+  // accepted: { label: "Accepted", className: "bg-emerald-600/20 text-emerald-400" },
+  // rejected: { label: "Declined", className: "bg-red-600/20 text-red-400" },
 };
 
 interface SentRequestsPanelProps {
@@ -35,7 +35,7 @@ function SentRequestsPanel({ refreshKey = 0 }: SentRequestsPanelProps) {
     };
   }, [refreshKey]);
 
-  const answeredCount = requests.filter((request) => request.status !== "pending").length;
+  const answeredCount = requests.filter((request) => request.status === "pending").length;
 
   return (
     <section className="mb-4 border-b border-slate-700/70 pb-3">
@@ -47,29 +47,27 @@ function SentRequestsPanel({ refreshKey = 0 }: SentRequestsPanelProps) {
       >
         <span>Sent requests</span>
         <span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs" title={`${answeredCount} answered`}>
-          {requests.length}
+          {answeredCount}
         </span>
       </button>
       {isOpen && (
         <div className="space-y-2">
-          {error ? (
-            <p className="px-1 text-xs text-red-400">Could not load sent requests</p>
-          ) : requests.length === 0 ? (
-            <p className="px-1 text-xs text-slate-500">You haven't sent any requests</p>
-          ) : requests.map((request) => {
-            const status = STATUS_STYLES[request.status] ?? STATUS_STYLES.pending;
-            return (
-              <div key={request.id} className="flex items-center gap-2 rounded-lg bg-slate-900/70 p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm text-slate-200">{request.username}</p>
-                  <p className="truncate text-xs text-slate-400">{request.email}</p>
+          {requests
+            .filter((request) => request.status === "pending")
+            .map((request) => {
+              const status = STATUS_STYLES[request.status] ?? STATUS_STYLES.pending;
+              return (
+                <div key={request.id} className="flex items-center gap-2 rounded-lg bg-slate-900/70 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm text-slate-200">{request.username}</p>
+                    <p className="truncate text-xs text-slate-400">{request.email}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${status.className}`}>
+                    {status.label}
+                  </span>
                 </div>
-                <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${status.className}`}>
-                  {status.label}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       )}
     </section>

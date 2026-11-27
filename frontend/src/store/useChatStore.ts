@@ -38,7 +38,8 @@ interface ChatStore {
   getGroups: () => Promise<void>;
   createGroup: (name: string, memberIds: number[]) => Promise<boolean>;
   addGroupMember: (groupId: number, userId: number, role: "admin" | "member") => Promise<void>;
-  updateGroupMemberRole: (groupId: number, userId: number, role: "admin" | "member") => Promise<void>;
+  removeGroupMember: (groupId: number, userId: number, role: "member") => Promise<void>;
+  // updateGroupMemberRole: (groupId: number, userId: number, role: "admin" | "member") => Promise<void>;
   refreshGroup: (groupId: number) => Promise<void>;
   getMessagesByUserId: (userId: number) => Promise<void>;
   getGroupMessages: (groupId: number) => Promise<void>;
@@ -218,18 +219,31 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
     }
   },
 
-  updateGroupMemberRole: async (groupId, userId, role) => {
+  removeGroupMember: async (groupId, userId, role) => {
     try {
-      const res = await groupApi.updateMemberRole(groupId, userId, role);
+      const res = await groupApi.removeMember(groupId, userId, role);
       set((state) => ({
         groups: state.groups.map((group) => group.id === groupId ? res.data : group),
         selectedGroup: state.selectedGroup?.id === groupId ? res.data : state.selectedGroup,
       }));
-      toast.success("Member role updated");
+      toast.success("Member removed");
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
   },
+
+  // updateGroupMemberRole: async (groupId, userId, role) => {
+  //   try {
+  //     const res = await groupApi.updateMemberRole(groupId, userId, role);
+  //     set((state) => ({
+  //       groups: state.groups.map((group) => group.id === groupId ? res.data : group),
+  //       selectedGroup: state.selectedGroup?.id === groupId ? res.data : state.selectedGroup,
+  //     }));
+  //     toast.success("Member role updated");
+  //   } catch (error) {
+  //     toast.error(getErrorMessage(error));
+  //   }
+  // },
 
   refreshGroup: async (groupId) => {
     try {
