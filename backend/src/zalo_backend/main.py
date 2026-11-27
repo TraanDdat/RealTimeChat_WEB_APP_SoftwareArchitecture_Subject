@@ -34,8 +34,7 @@ bkend = FastAPI(title="UI zalo chat demo", lifespan=lifespan)
 # configure CORS (credentials require explicit origins, not "*")
 bkend.add_middleware(
     CORSMiddleware,
-    allow_origins=[],
-    allow_origin_regex=r".*",
+    allow_origins=settings.CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

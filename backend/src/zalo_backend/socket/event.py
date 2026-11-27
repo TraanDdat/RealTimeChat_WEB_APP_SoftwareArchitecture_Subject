@@ -1,11 +1,15 @@
 from fastapi.concurrency import run_in_threadpool
+from zalo_backend.core.config import settings
 from zalo_backend.socket.socketService import get_socket_user_id
 from zalo_backend.user_service.client import get_user
 import socketio
 import logging
 
 logger = logging.getLogger(__name__)
-sio = socketio.AsyncServer(async_mode="asgi", cors_allowed_origins="*")
+sio = socketio.AsyncServer(
+    async_mode="asgi",
+    cors_allowed_origins=settings.CORS_ALLOWED_ORIGINS,
+)
 
 # user_id -> socket ids (process-local)
 online_users: dict[int, set[str]] = {}

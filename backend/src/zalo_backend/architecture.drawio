@@ -1,0 +1,288 @@
+<mxfile host="65bd71144e">
+    <diagram id="zalo-backend-architecture" name="Backend Architecture">
+        <mxGraphModel dx="858" dy="730" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="UIZalo Python Backend Architecture" style="text;html=1;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#1f2937;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="800" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="client_web" value="Web / Android client&lt;br&gt;&lt;font color=&quot;#52606d&quot;&gt;REST API requests&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
+                    <mxGeometry x="240" y="90" width="240" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="client_socket" value="Web / Android client&lt;br&gt;&lt;font color=&quot;#52606d&quot;&gt;Socket.IO connection&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;" parent="1" vertex="1">
+                    <mxGeometry x="850" y="90" width="240" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="fastapi" value="FastAPI application&lt;br&gt;&lt;b&gt;main.py&lt;/b&gt;&lt;br&gt;mounts routers + Socket.IO ASGI app" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;" parent="1" vertex="1">
+                    <mxGeometry x="220" y="205" width="280" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="socket_server" value="Socket.IO server&lt;br&gt;&lt;b&gt;socket/event.py&lt;/b&gt;&lt;br&gt;connections, typing, online presence" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;" parent="1" vertex="1">
+                    <mxGeometry x="830" y="205" width="280" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="router_auth" value="Auth / signup routes&lt;br&gt;&lt;b&gt;routers/auth.py&lt;br&gt;routers/signup.py&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="350" width="220" height="76" as="geometry"/>
+                </mxCell>
+                <mxCell id="router_friends" value="Friend routes&lt;br&gt;&lt;b&gt;routers/addfriend.py&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="290" y="350" width="220" height="76" as="geometry"/>
+                </mxCell>
+                <mxCell id="router_messages" value="Private-message routes&lt;br&gt;&lt;b&gt;routers/messages.py&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="540" y="350" width="220" height="76" as="geometry"/>
+                </mxCell>
+                <mxCell id="router_groups" value="Group routes&lt;br&gt;&lt;b&gt;routers/groups.py&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="790" y="350" width="220" height="76" as="geometry"/>
+                </mxCell>
+                <mxCell id="socket_auth" value="Socket token parsing&lt;br&gt;&lt;b&gt;socket/socketService.py&lt;/b&gt;&lt;br&gt;decode cookie or Bearer token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="1090" y="350" width="250" height="76" as="geometry"/>
+                </mxCell>
+                <mxCell id="user_service" value="User operations&lt;br&gt;&lt;b&gt;user_service/service.py&lt;/b&gt;&lt;br&gt;register, lookup, profile updates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="500" width="230" height="82" as="geometry"/>
+                </mxCell>
+                <mxCell id="friend_service" value="Friendship operations&lt;br&gt;&lt;b&gt;user_service/addfr_service.py&lt;/b&gt;&lt;br&gt;requests, status, friend list" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="300" y="500" width="230" height="82" as="geometry"/>
+                </mxCell>
+                <mxCell id="message_service" value="Private-message operations&lt;br&gt;&lt;b&gt;message_service/service.py&lt;/b&gt;&lt;br&gt;history, send, read, delete" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="560" y="500" width="230" height="82" as="geometry"/>
+                </mxCell>
+                <mxCell id="group_service" value="Group operations&lt;br&gt;&lt;b&gt;message_service/group_service.py&lt;/b&gt;&lt;br&gt;groups, members, group messages" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="820" y="500" width="230" height="82" as="geometry"/>
+                </mxCell>
+                <mxCell id="security" value="Authentication dependency&lt;br&gt;&lt;b&gt;core/security.py&lt;/b&gt;&lt;br&gt;parse cookie / Bearer token; load user" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="665" width="250" height="82" as="geometry"/>
+                </mxCell>
+                <mxCell id="user_client" value="User lookup adapter&lt;br&gt;&lt;b&gt;user_service/client.py&lt;/b&gt;&lt;br&gt;opens a session and returns public users" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="320" y="710" width="250" height="82" as="geometry"/>
+                </mxCell>
+                <mxCell id="db_access" value="Database connection modules&lt;br&gt;&lt;b&gt;database/l_postgres.py&lt;br&gt;database/l_mongodb.py&lt;/b&gt;&lt;br&gt;session / collection setup; services issue queries directly" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="630" y="650" width="300" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="s3_storage" value="S3 media helper&lt;br&gt;&lt;b&gt;message_service/s3_storage.py&lt;/b&gt;&lt;br&gt;upload, delete, presigned URLs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="990" y="665" width="250" height="82" as="geometry"/>
+                </mxCell>
+                <mxCell id="schemas_models" value="Shared data shapes&lt;br&gt;&lt;b&gt;schemas/&lt;/b&gt; API request / response models&lt;br&gt;&lt;b&gt;models/&lt;/b&gt; persistence models" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="825" width="360" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="postgres" value="PostgreSQL&lt;br&gt;users, friendships, groups" style="shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="480" y="825" width="210" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="mongodb" value="MongoDB&lt;br&gt;private + group messages" style="shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="730" y="825" width="210" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="s3" value="Amazon S3&lt;br&gt;images + attachments" style="shape=cylinder;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="1010" y="825" width="210" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="realtime" value="Realtime notifications&lt;br&gt;&lt;b&gt;socket/eventNotify.py&lt;/b&gt; → &lt;b&gt;emiiter/emitter.py&lt;/b&gt; → Socket.IO server&lt;br&gt;Routes publish message and friend events; socket events handle presence / typing." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="430" y="950" width="620" height="75" as="geometry"/>
+                </mxCell>
+                <mxCell id="note" value="Scope: Python package backend/src/zalo_backend. The separate Node server at backend/src/database is not shown. There is currently no standalone repository / DAL layer: service modules perform queries using the database connection modules." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="940" width="340" height="95" as="geometry"/>
+                </mxCell>
+                <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="client_web" target="fastapi" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="client_socket" target="socket_server" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="fastapi" target="router_auth" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="fastapi" target="router_friends" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="fastapi" target="router_messages" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="fastapi" target="router_groups" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="router_auth" target="user_service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="router_friends" target="friend_service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="router_messages" target="message_service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#4f6b8a;" parent="1" source="router_groups" target="group_service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e11" value="auth dependency" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;strokeColor=#666666;fontSize=11;" parent="1" source="router_auth" target="security" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e12" value="auth dependency" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;strokeColor=#666666;fontSize=11;" parent="1" source="router_friends" target="security" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e13" value="auth dependency" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;strokeColor=#666666;fontSize=11;" parent="1" source="router_messages" target="security" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e14" value="auth dependency" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;endArrow=open;strokeColor=#666666;fontSize=11;" parent="1" source="router_groups" target="security" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e15" value="query users" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#9673a6;fontSize=11;" parent="1" source="message_service" target="user_client" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e16" value="decode token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" parent="1" source="socket_server" target="socket_auth" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e17" value="user lookup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#9673a6;fontSize=11;" parent="1" source="security" target="user_service" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e18" value="service queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" parent="1" source="user_service" target="db_access" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e19" value="service queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" parent="1" source="friend_service" target="db_access" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e20" value="service queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" parent="1" source="message_service" target="db_access" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e21" value="service queries" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" parent="1" source="group_service" target="db_access" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e22" value="open SQL session" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" parent="1" source="user_client" target="db_access" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e23" value="PostgreSQL" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#b85450;fontSize=11;" parent="1" source="db_access" target="postgres" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e24" value="MongoDB" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#b85450;fontSize=11;" parent="1" source="db_access" target="mongodb" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e25" value="upload / URL / delete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#9673a6;fontSize=11;" parent="1" source="message_service" target="s3_storage" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e26" value="upload / URL / delete" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#9673a6;fontSize=11;" parent="1" source="group_service" target="s3_storage" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e27" value="S3 API" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#9673a6;fontSize=11;" parent="1" source="s3_storage" target="s3" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e28" value="validate user" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" parent="1" source="socket_auth" target="user_client" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e29" value="publish events" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=11;" parent="1" source="router_messages" target="realtime" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e30" value="publish events" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=11;" parent="1" source="router_friends" target="realtime" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="e31" value="emit to room" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=11;" parent="1" source="realtime" target="socket_server" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram id="zalo-authentication-flow" name="Authentication Flow">
+        <mxGraphModel dx="1920" dy="902" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1250" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="auth_title" value="UIZalo Authentication Flow" style="text;html=1;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;fontColor=#1f2937;" parent="1" vertex="1">
+                    <mxGeometry x="40" y="20" width="900" height="42" as="geometry"/>
+                </mxCell>
+                <mxCell id="web_lane" value="WEB CLIENT&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;React + Axios&lt;/font&gt;" style="swimlane;html=1;startSize=42;horizontal=1;rounded=0;fillColor=#dae8fc;swimlaneFillColor=#ffffff;strokeColor=#6c8ebf;fontSize=16;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="30" y="80" width="440" height="1080" as="geometry"/>
+                </mxCell>
+                <mxCell id="backend_lane" value="FASTAPI BACKEND&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;auth router + security + PostgreSQL&lt;/font&gt;" style="swimlane;html=1;startSize=42;horizontal=1;rounded=0;fillColor=#d5e8d4;swimlaneFillColor=#ffffff;strokeColor=#82b366;fontSize=16;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="580" y="80" width="440" height="1080" as="geometry"/>
+                </mxCell>
+                <mxCell id="android_lane" value="ANDROID CLIENT&lt;br&gt;&lt;font style=&quot;font-size:12px&quot;&gt;Retrofit + DataStore&lt;/font&gt;" style="swimlane;html=1;startSize=42;horizontal=1;rounded=0;fillColor=#fff2cc;swimlaneFillColor=#ffffff;strokeColor=#d6b656;fontSize=16;fontStyle=1;" parent="1" vertex="1">
+                    <mxGeometry x="1130" y="80" width="440" height="1080" as="geometry"/>
+                </mxCell>
+                <mxCell id="web_login_request" value="1. Login request&lt;br&gt;&lt;b&gt;POST /api/auth/login&lt;/b&gt;&lt;br&gt;X-Client-Type: web&lt;br&gt;Axios withCredentials: true" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="65" y="150" width="370" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="login_router" value="1. Auth endpoint&lt;br&gt;&lt;b&gt;routers/auth.py · login_request()&lt;/b&gt;&lt;br&gt;Reads email, password, X-Client-Type" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="615" y="150" width="370" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="android_login_request" value="1. Login request&lt;br&gt;&lt;b&gt;POST /api/auth/login&lt;/b&gt;&lt;br&gt;X-Client-Type: android" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="1175" y="150" width="350" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="credential_check" value="2. Verify credentials&lt;br&gt;&lt;b&gt;user_service.get_user(email)&lt;/b&gt;&lt;br&gt;&lt;b&gt;security.verify_password(... )&lt;/b&gt;&lt;br&gt;User lookup uses PostgreSQL session" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="615" y="290" width="370" height="110" as="geometry"/>
+                </mxCell>
+                <mxCell id="client_type_choice" value="3. Select token delivery&lt;br&gt;by X-Client-Type" style="rhombus;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="700" y="435" width="200" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="web_token_issue" value="Web branch&lt;br&gt;&lt;b&gt;set_auth_cookie(response, user_id)&lt;/b&gt;&lt;br&gt;Create JWT in HttpOnly cookie" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="605" y="585" width="180" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="android_token_issue" value="Android branch&lt;br&gt;&lt;b&gt;create_access_token(user_id)&lt;/b&gt;&lt;br&gt;Return JWT in JSON body" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="805" y="585" width="180" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="web_login_response" value="4. Login response&lt;br&gt;Set-Cookie: jwt=…; HttpOnly&lt;br&gt;data.access_token is null&lt;br&gt;Browser keeps cookie" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="65" y="585" width="370" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="android_login_response" value="4. Login response&lt;br&gt;data.access_token = JWT&lt;br&gt;No auth cookie is set" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="1175" y="585" width="350" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="web_protected_request" value="5. Confirm + later requests&lt;br&gt;Immediately GET /api/auth/check&lt;br&gt;Browser sends jwt cookie automatically&lt;br&gt;Socket.IO also uses cookie credentials" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="65" y="735" width="370" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="get_current_user" value="6. Authenticate protected REST request&lt;br&gt;&lt;b&gt;core/security.get_current_user()&lt;/b&gt;&lt;br&gt;Read Bearer header first, else jwt cookie&lt;br&gt;Decode token; invalid / missing token → 401" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="615" y="735" width="370" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="android_token_storage" value="5. Store + confirm session&lt;br&gt;&lt;b&gt;TokenManager → DataStore&lt;/b&gt;&lt;br&gt;Immediately GET /api/auth/check&lt;br&gt;OkHttp + Socket.IO send Bearer JWT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="1175" y="735" width="350" height="105" as="geometry"/>
+                </mxCell>
+                <mxCell id="user_lookup" value="7. Resolve token subject&lt;br&gt;&lt;b&gt;user_service.get_user_by_id(db, user_id)&lt;/b&gt;&lt;br&gt;Load authenticated user from PostgreSQL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="615" y="875" width="370" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="protected_endpoint" value="8. Continue to protected route&lt;br&gt;For example: GET /api/auth/check&lt;br&gt;Returns UserPublic; unknown user → 401" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;" parent="1" vertex="1">
+                    <mxGeometry x="615" y="1000" width="370" height="90" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_error_note" value="Login failures&lt;br&gt;Unknown email → 404&lt;br&gt;Wrong password → 401&lt;br&gt;Invalid / expired session token → 401" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="65" y="885" width="370" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="logout_note" value="Logout behavior&lt;br&gt;Web: /api/auth/logout clears the jwt cookie.&lt;br&gt;Android: app clears DataStore locally; the backend does not revoke the JWT, so it remains valid until expiry if copied elsewhere." style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="1175" y="885" width="350" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="socket_note" value="Socket.IO authentication is a separate backend path: socket/socketService.py reads the web jwt cookie or Android Bearer header and decodes it; socket/event.py then confirms the user through user_service/client.py." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" parent="1" vertex="1">
+                    <mxGeometry x="470" y="1120" width="680" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#6c8ebf;" parent="1" source="web_login_request" target="login_router" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;" parent="1" source="android_login_request" target="login_router" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e3" value="lookup + verify" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=11;" parent="1" source="login_router" target="credential_check" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e4" value="valid credentials" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=11;" parent="1" source="credential_check" target="client_type_choice" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e5" value="web" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#6c8ebf;fontSize=11;" parent="1" source="client_type_choice" target="web_token_issue" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e6" value="android" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" parent="1" source="client_type_choice" target="android_token_issue" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e7" value="Set-Cookie" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#6c8ebf;fontSize=11;" parent="1" source="web_token_issue" target="web_login_response" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e8" value="JSON token" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" parent="1" source="android_token_issue" target="android_login_response" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e9" value="cookie" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#6c8ebf;fontSize=11;" parent="1" source="web_login_response" target="web_protected_request" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e10" value="saved JWT" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" parent="1" source="android_login_response" target="android_token_storage" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e11" value="protected request" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#6c8ebf;fontSize=11;" parent="1" source="web_protected_request" target="get_current_user" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e12" value="Authorization: Bearer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#d6b656;fontSize=11;" parent="1" source="android_token_storage" target="get_current_user" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e13" value="valid subject id" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#666666;fontSize=11;" parent="1" source="get_current_user" target="user_lookup" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="auth_e14" value="user found" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeColor=#82b366;fontSize=11;" parent="1" source="user_lookup" target="protected_endpoint" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

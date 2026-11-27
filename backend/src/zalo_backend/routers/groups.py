@@ -10,6 +10,7 @@ from zalo_backend.models.mongodb.msg import GroupMessage, MessageCreate
 from zalo_backend.schemas.groups import (
     GroupCreateRequest,
     GroupMemberAddRequest,
+    GroupMemberRemoveRequest,
     GroupMemberRoleUpdate,
     GroupResponse,
 )
@@ -32,7 +33,7 @@ def create_group(
     return group_service.create_group(db, current_user.id, data.name, data.member_ids)
 
 
-@groups_router.post("/{group_id}/members", response_model=GroupResponse)
+@groups_router.post("/{group_id}/add/members", response_model=GroupResponse)
 def add_member(
     data: GroupMemberAddRequest,
     group_id: int = Path(gt=0),
@@ -41,6 +42,17 @@ def add_member(
 ):
     return group_service.add_group_member(
         db, group_id, current_user.id, data.user_id, data.role,
+    )
+
+@groups_router.post("/{group_id}/remove/members", response_model=GroupResponse)
+def remove_member(
+    data: GroupMemberRemoveRequest,
+    group_id: int = Path(gt=0),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return group_service.remove_group_member(
+        db, group_id, current_user.id, data.user_id,
     )
 
 

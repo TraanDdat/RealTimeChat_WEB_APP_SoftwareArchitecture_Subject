@@ -71,7 +71,7 @@ def get_sent_addfriend_requests(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Friend requests the current user sent, with status pending/accepted/rejected."""
+    """Friend requests the current user sent, with status pending"""
     requests = addfr_service.get_sent_friend_requests(db, current_user.id)
     request_list = [
         FriendRequestResponse(
