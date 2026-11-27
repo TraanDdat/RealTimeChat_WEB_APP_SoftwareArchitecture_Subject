@@ -13,6 +13,9 @@ class GroupMemberAddRequest(BaseModel):
     user_id: int = Field(gt=0)
     role: Literal["member", "admin"] = "member"
 
+class GroupMemberRemoveRequest(BaseModel):
+    user_id: int = Field(gt=0)
+    role: Literal["member"] = "member"
 
 class GroupMemberRoleUpdate(BaseModel):
     role: Literal["member", "admin"]

@@ -26,19 +26,49 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.material.icons.filled.Shortcut
+import androidx.compose.material.icons.filled.Undo
+import androidx.compose.ui.text.font.FontStyle
 import coil.compose.AsyncImage
 import com.example.zaloclone.ui.model.Message
 import com.example.zaloclone.ui.model.MessageType
+import com.example.zaloclone.ui.model.RECALLED_MESSAGE_TEXT
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     message: Message,
     senderName: String,
     onImageClick: (String) -> Unit = {},
-    onReactionSelect: (Message, String) -> Unit = { _, _ -> }
+    onReactionSelect: (Message, String) -> Unit = { _, _ -> },
+    onRecall: (Message) -> Unit = {},
+    onForward: (Message) -> Unit = {}
 ) {
     val context = LocalContext.current
     var showReactionMenu by remember { mutableStateOf(false) }
+    var showActionMenu by remember { mutableStateOf(false) }
+    var showRecallConfirm by remember { mutableStateOf(false) }
+    // Only the sender can recall, and only once
+    val canRecall = message.isMe && !message.isRecalled
+
+    if (showRecallConfirm) {
+        AlertDialog(
+            onDismissRequest = { showRecallConfirm = false },
+            title = { Text("Thu hồi tin nhắn") },
+            text = { Text("Tin nhắn sẽ được thu hồi với mọi người trong cuộc trò chuyện.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRecallConfirm = false
+                    onRecall(message)
+                }) { Text("Thu hồi", color = Color(0xFFD32F2F)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRecallConfirm = false }) { Text("Hủy") }
+            }
+        )
+    }
 
     val bubbleColor = if (message.isMe) Color(0xFFF2F2F7) else Color.White
     val borderColor = if (message.isMe) Color.Transparent else Color(0xFFE5E5EA)
@@ -83,6 +113,30 @@ fun MessageBubble(
                 }
             }
 
+            if (message.isForwarded && !message.isRecalled) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(
+                        start = if (message.isMe) 0.dp else 40.dp,
+                        bottom = 2.dp
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shortcut,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Đã chuyển tiếp",
+                        fontSize = 11.sp,
+                        color = Color.Gray,
+                        fontStyle = FontStyle.Italic
+                    )
+                }
+            }
+
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = if (message.isMe) Arrangement.End else Arrangement.Start
@@ -100,14 +154,35 @@ fun MessageBubble(
                     Spacer(modifier = Modifier.width(8.dp))
                 }
 
+                if (message.isRecalled) {
+                    Surface(
+                        color = Color.White,
+                        shape = shape,
+                        border = BorderStroke(1.dp, Color(0xFFE5E5EA))
+                    ) {
+                        Text(
+                            text = RECALLED_MESSAGE_TEXT,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                            color = Color.Gray,
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 14.sp
+                        )
+                    }
+                    return@Row
+                }
+
                 Box {
                     Surface(
                         color = if (message.type == MessageType.EMOTION) Color.Transparent else bubbleColor,
                         shape = shape,
                         border = if (!message.isMe && message.type != MessageType.EMOTION) BorderStroke(1.dp, borderColor) else null,
-                        modifier = Modifier.clickable {
-                            showReactionMenu = !showReactionMenu
-                        }
+                        modifier = Modifier.combinedClickable(
+                            onClick = { showReactionMenu = !showReactionMenu },
+                            onLongClick = {
+                                showReactionMenu = false
+                                showActionMenu = true
+                            }
+                        )
                     ) {
                         when (message.type) {
                             MessageType.TEXT -> {
@@ -168,6 +243,30 @@ fun MessageBubble(
                             MessageType.EMOTION -> {
                                 EmotionMessageContent(emotion = message.emotion ?: "😊")
                             }
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = showActionMenu,
+                        onDismissRequest = { showActionMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Chuyển tiếp") },
+                            leadingIcon = { Icon(Icons.Default.Shortcut, contentDescription = null) },
+                            onClick = {
+                                showActionMenu = false
+                                onForward(message)
+                            }
+                        )
+                        if (canRecall) {
+                            DropdownMenuItem(
+                                text = { Text("Thu hồi") },
+                                leadingIcon = { Icon(Icons.Default.Undo, contentDescription = null) },
+                                onClick = {
+                                    showActionMenu = false
+                                    showRecallConfirm = true
+                                }
+                            )
                         }
                     }
 

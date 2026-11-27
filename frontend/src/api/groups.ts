@@ -8,10 +8,13 @@ export const groupApi = {
     axiosInstance.post<ChatGroup>("/groups", data),
 
   addMember: (groupId: number, userId: number, role: "admin" | "member") =>
-    axiosInstance.post<ChatGroup>(`/groups/${groupId}/members`, { user_id: userId, role }),
+    axiosInstance.post<ChatGroup>(`/groups/${groupId}/add/members`, { user_id: userId, role }),
 
-  updateMemberRole: (groupId: number, userId: number, role: "admin" | "member") =>
-    axiosInstance.patch<ChatGroup>(`/groups/${groupId}/members/${userId}/role`, { role }),
+  removeMember: (groupId: number, userId: number, role: "member") =>
+    axiosInstance.post<ChatGroup>(`/groups/${groupId}/remove/members`, { user_id: userId, role }),
+
+  // updateMemberRole: (groupId: number, userId: number, role: "admin" | "member") =>
+  //   axiosInstance.patch<ChatGroup>(`/groups/${groupId}/members/${userId}/role`, { role }),
 
   getMessages: (groupId: number) =>
     axiosInstance.get<GroupMessageData[]>(`/groups/${groupId}/messages`),

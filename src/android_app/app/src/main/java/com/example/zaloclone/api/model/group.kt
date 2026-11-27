@@ -19,6 +19,11 @@ data class GroupMemberAddRequest(
     val role: String = "member"
 )
 
+data class GroupMemberRemoveRequest(
+    val user_id: Int,
+    val role: String = "member"
+)
+
 data class GroupMemberRoleUpdateRequest(
     val groupId: Int,
     val userId: Int,

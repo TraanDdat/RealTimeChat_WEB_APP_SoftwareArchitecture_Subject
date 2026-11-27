@@ -6,18 +6,13 @@ from fastapi import HTTPException
 from pymongo import ASCENDING
 from pymongo.errors import PyMongoError
 
-from . import user_client
-from zalo_backend.core.config import settings
 from zalo_backend.database.l_mongodb import collection, group_messages
 from zalo_backend.database.l_postgres import SessionLocal
-from zalo_backend.models.mongodb.msg import MessageCreate, message_data
+from zalo_backend.models.mongodb.msg import MessageCreate, message_data, recalled_message_fields
 from zalo_backend.schemas.user import UserPublic
 from zalo_backend.user_service.addfr_service import get_friends
+from zalo_backend.user_service.client import get_user, get_users
 from . import s3_storage
-
-
-def upload_image(image: str) -> str:
-    return s3_storage.store_image_data_url(image)
 
 
 def _with_media_urls(message):
@@ -39,7 +34,7 @@ def get_chat_partners(user_id: int):
     partner_ids.discard(user_id)
     if not partner_ids:
         return []
-    return [contact for contact in user_client.get_users() if contact.id in partner_ids]
+    return [contact for contact in get_users() if contact.id in partner_ids]
 
 
 def get_messages(user_id: int, partner_id: int):
@@ -57,7 +52,10 @@ def delete_message(message_id: str, user_id: int) -> dict:
         raise HTTPException(status_code=404, detail="Message not found") from error
 
     try:
-        document = collection.find_one_and_delete({"_id": object_id, "senderId": user_id})
+        document = collection.find_one_and_update(
+            {"_id": object_id, "senderId": user_id, "isRecalled": {"$ne": True}},
+            {"$set": recalled_message_fields()},
+        )
     except PyMongoError as error:
         raise HTTPException(status_code=503, detail="Message storage unavailable") from error
     if document is None:
@@ -75,7 +73,7 @@ def delete_message(message_id: str, user_id: int) -> dict:
 
 def get_unread_counts(user_id: int) -> dict[str, dict[str, int]]:
     private_counts = collection.aggregate([
-        {"$match": {"receiverId": user_id, "readBy": {"$ne": user_id}}},
+        {"$match": {"receiverId": user_id, "readBy": {"$ne": user_id}, "isRecalled": {"$ne": True}}},
         {"$group": {"_id": "$senderId", "count": {"$sum": 1}}},
     ])
     users = {str(item["_id"]): item["count"] for item in private_counts}
@@ -94,6 +92,7 @@ def get_unread_counts(user_id: int) -> dict[str, dict[str, int]]:
                 "groupId": {"$in": group_ids},
                 "senderId": {"$ne": user_id},
                 "readBy": {"$ne": user_id},
+                "isRecalled": {"$ne": True},
             }},
             {"$group": {"_id": "$groupId", "count": {"$sum": 1}}},
         ])
@@ -118,10 +117,10 @@ def mark_messages_read(user_id: int, sender_id: int) -> None:
 def send_message(data: MessageCreate, sender_id: int, receiver_id: int):
     if sender_id == receiver_id:
         raise HTTPException(status_code=400, detail="Cannot send messages to yourself.")
-    if user_client.get_user(receiver_id) is None:
+    if get_user(receiver_id) is None:
         raise HTTPException(status_code=404, detail="Receiver not found.")
 
-    image_key = upload_image(data.image) if data.image else None
+    image_key = s3_storage.store_image_data_url(data.image) if data.image else None
     attachment_key = None
     attachment_size = None
     if data.attachment:

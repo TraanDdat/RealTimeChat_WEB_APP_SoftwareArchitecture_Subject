@@ -27,3 +27,15 @@ data class FriendRequestResponse(
     val username: String,
     val status: String
 )
+
+data class FriendRequestEvent(
+    val id: Int,
+    val sender_id: Int,
+    val username: String?,
+    val email: String?
+)
+
+data class FriendActionEvent(
+    val addressee_id: Int,
+    val username: String?
+)

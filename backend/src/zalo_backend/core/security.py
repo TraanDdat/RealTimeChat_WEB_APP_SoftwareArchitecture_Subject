@@ -1,16 +1,13 @@
 from datetime import datetime, timedelta, timezone
 import jwt
 from pwdlib import PasswordHash
-from fastapi import Request, Response, HTTPException, Depends, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
-from fastapi import Depends, Header
 from zalo_backend.core.config import settings
 from zalo_backend.database.l_postgres import get_db
 from typing import Literal
-from fastapi.security import HTTPBearer
 
 password_hash = PasswordHash.recommended()
-security = HTTPBearer() # use Bearer token for Android authenticate
 
 AUTH_COOKIE = "jwt"
 _JWT_ALGORITHM = "HS256"
@@ -50,11 +47,9 @@ def set_auth_cookie(response: Response, user_id: int):
     )
 
 
-def clear_auth_cookie(response: Response, client_type: Literal["web", "android"] = Header(default="web", alias="X-Client-Type")):
+def clear_auth_cookie(response: Response, client_type: Literal["web", "android"]) -> None:
     if client_type == "web":
         response.delete_cookie(AUTH_COOKIE, httponly=True, samesite="strict", secure=settings.COOKIE_SECURE)
-    else:
-        pass
 
 def get_current_user(
     request: Request,
@@ -62,11 +57,12 @@ def get_current_user(
 ):
     from zalo_backend.user_service.service import get_user_by_id
     auth_header = request.headers.get("Authorization")
-
     token = None
 
-    if auth_header and auth_header.startswith("Bearer "):
-        token = auth_header.split(" ", 1)[1]
+    if auth_header:
+        scheme, separator, credentials = auth_header.partition(" ")
+        if separator and scheme.lower() == "bearer" and credentials:
+            token = credentials.strip()
 
     if not token:
         token = request.cookies.get(AUTH_COOKIE)

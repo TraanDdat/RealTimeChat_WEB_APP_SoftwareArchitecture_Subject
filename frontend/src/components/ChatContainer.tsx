@@ -1,5 +1,7 @@
-import { useEffect, useRef } from "react";
-import { Trash2Icon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ForwardIcon, Trash2Icon } from "lucide-react";
+import type { ChatMessage } from "../types/chat";
+import ForwardMessageModal from "./ForwardMessageModal";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 import ChatHeader from "./ChatHeader";
@@ -19,9 +21,12 @@ function ChatContainer() {
     deleteMessage,
     messages,
     isMessagesLoading,
+    isOtherUserTyping,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const messageEndRef = useRef<HTMLDivElement>(null);
+  const [forwardingMessage, setForwardingMessage] = useState<ChatMessage | null>(null);
+  const closeForwardModal = useCallback(() => setForwardingMessage(null), []);
   const userId = selectedUser?._id;
   const groupId = selectedGroup?.id;
 
@@ -60,11 +65,24 @@ function ChatContainer() {
                 >
                   <div
                     className={`relative min-w-0 max-w-[75%] break-words rounded-lg px-4 py-3 ${
-                      isOwnMessage ? "bg-cyan-600 text-white" : "bg-slate-800 text-slate-200"
+                      msg.isRecalled
+                        ? "border border-slate-600 bg-transparent text-slate-400"
+                        : isOwnMessage
+                          ? "bg-cyan-600 text-white"
+                          : "bg-slate-800 text-slate-200"
                     }`}
                   >
                     {selectedGroup && !isOwnMessage && (
                       <p className="mb-1 text-xs font-semibold opacity-80">{msg.senderUsername}</p>
+                    )}
+                    {msg.isForwarded && !msg.isRecalled && (
+                      <p className="mb-1 flex items-center gap-1 text-xs italic opacity-70">
+                        <ForwardIcon className="size-3" />
+                        Đã chuyển tiếp
+                      </p>
+                    )}
+                    {msg.isRecalled && (
+                      <p className="italic opacity-70">Tin nhắn đã được thu hồi</p>
                     )}
                     {msg.image && (
                       <img src={msg.image} alt="Shared" className="rounded-lg h-48 object-cover" />
@@ -100,20 +118,33 @@ function ChatContainer() {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
-                      {isOwnMessage && !msg.isOptimistic && (
-                        <button
-                          type="button"
-                          title="Delete message for everyone"
-                          aria-label="Delete message for everyone"
-                          onClick={() => {
-                            if (window.confirm("Delete this message for everyone?")) {
-                              void deleteMessage(msg._id);
-                            }
-                          }}
-                          className="rounded p-1 text-current/70 transition-colors hover:bg-white/15 hover:text-current"
-                        >
-                          <Trash2Icon className="size-3.5" />
-                        </button>
+                      {!msg.isOptimistic && !msg.isRecalled && (
+                        <span className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            title="Chuyển tiếp"
+                            aria-label="Chuyển tiếp tin nhắn"
+                            onClick={() => setForwardingMessage(msg)}
+                            className="rounded p-1 text-current/70 transition-colors hover:bg-white/15 hover:text-current"
+                          >
+                            <ForwardIcon className="size-3.5" />
+                          </button>
+                          {isOwnMessage && (
+                            <button
+                              type="button"
+                              title="Thu hồi tin nhắn"
+                              aria-label="Thu hồi tin nhắn"
+                              onClick={() => {
+                                if (window.confirm("Thu hồi tin nhắn này với mọi người?")) {
+                                  void deleteMessage(msg._id);
+                                }
+                              }}
+                              className="rounded p-1 text-current/70 transition-colors hover:bg-white/15 hover:text-current"
+                            >
+                              <Trash2Icon className="size-3.5" />
+                            </button>
+                          )}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -128,8 +159,15 @@ function ChatContainer() {
           <NoChatHistoryPlaceholder name={selectedGroup?.name ?? selectedUser?.username ?? ""} />
         )}
       </div>
-
+      {!selectedGroup && isOtherUserTyping && (
+        <div className="px-6 py-2 text-sm italic text-slate-400">
+          {selectedUser?.username} đang nhập...
+        </div>
+      )}
       <MessageInput />
+      {forwardingMessage && (
+        <ForwardMessageModal message={forwardingMessage} onClose={closeForwardModal} />
+      )}
     </>
   );
 }

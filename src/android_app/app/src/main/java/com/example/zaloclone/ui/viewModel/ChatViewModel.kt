@@ -21,6 +21,8 @@ import com.example.zaloclone.ui.model.UserPresence
 import com.example.zaloclone.session.SessionManager
 import android.util.Log
 import retrofit2.HttpException
+import kotlinx.coroutines.*
+import org.json.JSONObject
 
 enum class ActiveTab {
     CHATS,
@@ -48,7 +50,9 @@ data class ChatState(
     val isMessagesLoading: Boolean = false,
     val isSoundEnabled: Boolean = false,
     val errorMessage: String? = null,
-    val emotion: String? = null
+    val emotion: String? = null,
+    val isOtherUserTyping: Boolean = false,
+    val typingUserId: Int? = null
 )
 
 class ChatViewModel(
@@ -63,6 +67,13 @@ class ChatViewModel(
     private var groupMessageListener: Emitter.Listener? = null
     private var globalMessageListener: Emitter.Listener? = null
     private var globalGroupMessageListener: Emitter.Listener? = null
+    private var currentChatUserId: Int? = null
+    private var typingJob: Job? = null
+    private var typingListener: Emitter.Listener? = null
+    private var stopTypingListener: Emitter.Listener? = null
+    private var messageDeletedListener: Emitter.Listener? = null
+    private var isTypingSent = false
+    private var typingReceiverId: Int? = null
 
     fun startGlobalSocketListener() {
         val socket = socketClient.getSocket() ?: run {
@@ -76,6 +87,18 @@ class ChatViewModel(
 
         globalGroupMessageListener?.let {
             socket.off("newGroupMessage", it)
+        }
+
+        typingListener?.let {
+            socket.off("userTyping", it)
+        }
+
+        stopTypingListener?.let {
+            socket.off("userStopTyping", it)
+        }
+
+        messageDeletedListener?.let {
+            socket.off("messageDeleted", it)
         }
 
         val listener = Emitter.Listener { args ->
@@ -134,12 +157,141 @@ class ChatViewModel(
             } catch (e: Exception) {
                 Log.e("GROUP_CHAT_SOCKET", "Error processing group message", e)
             }
+        }	
+
+        val typing = Emitter.Listener { args ->
+            if (args.isEmpty()) return@Listener
+            try {
+                val jsonStr = args[0].toString()
+                val event = Gson().fromJson(jsonStr, TypingEvent::class.java)
+                viewModelScope.launch {
+                    if (event.sender_id == currentChatUserId) {
+                        _state.update {
+                            it.copy(
+                                isOtherUserTyping = true,
+                                typingUserId = event.sender_id
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CHAT_SOCKET", "Typing event error", e)
+            }
+        }
+
+        val stopTyping = Emitter.Listener { args ->
+            if (args.isEmpty()) return@Listener
+            try {
+                val jsonStr = args[0].toString()
+                val event = Gson().fromJson(jsonStr, TypingEvent::class.java)
+                viewModelScope.launch {
+                    if (event.sender_id == currentChatUserId) {
+                        _state.update {
+                            it.copy(
+                                isOtherUserTyping = false,
+                                typingUserId = null
+                            )
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("CHAT_SOCKET", "Stop typing event error", e)
+            }
+        }
+
+        // Someone (possibly us on another device) recalled a message
+        val messageDeleted = Emitter.Listener { args ->
+            if (args.isEmpty()) return@Listener
+            try {
+                val event = gson.fromJson(args[0].toString(), MessageDeletedEvent::class.java)
+                markMessageRecalled(event.messageId)
+                // A recalled message no longer counts as unread
+                unreadCount()
+            } catch (e: Exception) {
+                Log.e("CHAT_SOCKET", "Invalid messageDeleted payload", e)
+            }
         }
 
         globalMessageListener = listener
         globalGroupMessageListener = groupListener
+        typingListener = typing
+        stopTypingListener = stopTyping
+        messageDeletedListener = messageDeleted
         socket.on("newMessage", listener)
         socket.on("newGroupMessage", groupListener)
+        socket.on("userTyping", typing)
+        socket.on("userStopTyping", stopTyping)
+        socket.on("messageDeleted", messageDeleted)
+    }
+
+    private fun markMessageRecalled(messageId: String) {
+        _state.update { state ->
+            state.copy(messages = state.messages.map { if (it.id == messageId) it.asRecalled() else it })
+        }
+    }
+
+    /**
+     * Forward ("chuyển tiếp") a message of the open chat — text, emoji, image, video or document —
+     * to friends and/or groups. [onResult] gets null on success, or an error text.
+     */
+    fun forwardMessage(
+        messageId: String,
+        receiverIds: List<Int>,
+        groupIds: List<Int>,
+        onResult: (String?) -> Unit
+    ) {
+        if (receiverIds.isEmpty() && groupIds.isEmpty()) return
+        viewModelScope.launch {
+            try {
+                val response = repository.forwardMessage(
+                    ForwardMessageRequest(
+                        messageId = messageId,
+                        sourceGroupId = _state.value.selectedGroup,
+                        receiverIds = receiverIds,
+                        groupIds = groupIds
+                    )
+                )
+                // Show copies that landed in the chat currently on screen
+                _state.update { state ->
+                    val landedHere = response.messages.filter { it.receiverId == state.selectedUser?.id } +
+                        response.groupMessages.filter { it.groupId == state.selectedGroup }.map { it.toChatMessage() }
+                    val newOnes = landedHere.filter { copy -> state.messages.none { it.id == copy.id } }
+                    if (newOnes.isEmpty()) state
+                    else state.copy(messages = (state.messages + newOnes).sortedBy { it.createdAt })
+                }
+                // New private conversations may have been started
+                if (receiverIds.isNotEmpty()) getMyChatPartners()
+                onResult(null)
+            } catch (e: HttpException) {
+                Log.e("CHAT_API", "Forward message failed", e)
+                onResult(e.response()?.errorBody()?.string() ?: "Không thể chuyển tiếp tin nhắn")
+            } catch (e: Exception) {
+                Log.e("CHAT_API", "Forward message failed", e)
+                onResult(e.localizedMessage ?: "Không thể chuyển tiếp tin nhắn")
+            }
+        }
+    }
+
+    /** Recall ("thu hồi") one of the current user's own messages in the open chat. */
+    fun recallMessage(messageId: String) {
+        viewModelScope.launch {
+            val currentState = _state.value
+            try {
+                val groupId = currentState.selectedGroup
+                when {
+                    groupId != null -> repository.recallGroupMessage(groupId, messageId)
+                    currentState.selectedUser != null -> repository.recallMessage(messageId)
+                    else -> return@launch
+                }
+                markMessageRecalled(messageId)
+            } catch (e: HttpException) {
+                val errorBody = e.response()?.errorBody()?.string()
+                _state.update { it.copy(errorMessage = errorBody ?: "Không thể thu hồi tin nhắn") }
+            } catch (e: Exception) {
+                Log.e("CHAT_API", "Recall message failed", e)
+                _state.update { it.copy(errorMessage = e.localizedMessage ?: "Không thể thu hồi tin nhắn") }
+            }
+        }
     }
 
     fun clearNotificationsForUser(senderId: Int) {
@@ -402,7 +554,7 @@ class ChatViewModel(
             errorMessage = null
         )
     }
-    
+
     override fun onCleared() {
         unsubscribeFromMessages()
         val socket = socketClient.getSocket()
@@ -412,8 +564,12 @@ class ChatViewModel(
         globalGroupMessageListener?.let {
             socket?.off("newGroupMessage", it)
         }
+        messageDeletedListener?.let {
+            socket?.off("messageDeleted", it)
+        }
         globalMessageListener = null
         globalGroupMessageListener = null
+        messageDeletedListener = null
         super.onCleared()
     }
 
@@ -455,8 +611,14 @@ class ChatViewModel(
             senderUsername = senderUsername,
             text = text,
             image = image,
+            emotion = emotion,
+            attachment = attachment,
+            attachmentName = attachmentName,
+            attachmentMimeType = attachmentMimeType,
             createdAt = createdAt,
-            updatedAt = updatedAt
+            updatedAt = updatedAt,
+            isRecalled = isRecalled,
+            isForwarded = isForwarded
         )
     }
 
@@ -522,5 +684,53 @@ class ChatViewModel(
                 Log.e("GROUP_MARK_READ", "Failed to mark group messages as read", e)
             }
         }
+    }
+
+    fun setCurrentChatUser(userId: Int?) {
+        currentChatUserId = userId
+        _state.update {
+            it.copy(
+                isOtherUserTyping = false,
+                typingUserId = null
+            )
+        }
+    }
+
+    fun onMessageInputChanged(receiverId: Int, message: String) {
+        val socket = socketClient.getSocket() ?: return
+        if (message.isBlank()) {
+            stopTyping(receiverId)
+            return
+        }
+        if (!isTypingSent) {
+            socket.emit(
+                "typing",
+                JSONObject().put("receiver_id", receiverId)
+            )
+            isTypingSent = true
+            typingReceiverId = receiverId
+        }
+        typingJob?.cancel()
+        typingJob = viewModelScope.launch {
+            delay(1500)
+            stopTyping(receiverId)
+        }
+    }
+
+    private fun stopTyping(receiverId: Int) {
+        typingJob?.cancel()
+        if (isTypingSent) {
+            socketClient.getSocket()?.emit(
+                "stopTyping",
+                JSONObject().put("receiver_id", receiverId)
+            )
+        }
+        isTypingSent = false
+        typingReceiverId = null
+    }
+
+    fun clearSession() {
+        unsubscribeFromMessages()
+        _state.value = ChatState()
     }
 }

@@ -1,12 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Header
-from zalo_backend.core.security import get_current_user
-from zalo_backend.schemas.user import UserPublic
-from typing import Literal, Optional
-from zalo_backend.schemas.user import LoginRequest, UpdateProfileRequest
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 from sqlalchemy.orm import Session
+
+from zalo_backend.core.security import (
+    clear_auth_cookie,
+    create_access_token,
+    get_current_user,
+    set_auth_cookie,
+    verify_password,
+)
 from zalo_backend.database.l_postgres import get_db
+from zalo_backend.schemas.user import LoginRequest, UpdateProfileRequest, UserPublic
 from zalo_backend.user_service.service import get_user, update_userprofile
-from zalo_backend.core.security import  create_access_token, set_auth_cookie, verify_password, clear_auth_cookie
 
 auth_router = APIRouter()
 
@@ -23,41 +29,26 @@ def login_request(
         alias="X-Client-Type"
     ),
     db: Session = Depends(get_db)):
-    if not request.email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email empty"
-        )
-    print(f"request = {request}")
     user_from_db = get_user(
         db=db, email=request.email
     )
 
-    if not user_from_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    if not verify_password(request.password, user_from_db.password):
+    if user_from_db is None or not verify_password(request.password, user_from_db.password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid password"
+            detail="Invalid email or password"
         )
     
-    access_token: Optional[str] = None
+    access_token = None
 
     if client_type == "web":
         # React Web: HttpOnly Cookie
-        print("debug")
         set_auth_cookie(response, user_from_db.id)
 
     elif client_type == "android":
         # Android: JWT Bearer Token
         access_token = create_access_token(user_from_db.id)
         
-    print("Login request for email:", user_from_db.email)
-
     return {
         "data": {
             "id": user_from_db.id,
@@ -75,7 +66,7 @@ def logout(
         current_user=Depends(get_current_user),
         client_type: Literal["web", "android"] = Header(default="web", alias="X-Client-Type")
     ):
-    clear_auth_cookie(client_type, response)
+    clear_auth_cookie(response, client_type)
     return {
         "error_code": None
     }
@@ -89,7 +80,7 @@ def update_profile(
     new_user = update_userprofile(
         db =  db,
         user_name = request.username,
-        user_id = request.id,
+        user_id = current_user.id,
         profile_pic = request.profilePic
     )
     if not new_user:

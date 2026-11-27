@@ -4,20 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.zaloclone.api.model.*
 import com.example.zaloclone.api.repository.IGroupRepository
-import com.example.zaloclone.socket.ISocketClient
-
-import io.socket.emitter.Emitter
-import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
-import com.example.zaloclone.session.SessionManager
-import android.util.Log
 
 data class GroupState(
     val groups: List<GetGroupDataResponse> = emptyList(),
@@ -99,6 +89,30 @@ class GroupViewModel(
         }
     }
 
+    fun removeGroupMember(
+        groupId: Int,
+        userId: Int,
+        role: String = "member",
+        onResult: (Boolean) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            try {
+                val request = GroupMemberRemoveRequest(
+                    user_id = userId,
+                    role = role.lowercase()
+                )
+                val response = repository.removeMember(groupId, request)
+                updateGroup(response)
+                onResult(true)
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    error = e.message ?: "Could not remove member to group"
+                )
+                onResult(false)
+            }
+        }
+    }
+
     fun updateGroupMemberRole(
         groupId: Int,
         userId: Int,
@@ -124,5 +138,9 @@ class GroupViewModel(
                 _state.value = _state.value.copy(error = e.message ?: "Could not refresh group")
             }
         }
+    }
+
+    fun clearSession() {
+        _state.value = GroupState()
     }
 }

@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import io.socket.client.Socket
 import kotlinx.coroutines.flow.update
 
 data class AuthState(
@@ -29,7 +30,8 @@ data class AuthState(
     val errorMessage: String? = null,
     val successMessage: String? = null,
     val isSocketReady: Boolean = false,
-    val isLoading: Boolean = false
+    val isLoading: Boolean = false,
+    val forceLogoutMessage: String? = null
 )
 
 class AuthViewModel(
@@ -198,13 +200,23 @@ class AuthViewModel(
         _state.update {it.copy(myPresenceStatus = status)}
         socketService.updatePresenceStatus(status)
     }
-
-    private fun connectSocket(token: String) {
-        socketService.stopHeartbeat()
-        socketService.removeListeners()
+    
+    fun connectSocket(token: String) {
+        _state.update { it.copy(isSocketReady = false) }
         val socket = socketClient.create(token)
         socketService.listenEvents(
             SocketCallbacks(
+                onForceLogout = { message ->
+                    viewModelScope.launch {
+                        tokenManager.clearToken()
+                        disconnectSocket()
+                        _state.value = AuthState(
+                            isCheckingAuth = false,
+                            forceLogoutMessage = message,
+                            authUser = null
+                        )
+                    }
+                },
                 onOnlineUsers = { userIds ->
                     _state.update { current ->
                         val updatedPresences = current.userPresences.toMutableMap()

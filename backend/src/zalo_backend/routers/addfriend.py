@@ -3,10 +3,14 @@ from sqlalchemy.orm import Session
 
 from zalo_backend.core.security import get_current_user
 from zalo_backend.database.l_postgres import get_db
-from zalo_backend.message_service.realtime import sio
 from zalo_backend.schemas.user import AddFriendRequest, AddFriendResponse, FriendRequestResponse, UserPublic
 from zalo_backend.user_service import addfr_service
 from zalo_backend.user_service.service import get_user
+from zalo_backend.socket.eventNotify import (
+    notify_rev_acceptFriendRequest,
+    notify_rev_friendRequest,
+    notify_rev_rejectFriendRequest,
+)
 
 addfriend_router = APIRouter()
 
@@ -26,10 +30,14 @@ async def addfriend_request(
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
-    await sio.emit(
-        "friendRequest",
-        {"id": friendship.id, "sender_id": current_user.id, "sender_username": current_user.username},
-        room=str(target_user.id),
+    await notify_rev_friendRequest(
+        target_user.id,
+        {
+            "id": friendship.id,
+            "sender_id": current_user.id,
+            "username": current_user.username,
+            "email": current_user.email
+        }
     )
     return {
         "data": AddFriendResponse(
@@ -58,51 +66,66 @@ def get_addfriend_requests(
     ]
     return {"data": request_list, "error_code": None}
 
+@addfriend_router.get("/requests/sent")
+def get_sent_addfriend_requests(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Friend requests the current user sent, with status pending"""
+    requests = addfr_service.get_sent_friend_requests(db, current_user.id)
+    request_list = [
+        FriendRequestResponse(
+            id=friendship.id,
+            email=addressee.email,
+            username=addressee.username,
+            status=friendship.status,
+        )
+        for friendship, addressee in requests
+    ]
+    return {"data": request_list, "error_code": None}
 
-def _update_request(friendship_id: int, new_status: str, db: Session, current_user):
+
+async def _update_request(friendship_id: int, new_status: str, db: Session, current_user):
     friendship = addfr_service.update_friendship_status(
         db, friendship_id, current_user.id, new_status,
     )
     if friendship is None:
         raise HTTPException(status_code=404, detail="Pending friend request not found")
-    return {"data": {"id": friendship.id, "status": friendship.status}, "error_code": None}
 
-def _delete_friendship(
-    db: Session,
-    current_user_id: int,
-    other_user_id: int
-):
-    friendship = addfr_service.check_friendship(
-        db,
-        current_user_id,
-        other_user_id
+    # Notify the original sender only after the addressee has been verified
+    # and the status change has been committed.
+    notify = (
+        notify_rev_acceptFriendRequest
+        if new_status == "accepted"
+        else notify_rev_rejectFriendRequest
     )
-    if not friendship or friendship.status != "accepted":
-        raise HTTPException(
-            status_code=404,
-            detail="Friendship not found"
-        )
-    db.delete(friendship)
-    db.commit()
-
-    return {"message": "Friendship deleted successfully"}
+    await notify(
+        friendship.requester_id,
+        {
+            "id": friendship_id,
+            "addressee_id": current_user.id,
+            "username": current_user.username,
+            "email": current_user.email,
+            "status": new_status,
+        },
+    )
+    return {"data": {"id": friendship_id, "status": new_status}, "error_code": None}
 
 @addfriend_router.post("/requests/{friendship_id}/accept")
-def accept_friend_request(
+async def accept_friend_request(
     friendship_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return _update_request(friendship_id, "accepted", db, current_user)
-
+    return await _update_request(friendship_id, "accepted", db, current_user)
 
 @addfriend_router.post("/requests/{friendship_id}/reject")
-def reject_friend_request(
+async def reject_friend_request(
     friendship_id: int,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    return _update_request(friendship_id, "rejected", db, current_user)
+    return await _update_request(friendship_id, "rejected", db, current_user)
 
 @addfriend_router.post("/requests/deleted")
 def delete_friendship_request(
@@ -110,11 +133,10 @@ def delete_friendship_request(
     db: Session = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
-    return _delete_friendship(
-        db,
-        current_user.id,
-        other_user_id
-    )
+    deleted = addfr_service.delete_friendship(db, current_user.id, other_user_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Friendship not found")
+    return {"message": "Friendship deleted successfully"}
 
 @addfriend_router.get("/friends", response_model=list[UserPublic])
 def get_friends(

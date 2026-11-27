@@ -16,10 +16,16 @@ interface GroupApiServices {
     @POST(ApiConfig.API_GROUP_URL)
     suspend fun createGroup(@Body data: GroupCreateRequest): GetGroupDataResponse
 
-    @POST("api/groups/{groupId}/members")
+    @POST("api/groups/{groupId}/add/members")
     suspend fun addMember(
         @Path("groupId") groupId: Int,
         @Body data: GroupMemberAddRequest
+    ): GetGroupDataResponse
+
+    @POST("api/groups/{groupId}/remove/members")
+    suspend fun removeMember(
+        @Path("groupId") groupId: Int,
+        @Body data: GroupMemberRemoveRequest
     ): GetGroupDataResponse
 
     @PATCH("api/groups/{groupId}/members/{userId}/role")

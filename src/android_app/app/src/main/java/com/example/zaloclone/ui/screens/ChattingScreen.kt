@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.zaloclone.api.model.*
 import com.example.zaloclone.api.model.SendMessageDataRequest
 import com.example.zaloclone.data.local.*
@@ -24,6 +25,8 @@ import com.example.zaloclone.ui.viewModel.*
 import android.util.Base64
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
+import androidx.compose.runtime.DisposableEffect
 
 @Composable
 fun ChattingScreen(
@@ -50,9 +53,22 @@ fun ChattingScreen(
     var showAttachPanel by remember { mutableStateOf(false) }
     var showEmotionSheet by remember { mutableStateOf(false) }
     var previewImageUrl by remember { mutableStateOf<String?>(null) }
+    var forwardingMessageId by remember { mutableStateOf<String?>(null) }
+    var isForwarding by remember { mutableStateOf(false) }
     val isGroup = remember(chatId) {chatId.startsWith("group_")}
     val groupId = remember(chatId) {chatId.removePrefix("group_").toIntOrNull()}
     val groupMembers = remember {mutableStateListOf<GetGroupMemberResponse>()}
+
+    DisposableEffect(friendId, isGroup) {
+        if (!isGroup && friendId != null) {
+            chatViewModel.setCurrentChatUser(friendId)
+        } else {
+            chatViewModel.setCurrentChatUser(null)
+        }
+        onDispose {
+            chatViewModel.setCurrentChatUser(null)
+        }
+    }
 
     LaunchedEffect(chatId) {
         if (chatName.isNotBlank()) {
@@ -79,8 +95,6 @@ fun ChattingScreen(
         }
         groupMembers.clear()
         groupMembers.addAll(selectedGroup?.members.orEmpty())
-        Log.d("GROUP_DEBUG", "Group ID: $groupId")
-        Log.d("GROUP_DEBUG", "Members count: ${groupMembers.size}")
     }
 
     Text(
@@ -121,25 +135,6 @@ fun ChattingScreen(
         }
     }
 
-    LaunchedEffect(chatState.messages) {
-        Log.d(
-            "CHAT_DEBUG",
-            "State messages count = ${chatState.messages.size}"
-        )
-
-        chatState.messages.forEach {
-            Log.d(
-                "CHAT_DEBUG",
-                "Message id=${it.id}, sender=${it.senderId}, text=${it.text}"
-            )
-        }
-
-        Log.d(
-            "CHAT_DEBUG",
-            "UI messages count = ${chatState.messages.size}"
-        )
-    }
-
     val messages = remember(
         chatState.messages,
         currentUserId,
@@ -164,7 +159,9 @@ fun ChattingScreen(
                 emotion = chatMsg.emotion,
                 mediaUrl = chatMsg.image ?: chatMsg.attachment,
                 fileName = chatMsg.attachmentName,
-                reaction = reactionByMessageId[chatMsg.id]
+                reaction = if (chatMsg.isRecalled) null else reactionByMessageId[chatMsg.id],
+                isRecalled = chatMsg.isRecalled,
+                isForwarded = chatMsg.isForwarded
             )
         }
     }
@@ -290,9 +287,31 @@ fun ChattingScreen(
                     )
                 }
 
+                // Typing indicator
+                if (!isGroup && chatState.isOtherUserTyping) {
+                    Text(
+                        text = "$currentChatName đang nhập...",
+                        color = Color.Gray,
+                        fontSize = 13.sp,
+                        modifier = Modifier.padding(
+                            start = 16.dp,
+                            top = 4.dp,
+                            bottom = 6.dp
+                        )
+                    )
+                }
+		
                 ChatInputBar(
                     text = messageText,
-                    onTextChange = { messageText = it },
+                    onTextChange = { text ->
+                        messageText = text
+                        if (!isGroup && friendId != null) {
+                            chatViewModel.onMessageInputChanged(
+                                receiverId = friendId,
+                                message = text
+                            )
+                        }
+                    },
                     onSend = {
                         if (messageText.isNotBlank()) {
                             sendMediaMessage(
@@ -326,19 +345,38 @@ fun ChattingScreen(
                 .background(Color.White)
                 .padding(paddingValues)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentPadding = PaddingValues(vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
                 items(
                     items = messages,
                     key = { message -> message.id }
                 ) { message ->
-                    if (
+                    if (message.isRecalled) {
+                        MessageBubble(
+                            message = message,
+                            senderName = currentChatName,
+                            onImageClick = { url -> previewImageUrl = url },
+                            onReactionSelect = { msg, reaction ->
+                                val currentReaction = reactionByMessageId[msg.id]
+                                if (currentReaction == reaction) {
+                                    reactionByMessageId.remove(msg.id)
+                                } else {
+                                    reactionByMessageId[msg.id] = reaction
+                                }
+                            },
+                            onRecall = { msg -> chatViewModel.recallMessage(msg.id) },
+                            onForward = { msg ->
+                                if (allContacts.isEmpty()) chatViewModel.getAllContacts()
+                                forwardingMessageId = msg.id
+                            }
+                        )
+                    } else if (
                         message.text.isEmpty() &&
                         message.mediaUrl == null &&
                         message.emotion == null
@@ -353,6 +391,11 @@ fun ChattingScreen(
                                 val currentReaction = reactionByMessageId[msg.id]
                                 if (currentReaction == reaction) {reactionByMessageId.remove(msg.id)} 
                                 else {reactionByMessageId[msg.id] = reaction}
+                            },
+                            onRecall = { msg -> chatViewModel.recallMessage(msg.id) },
+                            onForward = { msg ->
+                                if (allContacts.isEmpty()) chatViewModel.getAllContacts()
+                                forwardingMessageId = msg.id
                             }
                         )
                     }
@@ -368,10 +411,36 @@ fun ChattingScreen(
         )
     }
 
+    forwardingMessageId?.let { messageId ->
+        ForwardMessageDialog(
+            contacts = allContacts.filter { it.id != currentUserId },
+            groups = groupState.groups,
+            isSending = isForwarding,
+            onDismiss = { forwardingMessageId = null },
+            onForward = { receiverIds, groupIds ->
+                isForwarding = true
+                chatViewModel.forwardMessage(messageId, receiverIds, groupIds) { error ->
+                    isForwarding = false
+                    if (error == null) {
+                        forwardingMessageId = null
+                        val total = receiverIds.size + groupIds.size
+                        Toast.makeText(context, "Đã chuyển tiếp tới $total cuộc trò chuyện", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+        )
+    }
+
     if (showGroupInfoDialog && isGroup) {
+        val groupIdInt = chatId.removePrefix("group_").toIntOrNull() ?: 0
         GroupInfoDialog(
             groupName = currentChatName,
-            members = groupMembers.map { it.username },
+            members = groupMembers,
+            groupId = groupIdInt,
+            currentUserId = currentUserId,
+            groupViewModel = groupViewModel,
             onDismiss = { showGroupInfoDialog = false },
             onAddMemberClick = { showAddMemberDialog = true },
             onChangeGroupNameClick = { showChangeGroupNameDialog = true }
@@ -419,6 +488,13 @@ fun ChattingScreen(
                         ) { success: Boolean ->
                             if (success) {
                                 groupViewModel.getGroups()
+                            }
+                            else {
+                                Toast.makeText(
+                                    context,
+                                    "Only admin can add member",
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                         }
                     }

@@ -9,13 +9,14 @@ function GroupChatHeader() {
     allContacts,
     getAllContacts,
     addGroupMember,
-    updateGroupMemberRole,
+    removeGroupMember,
+    // updateGroupMemberRole,
     setSelectedGroup,
   } = useChatStore();
   const { authUser } = useAuthStore();
   const [isManaging, setIsManaging] = useState(false);
   const [newMemberId, setNewMemberId] = useState("");
-  const [newMemberRole, setNewMemberRole] = useState<"admin" | "member">("member");
+  const [newMemberRole, setNewMemberRole] = useState<"member">("member");
 
   const groupId = selectedGroup?.id;
 
@@ -35,6 +36,14 @@ function GroupChatHeader() {
     if (!newMemberId) return;
     await addGroupMember(selectedGroup.id, Number(newMemberId), newMemberRole);
     setNewMemberId("");
+  };
+
+  const handleRemoveMember = async (userId) => {
+    try {
+      await removeGroupMember(selectedGroup.id, Number(userId), "member");
+    } catch (error) {
+      console.error("Failed to remove member:", error);
+    }
   };
 
   return (
@@ -76,7 +85,22 @@ function GroupChatHeader() {
                   <p className="truncate text-sm text-slate-200">{member.username}</p>
                   <p className="truncate text-xs text-slate-500">{member.email}</p>
                 </div>
-                {isAdmin ? (
+                {member.role === "admin" ? (
+                  <span className="shrink-0 rounded-full bg-blue-500/20 px-2 py-1 text-xs font-semibold text-blue-400">
+                    Admin
+                  </span>
+                ) : (
+                  isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMember(member.user_id)}
+                      className="shrink-0 rounded-md bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                    >
+                      Remove
+                    </button>
+                  )
+                )}
+                {/* {isAdmin ? (
                   <select
                     aria-label={`Role for ${member.username}`}
                     value={member.role}
@@ -92,7 +116,7 @@ function GroupChatHeader() {
                   </select>
                 ) : (
                   <span className="text-xs text-slate-400">{member.role}</span>
-                )}
+                )} */}
               </div>
             ))}
           </div>
@@ -119,11 +143,10 @@ function GroupChatHeader() {
                     <select
                       aria-label="Role for new member"
                       value={newMemberRole}
-                      onChange={(event) => setNewMemberRole(event.target.value as "admin" | "member")}
+                      onChange={(event) => setNewMemberRole(event.target.value as "member")}
                       className="min-w-0 flex-1 rounded border border-slate-700 bg-slate-800 px-2 py-2 text-sm text-slate-200"
                     >
                       <option value="member">Member</option>
-                      <option value="admin">Admin</option>
                     </select>
                     <button
                       type="button"

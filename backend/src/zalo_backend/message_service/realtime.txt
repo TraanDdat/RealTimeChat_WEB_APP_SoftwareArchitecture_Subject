@@ -30,7 +30,7 @@ def _user_id_from_bearer(environ) -> int | None:
     token = authorization.removeprefix("Bearer ").strip()
     return decode_access_token(token)
 
-def _get_socket_user_id(environ) -> int | None:
+def get_socket_user_id(environ) -> int | None:
     cookie_id = _user_id_from_cookie(environ)
     bearer_id = _user_id_from_bearer(environ)
 
@@ -49,29 +49,41 @@ def _get_socket_user_id(environ) -> int | None:
 
 @sio.event
 async def connect(sid, environ, auth):
-    user_id = _get_socket_user_id(environ)
+    print("CONNECT ATTEMPT:", sid, flush=True)
+    print("COOKIE EXISTS:", bool(environ.get("HTTP_COOKIE")), flush=True)
+    print("AUTHORIZATION EXISTS:", bool(environ.get("HTTP_AUTHORIZATION")), flush=True)
+    print("AUTH PARAM:", auth, flush=True)
+    print("SOCKET CONNECT ATTEMPT:", sid, flush=True)
+    print("HEADERS:", environ.get("HTTP_COOKIE"), flush=True)
+    user_id = get_socket_user_id(environ)
     if user_id is None:
+        print("REJECTED: Cannot identify user", flush=True)
         return False
     try:
         user = await run_in_threadpool(resolve_user, user_id)
     except HTTPException as e:
+        print("REJECTED:", e.detail, flush=True)
         logger.warning("SOCKET USER NOT FOUND: user_id=%s", user_id)
         return False
     await sio.enter_room(sid, str(user.id))
     online_users.setdefault(user.id, set()).add(sid)
+    print("CONNECT:", user.id, sid, flush=True)
+    print("ONLINE:", list(online_users.keys()), flush=True)
     await sio.emit("getOnlineUsers", list(online_users.keys()))
 
 
 @sio.event
 async def disconnect(sid, *args):
+    print("DISCONNECT:", sid, flush=True)
     for user_id, sids in list(online_users.items()):
         sids.discard(sid)
         if not sids:
             del online_users[user_id]
+    print("ONLINE AFTER DISCONNECT:", list(online_users.keys()), flush=True)
     await sio.emit("getOnlineUsers", list(online_users))
 
 
-async def notify_receiver(receiver_id: int, message: Message):
+async def notify_rev_newMessage(receiver_id: int, message: Message):
     try:
         await sio.emit(
             "newMessage", message.model_dump(mode="json", by_alias=True),

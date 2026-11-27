@@ -1,5 +1,12 @@
 import { axiosInstance } from "../lib/axios";
-import type { ChatUser, ChatMessage, SendMessageDataRequest, UnreadCountsResponse } from "../types/chat";
+import type {
+  ChatUser,
+  ChatMessage,
+  ForwardMessageRequest,
+  ForwardMessageResponse,
+  SendMessageDataRequest,
+  UnreadCountsResponse,
+} from "../types/chat";
 
 export const chatApi = {
   getContacts: () =>
@@ -19,6 +26,9 @@ export const chatApi = {
 
   deleteMessage: (messageId: string) =>
     axiosInstance.delete(`/messages/${messageId}`),
+
+  forwardMessage: (data: ForwardMessageRequest) =>
+    axiosInstance.post<ForwardMessageResponse>("/messages/forward", data),
 
   sendMessage: (receiverId: number, data: SendMessageDataRequest) =>
     axiosInstance.post<ChatMessage>(

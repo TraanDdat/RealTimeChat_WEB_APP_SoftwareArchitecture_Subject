@@ -35,10 +35,7 @@ def _find_user(db: Session, user_id: int | None = None, email: str | None = None
 
 
 def get_user(db: Session, user_id: int | None = None, email: str | None = None):
-    if not _find_user(db, user_id, email):
-        return None
-    else:
-        return _find_user(db, user_id, email)
+    return _find_user(db, user_id, email)
 
 
 def update_user(
