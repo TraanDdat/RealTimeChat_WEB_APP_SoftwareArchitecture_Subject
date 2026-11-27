@@ -9,6 +9,8 @@ interface IGroupRepository {
 
     suspend fun addMember(groupId: Int, data: GroupMemberAddRequest): GetGroupDataResponse
 
+    suspend fun removeMember(groupId: Int, data: GroupMemberRemoveRequest): GetGroupDataResponse
+
     suspend fun updateMemberRole(
         groupId: Int,
         userId: Int,

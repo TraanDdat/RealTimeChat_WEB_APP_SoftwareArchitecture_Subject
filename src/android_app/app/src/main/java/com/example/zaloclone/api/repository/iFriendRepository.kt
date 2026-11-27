@@ -9,4 +9,5 @@ interface IFriendRepository {
     suspend fun acceptRequest(friendship_id: Int): FriendRequestResponse
     suspend fun rejectRequest(friendship_id: Int): FriendRequestResponse
     suspend fun deleteFriendshipRequest(friendship_id: Int): Response<Unit>
+    suspend fun getPendingRequest(): FriendListResponse
 }

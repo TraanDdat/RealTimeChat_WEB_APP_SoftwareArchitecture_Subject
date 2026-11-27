@@ -109,8 +109,9 @@ fun MainAppNavigation(appContainer: AppContainer) {
             chatViewModel.startGlobalSocketListener()
             friendViewModel.startGlobalSocketListener()
             friendViewModel.getRequest()
+            friendViewModel.getPendingRequest()
         }
-    }
+    } 
 
     LaunchedEffect(authState.userId, authState.email) {
         val userId = authState.userId
