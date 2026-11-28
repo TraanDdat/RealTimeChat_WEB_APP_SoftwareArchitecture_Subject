@@ -1,56 +1,22 @@
-"""User activity tracking and statistics.
+"""User activity statistics.
 
-Collected data (MongoDB):
-- online_sessions: one document per Socket.IO connection {userId, sid, startedAt, endedAt}
-
-Statistics are computed from that collection plus the existing
-`messages` / `group_messages` collections and PostgreSQL (users, friends, groups).
+Computed from the existing `messages` / `group_messages` collections (MongoDB),
+PostgreSQL (users, friends, groups) and the live Socket.IO connections (online users).
 """
-import logging
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pymongo import DESCENDING
-from pymongo.errors import PyMongoError
 
-from zalo_backend.database.l_mongodb import collection, group_messages, online_sessions
+from zalo_backend.database.l_mongodb import collection, group_messages
 from zalo_backend.database.l_postgres import SessionLocal
 from zalo_backend.models.postgres.group_chat import GroupChat, GroupMember
 from zalo_backend.models.postgres.user import User
 from zalo_backend.user_service.addfr_service import get_friends
 from zalo_backend.user_service.client import get_user
 
-logger = logging.getLogger(__name__)
-
 MESSAGE_TYPES = ("text", "emotion", "image", "video", "file")
 
-
-# ---------------------------------------------------------------- collecting
-
-def start_session(user_id: int, sid: str) -> None:
-    """Best effort: activity tracking must never break the socket connection."""
-    try:
-        online_sessions.insert_one({
-            "userId": user_id,
-            "sid": sid,
-            "startedAt": datetime.now(timezone.utc),
-            "endedAt": None,
-        })
-    except PyMongoError:
-        logger.exception("Failed to start online session: user=%s sid=%s", user_id, sid)
-
-
-def end_session(sid: str) -> None:
-    try:
-        online_sessions.update_one(
-            {"sid": sid, "endedAt": None},
-            {"$set": {"endedAt": datetime.now(timezone.utc)}},
-        )
-    except PyMongoError:
-        logger.exception("Failed to end online session: sid=%s", sid)
-
-
-# ---------------------------------------------------------------- statistics
 
 def _resolve_tz(tz_name: str | None) -> tuple[ZoneInfo | timezone, str]:
     if tz_name:
@@ -91,40 +57,6 @@ def _count_by_day(coll, match: dict, tz_name: str) -> dict[str, int]:
         }},
     ])
     return {row["_id"]: row["count"] for row in rows}
-
-
-def _online_minutes_by_day(
-    user_id: int, start: datetime, now: datetime, tz, days: list[date],
-) -> dict[str, float]:
-    from zalo_backend.socket.event import connected_users  # avoid import cycle
-
-    minutes = {day.isoformat(): 0.0 for day in days}
-    sessions = online_sessions.find({
-        "userId": user_id,
-        "startedAt": {"$lt": now},
-        "$or": [{"endedAt": None}, {"endedAt": {"$gte": start}}],
-    })
-    for session in sessions:
-        begin = max(session["startedAt"], start)
-        end = session.get("endedAt")
-        if end is None:
-            # still open: only count it if the socket is really connected right now
-            # (sessions left open by a server restart are ignored)
-            if session.get("sid") not in connected_users:
-                continue
-            end = now
-        end = min(end, now)
-        # split the session across local-day boundaries
-        cursor = begin
-        while cursor < end:
-            local_day = cursor.astimezone(tz).date()
-            next_midnight = datetime.combine(local_day + timedelta(days=1), datetime.min.time(), tz)
-            chunk_end = min(end, next_midnight.astimezone(timezone.utc))
-            key = local_day.isoformat()
-            if key in minutes:
-                minutes[key] += (chunk_end - cursor).total_seconds() / 60
-            cursor = chunk_end
-    return minutes
 
 
 def _system_stats(day_list: list[date], in_range: dict, tz_name: str) -> dict:
@@ -172,11 +104,10 @@ def get_user_stats(user_id: int, days: int = 7, tz_name: str | None = None) -> d
     sent_match = {"senderId": user_id, "createdAt": in_range}
     received_match = {"receiverId": user_id, "createdAt": in_range}
 
-    # ---- daily message counts + online time of this user
+    # ---- daily message counts of this user
     private_sent = _count_by_day(collection, sent_match, tz_name)
     group_sent = _count_by_day(group_messages, sent_match, tz_name)
     received = _count_by_day(collection, received_match, tz_name)
-    online = _online_minutes_by_day(user_id, start, now, tz, day_list)
 
     daily = []
     for day in day_list:
@@ -185,7 +116,6 @@ def get_user_stats(user_id: int, days: int = 7, tz_name: str | None = None) -> d
             "date": key,
             "sent": private_sent.get(key, 0) + group_sent.get(key, 0),
             "received": received.get(key, 0),
-            "onlineMinutes": round(online.get(key, 0.0)),
         })
 
     # ---- message types + most active hours (messages the user sent)
@@ -253,8 +183,7 @@ def get_user_stats(user_id: int, days: int = 7, tz_name: str | None = None) -> d
             "groupMessagesSent": sum(group_sent.values()),
             "mediaShared": message_types["image"] + message_types["video"] + message_types["file"],
             "recalledMessages": recalled,
-            "onlineMinutes": sum(day["onlineMinutes"] for day in daily),
-            "activeDays": sum(1 for day in daily if day["sent"] or day["onlineMinutes"]),
+            "activeDays": sum(1 for day in daily if day["sent"]),
             "friends": friends,
             "groups": groups,
         },

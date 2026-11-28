@@ -4,7 +4,6 @@ export interface DailyActivity {
   date: string; // YYYY-MM-DD (user's local time zone)
   sent: number;
   received: number;
-  onlineMinutes: number;
 }
 
 export interface SystemDailyMessages {
@@ -43,7 +42,6 @@ export interface UserStats {
     groupMessagesSent: number;
     mediaShared: number;
     recalledMessages: number;
-    onlineMinutes: number;
     activeDays: number;
     friends: number;
     groups: number;

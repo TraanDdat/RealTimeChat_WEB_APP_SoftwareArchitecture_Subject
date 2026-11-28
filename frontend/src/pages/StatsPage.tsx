@@ -2,7 +2,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeftIcon,
-  ClockIcon,
   ImageIcon,
   MessageCircleIcon,
   MessagesSquareIcon,
@@ -35,13 +34,6 @@ const TYPE_LABELS: Record<MessageType, string> = {
   video: "Video",
   file: "Document / file",
 };
-
-function formatMinutes(total: number) {
-  const hours = Math.floor(total / 60);
-  const minutes = total % 60;
-  if (hours === 0) return `${minutes}m`;
-  return `${hours}h ${minutes.toString().padStart(2, "0")}m`;
-}
 
 function formatDay(isoDate: string, long = false) {
   const [y, m, d] = isoDate.split("-").map(Number);
@@ -138,7 +130,7 @@ function Tooltip({ children }: { children: ReactNode }) {
 function BarChart({ data, series, formatValue = String, height = 180 }: {
   data: { label: string; longLabel: string; values: number[] }[];
   series: { name: string; color: string }[];
-  formatValue?: typeof formatMinutes;
+  formatValue?: typeof String;
   height?: number;
 }) {
   const [hovered, setHovered] = useState<number | null>(null);
@@ -466,13 +458,11 @@ function StatsPage() {
           <div className="pt-2">
             <SectionTitle>Your activity</SectionTitle>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <StatTile icon={<SendIcon className="size-4" />} label="Messages sent" value={stats.summary.messagesSent}
               hint={`${stats.summary.groupMessagesSent} in groups`} />
             <StatTile icon={<MessageCircleIcon className="size-4" />} label="Messages received" value={stats.summary.messagesReceived}
               hint="private chats" />
-            <StatTile icon={<ClockIcon className="size-4" />} label="Time online" value={formatMinutes(stats.summary.onlineMinutes)}
-              hint={`avg ${formatMinutes(Math.round(stats.summary.onlineMinutes / stats.rangeDays))} / day`} />
             <StatTile icon={<CalendarCheckIcon className="size-4" />} label="Active days" value={`${stats.summary.activeDays}/${stats.rangeDays}`}
               hint={`last message: ${formatDateTime(stats.lastActiveAt)}`} />
             <StatTile icon={<ImageIcon className="size-4" />} label="Media shared" value={stats.summary.mediaShared}
@@ -501,7 +491,6 @@ function StatsPage() {
                       <th className="py-2 font-medium">Date</th>
                       <th className="py-2 font-medium text-right">Sent</th>
                       <th className="py-2 font-medium text-right">Received</th>
-                      <th className="py-2 font-medium text-right">Online</th>
                     </tr>
                   </thead>
                   <tbody className="text-slate-300 tabular-nums">
@@ -510,7 +499,6 @@ function StatsPage() {
                         <td className="py-1.5">{formatDay(d.date, true)}</td>
                         <td className="py-1.5 text-right">{d.sent}</td>
                         <td className="py-1.5 text-right">{d.received}</td>
-                        <td className="py-1.5 text-right">{formatMinutes(d.onlineMinutes)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -528,24 +516,11 @@ function StatsPage() {
             )}
           </Card>
 
+          <Card title="Most active hours" subtitle="Messages you sent, by hour of day">
+            <HourHeatStrip hourly={stats.hourly} />
+          </Card>
+
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card title="Time online per day" subtitle="Measured from real-time (Socket.IO) connections">
-              <BarChart
-                height={160}
-                series={[{ name: "Online", color: SENT_COLOR }]}
-                formatValue={formatMinutes}
-                data={daily.map((d) => ({
-                  label: formatDay(d.date),
-                  longLabel: formatDay(d.date, true),
-                  values: [d.onlineMinutes],
-                }))}
-              />
-            </Card>
-
-            <Card title="Most active hours" subtitle="Messages you sent, by hour of day">
-              <HourHeatStrip hourly={stats.hourly} />
-            </Card>
-
             <Card title="Message types" subtitle="What you sent in this period">
               <HorizontalBars
                 rows={(Object.keys(TYPE_LABELS) as MessageType[]).map((type) => ({

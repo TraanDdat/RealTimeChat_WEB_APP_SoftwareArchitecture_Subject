@@ -2,7 +2,6 @@ from fastapi.concurrency import run_in_threadpool
 from zalo_backend.core.config import settings
 from zalo_backend.socket.socketService import get_socket_user_id
 from zalo_backend.user_service.client import get_user
-from zalo_backend.user_service.activity_service import end_session, start_session
 import socketio
 import logging
 
@@ -43,7 +42,6 @@ async def connect(sid, environ, auth):
     await sio.enter_room(sid, str(user.id))
     online_users.setdefault(user.id, set()).add(sid)
     connected_users[sid] = user.id
-    await run_in_threadpool(start_session, user.id, sid)
     logger.info("SOCKET CONNECTED: user_id=%s, sid=%s", user.id, sid)
     await sio.emit("getOnlineUsers", list(online_users.keys()))
 
@@ -51,7 +49,6 @@ async def connect(sid, environ, auth):
 async def disconnect(sid, *args):
     user_id = connected_users.pop(sid, None)
     if user_id is not None:
-        await run_in_threadpool(end_session, sid)
         sids = online_users.get(user_id)
         if sids:
             sids.discard(sid)
