@@ -387,182 +387,192 @@ function StatsPage() {
         </div>
       )}
 
-      {stats && (
-        <div className={`space-y-6 transition-opacity ${isLoading ? "opacity-60" : ""}`}>
+      {/* {stats && ( */}
+        
           {/* ---------------- system-wide statistics ---------------- */}
-          <SectionTitle>System overview</SectionTitle>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatTile icon={<UserIcon className="size-4" />} label="Registered users" value={stats.system.totalUsers} />
-            <StatTile icon={<UsersIcon className="size-4" />} label="Groups" value={stats.system.totalGroups} />
-            <StatTile
-              icon={<span className="inline-block size-2 rounded-full bg-green-500" />}
-              label="Users online now"
-              value={stats.system.onlineUsers}
-              hint={`${stats.system.totalUsers ? Math.round((stats.system.onlineUsers / stats.system.totalUsers) * 100) : 0}% of all users`}
-            />
-            <StatTile
-              icon={<MessagesSquareIcon className="size-4" />}
-              label="Total messages"
-              value={stats.system.totalMessages}
-              hint={`${stats.system.privateMessages} private · ${stats.system.groupMessages} group · ${stats.system.messagesToday} today`}
-            />
-          </div>
+          {stats && authUser && (
+            <div className={`space-y-6 transition-opacity ${isLoading ? "opacity-60" : ""}`}>
 
-          <Card
-            title="Messages in the system per day"
-            subtitle={`${stats.system.messagesInRange} messages in the last ${stats.rangeDays} days, all users`}
-            action={
-              <div className="flex items-center gap-4">
-                <LegendItem color={SENT_COLOR} label="Private" />
-                <LegendItem color={RECEIVED_COLOR} label="Group" />
-                <TableToggle showTable={showSystemTable} onToggle={() => setShowSystemTable((v) => !v)} />
-              </div>
-            }
-          >
-            {showSystemTable ? (
-              <div className="max-h-64 overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-slate-500 text-xs text-left">
-                    <tr className="border-b border-slate-700/50">
-                      <th className="py-2 font-medium">Date</th>
-                      <th className="py-2 font-medium text-right">Private</th>
-                      <th className="py-2 font-medium text-right">Group</th>
-                      <th className="py-2 font-medium text-right">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-slate-300 tabular-nums">
-                    {[...stats.system.daily].reverse().map((d) => (
-                      <tr key={d.date} className="border-b border-slate-700/50 last:border-0">
-                        <td className="py-1.5">{formatDay(d.date, true)}</td>
-                        <td className="py-1.5 text-right">{d.private}</td>
-                        <td className="py-1.5 text-right">{d.group}</td>
-                        <td className="py-1.5 text-right">{d.private + d.group}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <BarChart
-                series={[{ name: "Private", color: SENT_COLOR }, { name: "Group", color: RECEIVED_COLOR }]}
-                data={stats.system.daily.map((d) => ({
-                  label: formatDay(d.date),
-                  longLabel: formatDay(d.date, true),
-                  values: [d.private, d.group],
-                }))}
-              />
-            )}
-          </Card>
+              {/* Admin: System-wide statistics */}
+              {authUser.email?.endsWith("@admin.vn") && (
+                <div className="space-y-6">
+                  <SectionTitle>System overview</SectionTitle>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StatTile icon={<UserIcon className="size-4" />} label="Registered users" value={stats.system.totalUsers} />
+                    <StatTile icon={<UsersIcon className="size-4" />} label="Groups" value={stats.system.totalGroups} />
+                    <StatTile
+                      icon={<span className="inline-block size-2 rounded-full bg-green-500" />}
+                      label="Users online now"
+                      value={stats.system.onlineUsers}
+                      hint={`${stats.system.totalUsers ? Math.round((stats.system.onlineUsers / stats.system.totalUsers) * 100) : 0}% of all users`}
+                    />
+                    <StatTile
+                      icon={<MessagesSquareIcon className="size-4" />}
+                      label="Total messages"
+                      value={stats.system.totalMessages}
+                      hint={`${stats.system.privateMessages} private · ${stats.system.groupMessages} group · ${stats.system.messagesToday} today`}
+                    />
+                  </div>
 
-          {/* ---------------- current user's activity ---------------- */}
-          <div className="pt-2">
-            <SectionTitle>Your activity</SectionTitle>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <StatTile icon={<SendIcon className="size-4" />} label="Messages sent" value={stats.summary.messagesSent}
-              hint={`${stats.summary.groupMessagesSent} in groups`} />
-            <StatTile icon={<MessageCircleIcon className="size-4" />} label="Messages received" value={stats.summary.messagesReceived}
-              hint="private chats" />
-            <StatTile icon={<CalendarCheckIcon className="size-4" />} label="Active days" value={`${stats.summary.activeDays}/${stats.rangeDays}`}
-              hint={`last message: ${formatDateTime(stats.lastActiveAt)}`} />
-            <StatTile icon={<ImageIcon className="size-4" />} label="Media shared" value={stats.summary.mediaShared}
-              hint={`${stats.summary.recalledMessages} recalled`} />
-            <StatTile icon={<UsersIcon className="size-4" />} label="Friends · groups"
-              value={`${stats.summary.friends} · ${stats.summary.groups}`} hint="friends · groups joined" />
-          </div>
-
-          {/* daily messages */}
-          <Card
-            title="Your messages per day"
-            subtitle="Sent (private + group) and received (private)"
-            action={
-              <div className="flex items-center gap-4">
-                <LegendItem color={SENT_COLOR} label="Sent" />
-                <LegendItem color={RECEIVED_COLOR} label="Received" />
-                <TableToggle showTable={showTable} onToggle={() => setShowTable((v) => !v)} />
-              </div>
-            }
-          >
-            {showTable ? (
-              <div className="max-h-64 overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-slate-500 text-xs text-left">
-                    <tr className="border-b border-slate-700/50">
-                      <th className="py-2 font-medium">Date</th>
-                      <th className="py-2 font-medium text-right">Sent</th>
-                      <th className="py-2 font-medium text-right">Received</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-slate-300 tabular-nums">
-                    {[...daily].reverse().map((d) => (
-                      <tr key={d.date} className="border-b border-slate-700/50 last:border-0">
-                        <td className="py-1.5">{formatDay(d.date, true)}</td>
-                        <td className="py-1.5 text-right">{d.sent}</td>
-                        <td className="py-1.5 text-right">{d.received}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <BarChart
-                series={[{ name: "Sent", color: SENT_COLOR }, { name: "Received", color: RECEIVED_COLOR }]}
-                data={daily.map((d) => ({
-                  label: formatDay(d.date),
-                  longLabel: formatDay(d.date, true),
-                  values: [d.sent, d.received],
-                }))}
-              />
-            )}
-          </Card>
-
-          <Card title="Most active hours" subtitle="Messages you sent, by hour of day">
-            <HourHeatStrip hourly={stats.hourly} />
-          </Card>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card title="Message types" subtitle="What you sent in this period">
-              <HorizontalBars
-                rows={(Object.keys(TYPE_LABELS) as MessageType[]).map((type) => ({
-                  label: TYPE_LABELS[type],
-                  value: stats.messageTypes[type] ?? 0,
-                }))}
-              />
-            </Card>
-
-            <Card title="Top contacts" subtitle="Private messages exchanged">
-              {stats.topContacts.length === 0 ? (
-                <p className="text-slate-500 text-sm">No private conversations in this period.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {stats.topContacts.map((contact) => (
-                    <li key={contact.userId} className="flex items-center gap-3">
-                      <img
-                        src={contact.profilePic || "/avatar.png"}
-                        alt={contact.username}
-                        className="size-8 rounded-full object-cover"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-200 truncate">{contact.username}</span>
-                          <span className="text-slate-200 tabular-nums font-medium">{contact.messages}</span>
-                        </div>
-                        <div className="mt-1 h-1.5 rounded bg-[#eef3fa]">
-                          <div
-                            className="h-full rounded"
-                            style={{
-                              width: `${(contact.messages / stats.topContacts[0].messages) * 100}%`,
-                              background: SENT_COLOR,
-                            }}
-                          />
-                        </div>
+                  <Card
+                    title="Messages in the system per day"
+                    subtitle={`${stats.system.messagesInRange} messages in the last ${stats.rangeDays} days, all users`}
+                    action={
+                      <div className="flex items-center gap-4">
+                        <LegendItem color={SENT_COLOR} label="Private" />
+                        <LegendItem color={RECEIVED_COLOR} label="Group" />
+                        <TableToggle showTable={showSystemTable} onToggle={() => setShowSystemTable((v) => !v)} />
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    }
+                  >
+                    {showSystemTable ? (
+                      <div className="max-h-64 overflow-y-auto">
+                        <table className="w-full text-sm">
+                          <thead className="text-slate-500 text-xs text-left">
+                            <tr className="border-b border-slate-700/50">
+                              <th className="py-2 font-medium">Date</th>
+                              <th className="py-2 font-medium text-right">Private</th>
+                              <th className="py-2 font-medium text-right">Group</th>
+                              <th className="py-2 font-medium text-right">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-slate-300 tabular-nums">
+                            {[...stats.system.daily].reverse().map((d) => (
+                              <tr key={d.date} className="border-b border-slate-700/50 last:border-0">
+                                <td className="py-1.5">{formatDay(d.date, true)}</td>
+                                <td className="py-1.5 text-right">{d.private}</td>
+                                <td className="py-1.5 text-right">{d.group}</td>
+                                <td className="py-1.5 text-right">{d.private + d.group}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <BarChart
+                        series={[{ name: "Private", color: SENT_COLOR }, { name: "Group", color: RECEIVED_COLOR }]}
+                        data={stats.system.daily.map((d) => ({
+                          label: formatDay(d.date),
+                          longLabel: formatDay(d.date, true),
+                          values: [d.private, d.group],
+                        }))}
+                      />
+                    )}
+                  </Card>
+                </div>
               )}
-            </Card>
-          </div>
+          
+          {/* User: Personal activity */}
+          {!authUser.email?.endsWith("@admin.vn") && (
+            <div className="space-y-6">
+              <div className="pt-2">
+                <SectionTitle>Your activity</SectionTitle>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <StatTile icon={<SendIcon className="size-4" />} label="Messages sent" value={stats.summary.messagesSent}
+                  hint={`${stats.summary.groupMessagesSent} in groups`} />
+                <StatTile icon={<MessageCircleIcon className="size-4" />} label="Messages received" value={stats.summary.messagesReceived}
+                  hint="private chats" />
+                <StatTile icon={<CalendarCheckIcon className="size-4" />} label="Active days" value={`${stats.summary.activeDays}/${stats.rangeDays}`}
+                  hint={`last message: ${formatDateTime(stats.lastActiveAt)}`} />
+                <StatTile icon={<ImageIcon className="size-4" />} label="Media shared" value={stats.summary.mediaShared}
+                  hint={`${stats.summary.recalledMessages} recalled`} />
+                <StatTile icon={<UsersIcon className="size-4" />} label="Friends · groups"
+                  value={`${stats.summary.friends} · ${stats.summary.groups}`} hint="friends · groups joined" />
+              </div>
+              <Card
+                title="Your messages per day"
+                subtitle="Sent (private + group) and received (private)"
+                action={
+                  <div className="flex items-center gap-4">
+                    <LegendItem color={SENT_COLOR} label="Sent" />
+                    <LegendItem color={RECEIVED_COLOR} label="Received" />
+                    <TableToggle showTable={showTable} onToggle={() => setShowTable((v) => !v)} />
+                  </div>
+                }
+              >
+                {showTable ? (
+                  <div className="max-h-64 overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-slate-500 text-xs text-left">
+                        <tr className="border-b border-slate-700/50">
+                          <th className="py-2 font-medium">Date</th>
+                          <th className="py-2 font-medium text-right">Sent</th>
+                          <th className="py-2 font-medium text-right">Received</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-slate-300 tabular-nums">
+                        {[...daily].reverse().map((d) => (
+                          <tr key={d.date} className="border-b border-slate-700/50 last:border-0">
+                            <td className="py-1.5">{formatDay(d.date, true)}</td>
+                            <td className="py-1.5 text-right">{d.sent}</td>
+                            <td className="py-1.5 text-right">{d.received}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <BarChart
+                    series={[{ name: "Sent", color: SENT_COLOR }, { name: "Received", color: RECEIVED_COLOR }]}
+                    data={daily.map((d) => ({
+                      label: formatDay(d.date),
+                      longLabel: formatDay(d.date, true),
+                      values: [d.sent, d.received],
+                    }))}
+                  />
+                )}
+              </Card>
+
+              <Card title="Most active hours" subtitle="Messages you sent, by hour of day">
+                <HourHeatStrip hourly={stats.hourly} />
+              </Card>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Card title="Message types" subtitle="What you sent in this period">
+                  <HorizontalBars
+                    rows={(Object.keys(TYPE_LABELS) as MessageType[]).map((type) => ({
+                      label: TYPE_LABELS[type],
+                      value: stats.messageTypes[type] ?? 0,
+                    }))}
+                  />
+                </Card>
+
+                <Card title="Top contacts" subtitle="Private messages exchanged">
+                  {stats.topContacts.length === 0 ? (
+                    <p className="text-slate-500 text-sm">No private conversations in this period.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {stats.topContacts.map((contact) => (
+                        <li key={contact.userId} className="flex items-center gap-3">
+                          <img
+                            src={contact.profilePic || "/avatar.png"}
+                            alt={contact.username}
+                            className="size-8 rounded-full object-cover"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-slate-200 truncate">{contact.username}</span>
+                              <span className="text-slate-200 tabular-nums font-medium">{contact.messages}</span>
+                            </div>
+                            <div className="mt-1 h-1.5 rounded bg-[#eef3fa]">
+                              <div
+                                className="h-full rounded"
+                                style={{
+                                  width: `${(contact.messages / stats.topContacts[0].messages) * 100}%`,
+                                  background: SENT_COLOR,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
