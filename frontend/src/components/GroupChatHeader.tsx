@@ -10,6 +10,7 @@ function GroupChatHeader() {
     getAllContacts,
     addGroupMember,
     removeGroupMember,
+    leaveGroupMember,
     // updateGroupMemberRole,
     setSelectedGroup,
   } = useChatStore();
@@ -43,6 +44,14 @@ function GroupChatHeader() {
       await removeGroupMember(selectedGroup.id, Number(userId), "member");
     } catch (error) {
       console.error("Failed to remove member:", error);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    try {
+      await leaveGroupMember(selectedGroup.id, Number(authUser._id), "member");
+    } catch (error) {
+      console.error("Failed to leave group:", error);
     }
   };
 
@@ -89,17 +98,23 @@ function GroupChatHeader() {
                   <span className="shrink-0 rounded-full bg-blue-500/20 px-2 py-1 text-xs font-semibold text-blue-400">
                     Admin
                   </span>
-                ) : (
-                  isAdmin && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveMember(member.user_id)}
-                      className="shrink-0 rounded-md bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
-                    >
-                      Remove
-                    </button>
-                  )
-                )}
+                ) : member.user_id === authUser._id ? (
+                  <button
+                    type="button"
+                    onClick={handleLeaveGroup}
+                    className="shrink-0 rounded-md bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                  >
+                    Leave
+                  </button>
+                ) : isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveMember(member.user_id)}
+                    className="shrink-0 rounded-md bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/20"
+                  >
+                    Remove
+                  </button>
+                ) : null}
                 {/* {isAdmin ? (
                   <select
                     aria-label={`Role for ${member.username}`}

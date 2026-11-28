@@ -11,6 +11,7 @@ from zalo_backend.schemas.groups import (
     GroupCreateRequest,
     GroupMemberAddRequest,
     GroupMemberRemoveRequest,
+    GroupMemberLeaveRequest,
     GroupMemberRoleUpdate,
     GroupResponse,
 )
@@ -55,6 +56,20 @@ def remove_member(
         db, group_id, current_user.id, data.user_id,
     )
 
+@groups_router.post("/{group_id}/leave/members", response_model=GroupResponse)
+def remove_member(
+    data: GroupMemberLeaveRequest,
+    group_id: int = Path(gt=0),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if data.user_id != current_user.id:
+        return {
+            "error_code": "user not match"
+        }
+    return group_service.leave_group_member(
+        db, group_id, current_user.id,
+    )
 
 @groups_router.patch("/{group_id}/members/{user_id}/role", response_model=GroupResponse)
 def change_member_role(

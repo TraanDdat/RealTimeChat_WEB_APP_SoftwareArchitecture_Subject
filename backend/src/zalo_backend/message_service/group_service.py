@@ -134,6 +134,24 @@ def remove_group_member(
 
     return _group_response(db, group)
 
+def leave_group_member(
+    db: Session,
+    group_id: int,
+    user_id: int
+) -> GroupResponse:
+    group = _group_or_404(db, group_id)
+
+    member = (
+        db.query(GroupMember)
+        .filter_by(group_id=group_id, user_id=user_id)
+        .first()
+    )
+    if member is None:
+        raise HTTPException(status_code=404, detail="Group member not found")
+    db.delete(member)
+    db.commit()
+    return _group_response(db, group)
+
 def update_member_role(
     db: Session,
     group_id: int,
