@@ -26,17 +26,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.filled.Shortcut
-import androidx.compose.material.icons.filled.Undo
 import androidx.compose.ui.text.font.FontStyle
 import coil.compose.AsyncImage
 import com.example.zaloclone.ui.model.Message
 import com.example.zaloclone.ui.model.MessageType
 import com.example.zaloclone.ui.model.RECALLED_MESSAGE_TEXT
+import androidx.compose.material.icons.filled.Undo
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     message: Message,
@@ -48,7 +45,6 @@ fun MessageBubble(
 ) {
     val context = LocalContext.current
     var showReactionMenu by remember { mutableStateOf(false) }
-    var showActionMenu by remember { mutableStateOf(false) }
     var showRecallConfirm by remember { mutableStateOf(false) }
     // Only the sender can recall, and only once
     val canRecall = message.isMe && !message.isRecalled
@@ -170,106 +166,120 @@ fun MessageBubble(
                     }
                     return@Row
                 }
-
                 Box {
-                    Surface(
-                        color = if (message.type == MessageType.EMOTION) Color.Transparent else bubbleColor,
-                        shape = shape,
-                        border = if (!message.isMe && message.type != MessageType.EMOTION) BorderStroke(1.dp, borderColor) else null,
-                        modifier = Modifier.combinedClickable(
-                            onClick = { showReactionMenu = !showReactionMenu },
-                            onLongClick = {
-                                showReactionMenu = false
-                                showActionMenu = true
-                            }
-                        )
+                    Column(
+                        horizontalAlignment = if (message.isMe) Alignment.End else Alignment.Start
                     ) {
-                        when (message.type) {
-                            MessageType.TEXT -> {
-                                Text(
-                                    text = message.text,
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                                    color = Color.Black,
-                                    fontSize = 15.sp
-                                )
-                            }
-                            MessageType.AUDIO -> {
-                                AudioMessageContent(duration = message.duration ?: "0:00")
-                            }
-                            MessageType.IMAGE -> {
-                                ImageMessageContent(
-                                    imageUrl = message.mediaUrl,
-                                    onImageClick = { url -> onImageClick(url) }
-                                )
-                            }
-                            MessageType.VIDEO -> {
-                                VideoMessageContent(
-                                    videoUrl = message.mediaUrl,
-                                    onPlayClick = { url ->
-                                        url?.let {
-                                            try {
-                                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                                    setDataAndType(Uri.parse(it), "video/*")
-                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                }
-                                                context.startActivity(intent)
-                                            } catch (e: Exception) {
-                                                e.printStackTrace()
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                            MessageType.DOCUMENT -> {
-                                DocumentMessageContent(
-                                    fileName = message.fileName ?: "Document",
-                                    fileSize = message.fileSize ?: "File",
-                                    fileUrl = message.mediaUrl,
-                                    onOpenClick = { url ->
-                                        url?.let {
-                                            try {
-                                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                                    setDataAndType(Uri.parse(it), "*/*")
-                                                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                                }
-                                                context.startActivity(intent)
-                                            } catch (e: Exception) {
-                                                e.printStackTrace()
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                            MessageType.EMOTION -> {
-                                EmotionMessageContent(emotion = message.emotion ?: "😊")
-                            }
-                        }
-                    }
-
-                    DropdownMenu(
-                        expanded = showActionMenu,
-                        onDismissRequest = { showActionMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Chuyển tiếp") },
-                            leadingIcon = { Icon(Icons.Default.Shortcut, contentDescription = null) },
-                            onClick = {
-                                showActionMenu = false
-                                onForward(message)
-                            }
-                        )
-                        if (canRecall) {
-                            DropdownMenuItem(
-                                text = { Text("Thu hồi") },
-                                leadingIcon = { Icon(Icons.Default.Undo, contentDescription = null) },
-                                onClick = {
-                                    showActionMenu = false
-                                    showRecallConfirm = true
+                        if (!message.isRecalled) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            ) {
+                                TextButton(
+                                    onClick = { onForward(message) },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Shortcut,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Chuyển tiếp", fontSize = 12.sp)
                                 }
-                            )
+                                if (canRecall) {
+                                    TextButton(
+                                        onClick = { showRecallConfirm = true },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Undo,
+                                            contentDescription = null,
+                                            tint = Color(0xFFD32F2F),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(Modifier.width(4.dp))
+                                        Text(
+                                            "Thu hồi",
+                                            color = Color(0xFFD32F2F),
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        Surface(
+                            color = if (message.type == MessageType.EMOTION)
+                                Color.Transparent else bubbleColor,
+                            shape = shape,
+                            border = if (!message.isMe && message.type != MessageType.EMOTION)
+                                BorderStroke(1.dp, borderColor) else null
+                        ) {
+                            when (message.type) {
+                                MessageType.TEXT -> {
+                                    Text(
+                                        text = message.text,
+                                        modifier = Modifier.padding(
+                                            horizontal = 16.dp,
+                                            vertical = 12.dp
+                                        ),
+                                        color = Color.Black,
+                                        fontSize = 15.sp
+                                    )
+                                }
+                                MessageType.AUDIO -> {
+                                    AudioMessageContent(duration = message.duration ?: "0:00")
+                                }
+                                MessageType.IMAGE -> {
+                                    ImageMessageContent(
+                                        imageUrl = message.mediaUrl,
+                                        onImageClick = onImageClick
+                                    )
+                                }
+                                MessageType.VIDEO -> {
+                                    VideoMessageContent(
+                                        videoUrl = message.mediaUrl,
+                                        onPlayClick = { url ->
+                                            url?.let {
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                                        setDataAndType(Uri.parse(it), "video/*")
+                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    }
+                                                    context.startActivity(intent)
+                                                } catch (e: Exception) {
+                                                    e.printStackTrace()
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                                MessageType.DOCUMENT -> {
+                                    DocumentMessageContent(
+                                        fileName = message.fileName ?: "Document",
+                                        fileSize = message.fileSize ?: "File",
+                                        fileUrl = message.mediaUrl,
+                                        onOpenClick = { url ->
+                                            url?.let {
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                                        setDataAndType(Uri.parse(it), "*/*")
+                                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                                    }
+                                                    context.startActivity(intent)
+                                                } catch (e: Exception) {
+                                                    e.printStackTrace()
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                                MessageType.EMOTION -> {
+                                    EmotionMessageContent(emotion = message.emotion ?: "😊")
+                                }
+                            }
                         }
                     }
-
                     message.reaction?.let { reactionText ->
                         Surface(
                             color = Color.White,
@@ -277,13 +287,22 @@ fun MessageBubble(
                             shadowElevation = 2.dp,
                             border = BorderStroke(1.dp, Color(0xFFE5E5EA)),
                             modifier = Modifier
-                                .align(if (message.isMe) Alignment.BottomStart else Alignment.BottomEnd)
-                                .offset(y = 8.dp, x = if (message.isMe) (-6).dp else 6.dp)
+                                .align(
+                                    if (message.isMe) Alignment.BottomStart
+                                    else Alignment.BottomEnd
+                                )
+                                .offset(
+                                    y = 8.dp,
+                                    x = if (message.isMe) (-6).dp else 6.dp
+                                )
                         ) {
                             Text(
                                 text = reactionText,
                                 fontSize = 12.sp,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                modifier = Modifier.padding(
+                                    horizontal = 4.dp,
+                                    vertical = 2.dp
+                                )
                             )
                         }
                     }
