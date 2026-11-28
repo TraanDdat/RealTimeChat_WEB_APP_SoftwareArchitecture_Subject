@@ -1,5 +1,6 @@
 import { useRef, useState, type ChangeEvent } from "react";
-import { LogOutIcon, VolumeOffIcon, Volume2Icon } from "lucide-react";
+import { BarChart3Icon, LogOutIcon, VolumeOffIcon, Volume2Icon } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/useAuthStore";
 import { useChatStore } from "../store/useChatStore";
 
@@ -8,6 +9,7 @@ const mouseClickSound = new Audio("/sounds/mouse-click.mp3");
 function ProfileHeader() {
   const { logout, authUser, updateProfile } = useAuthStore();
   const { isSoundEnabled, toggleSound } = useChatStore();
+  const navigate = useNavigate();
   const [selectedImg, setSelectedImg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -67,7 +69,16 @@ function ProfileHeader() {
         <div className="flex gap-4 items-center">
           <button
             className="text-slate-400 hover:text-slate-200 transition-colors"
+            onClick={() => navigate("/stats")}
+            title="Activity statistics"
+          >
+            <BarChart3Icon className="size-5" />
+          </button>
+
+          <button
+            className="text-slate-400 hover:text-slate-200 transition-colors"
             onClick={logout}
+            title="Log out"
           >
             <LogOutIcon className="size-5" />
           </button>

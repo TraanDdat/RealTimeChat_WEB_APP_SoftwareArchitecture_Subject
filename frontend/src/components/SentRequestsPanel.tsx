@@ -16,7 +16,7 @@ interface SentRequestsPanelProps {
 function SentRequestsPanel({ refreshKey = 0 }: SentRequestsPanelProps) {
   const [requests, setRequests] = useState<SentFriendRequestItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [error, setError] = useState(false);
+  // const [error, setError] = useState(false);
 
   // Loaded over REST whenever the Contacts tab mounts or a new request is sent.
   useEffect(() => {
@@ -25,10 +25,10 @@ function SentRequestsPanel({ refreshKey = 0 }: SentRequestsPanelProps) {
       .then((response) => {
         if (!active) return;
         setRequests(response.data.data);
-        setError(false);
+        // setError(false);
       })
       .catch(() => {
-        if (active) setError(true);
+        // if (active) setError(true);
       });
     return () => {
       active = false;

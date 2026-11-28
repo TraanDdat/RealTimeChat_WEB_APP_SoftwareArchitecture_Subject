@@ -17,6 +17,7 @@ class Settings:
     USER_ADDFRIEND_URL = os.getenv("USER_ADDFRIEND","/api/user/addfriend")
     MESSAGES_URL = os.getenv("MESSAGES_URL","/api/messages")
     GROUP_URL = os.getenv("GROUP_URL","/api/groups")
+    STATS_URL = os.getenv("STATS_URL","/api/stats")
 
     # Keep a stable secret across workers and restarts in production.
     JWT_SECRET = os.getenv("JWT_SECRET")

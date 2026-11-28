@@ -38,7 +38,7 @@ function GroupChatHeader() {
     setNewMemberId("");
   };
 
-  const handleRemoveMember = async (userId) => {
+  const handleRemoveMember = async (userId: number) => {
     try {
       await removeGroupMember(selectedGroup.id, Number(userId), "member");
     } catch (error) {
