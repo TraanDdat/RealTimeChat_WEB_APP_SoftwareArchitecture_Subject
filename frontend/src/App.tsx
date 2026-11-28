@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import ChatPage from './pages/ChatPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import StatsPage from './pages/StatsPage';
 
 import { useAuthStore } from './store/useAuthStore';
 
@@ -27,6 +28,7 @@ function AppContent() {
         <Route path="/signup" element={!authUser ? <SignUpPage /> : <Navigate to="/chat" />} />
         {/* PROTECTED ROUTES */}
         <Route path="/chat" element={authUser ? <ChatPage /> : <Navigate to="/login" />} />
+        <Route path="/stats" element={authUser ? <StatsPage /> : <Navigate to="/login" />} />
       </Routes>
       <Toaster />
     </>
