@@ -253,6 +253,7 @@ def send_group_message(
         "attachmentSize": attachment_size,
         "createdAt": now,
         "updatedAt": now,
+        "emotion": data.emotion,
     }
     try:
         result = group_messages.insert_one(document)

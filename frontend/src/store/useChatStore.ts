@@ -117,14 +117,17 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
       isOtherUserTyping: false,
     }),
 
-  setSelectedGroup: (selectedGroup) =>
+  setSelectedGroup: (selectedGroup) => {
+    const currentGroup = get().selectedGroup;
+    if (currentGroup?.id === selectedGroup?.id) return;
     set({
       selectedGroup,
       selectedUser: null,
       messages: [],
       isMessagesLoading: selectedGroup !== null,
       isOtherUserTyping: false,
-    }),
+    });
+  },
 
   getAllContacts: async () => {
     set({ isUsersLoading: true });
