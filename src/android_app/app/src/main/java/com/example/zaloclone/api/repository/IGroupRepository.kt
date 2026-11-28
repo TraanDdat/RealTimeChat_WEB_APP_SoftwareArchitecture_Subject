@@ -11,6 +11,8 @@ interface IGroupRepository {
 
     suspend fun removeMember(groupId: Int, data: GroupMemberRemoveRequest): GetGroupDataResponse
 
+    suspend fun leaveMember(groupId: Int, data: GroupMemberLeaveRequest): GetGroupDataResponse
+
     suspend fun updateMemberRole(
         groupId: Int,
         userId: Int,

@@ -28,6 +28,12 @@ interface GroupApiServices {
         @Body data: GroupMemberRemoveRequest
     ): GetGroupDataResponse
 
+    @POST("api/groups/{groupId}/leave/members")
+    suspend fun leaveMember(
+        @Path("groupId") groupId: Int,
+        @Body data: GroupMemberLeaveRequest
+    ): GetGroupDataResponse
+
     @PATCH("api/groups/{groupId}/members/{userId}/role")
     suspend fun updateMemberRole(
         @Path("groupId") groupId: Int,

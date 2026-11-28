@@ -113,6 +113,30 @@ class GroupViewModel(
         }
     }
 
+    fun leaveGroupMember(
+        groupId: Int,
+        userId: Int,
+        role: String = "member",
+        onResult: (Boolean) -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            try {
+                val request = GroupMemberLeaveRequest(
+                    user_id = userId,
+                    role = role.lowercase()
+                )
+                val response = repository.leaveMember(groupId, request)
+                updateGroup(response)
+                onResult(true)
+            } catch (e: Exception) {
+                _state.value = _state.value.copy(
+                    error = e.message ?: "Could not leave from group"
+                )
+                onResult(false)
+            }
+        }
+    }
+
     fun updateGroupMemberRole(
         groupId: Int,
         userId: Int,

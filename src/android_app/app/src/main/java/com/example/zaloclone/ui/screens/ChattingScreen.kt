@@ -244,7 +244,7 @@ fun ChattingScreen(
         topBar = {
             ChatTopBar(
                 name = currentChatName,
-                status = if (isGroup) "${groupMembers.size} Members" else "Online",
+                status = if (isGroup) "${groupMembers.size} Members" else "",
                 isGroup = isGroup,
                 memberCount = groupMembers.size,
                 onBackClick = onNavigateBack,
