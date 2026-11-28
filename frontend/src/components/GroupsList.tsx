@@ -87,7 +87,7 @@ function GroupsList() {
 
       {isUsersLoading ? <p className="text-sm text-slate-500">Loading groups...</p> : groups.length === 0 ? (
         <p className="px-2 py-4 text-center text-sm text-slate-500">No groups yet</p>
-      ) : groups.map((group) => (
+      ) : groups.filter((group) => group.members.length > 1).map((group) => (
         <button
           type="button"
           key={group.id}
