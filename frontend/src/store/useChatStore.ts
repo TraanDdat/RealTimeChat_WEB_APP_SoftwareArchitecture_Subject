@@ -39,6 +39,7 @@ interface ChatStore {
   createGroup: (name: string, memberIds: number[]) => Promise<boolean>;
   addGroupMember: (groupId: number, userId: number, role: "admin" | "member") => Promise<void>;
   removeGroupMember: (groupId: number, userId: number, role: "member") => Promise<void>;
+  leaveGroupMember: (groupId: number, userId: number, role: "member") => Promise<void>;
   // updateGroupMemberRole: (groupId: number, userId: number, role: "admin" | "member") => Promise<void>;
   refreshGroup: (groupId: number) => Promise<void>;
   getMessagesByUserId: (userId: number) => Promise<void>;
@@ -230,6 +231,19 @@ export const useChatStore = create<ChatStore>()((set, get) => ({
         selectedGroup: state.selectedGroup?.id === groupId ? res.data : state.selectedGroup,
       }));
       toast.success("Member removed");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  },
+
+  leaveGroupMember: async (groupId, userId, role) => {
+    try {
+      const res = await groupApi.leaveMember(groupId, userId, role);
+      set((state) => ({
+        groups: state.groups.map((group) => group.id === groupId ? res.data : group),
+        selectedGroup: state.selectedGroup?.id === groupId ? res.data : state.selectedGroup,
+      }));
+      toast.success("Member leaved");
     } catch (error) {
       toast.error(getErrorMessage(error));
     }

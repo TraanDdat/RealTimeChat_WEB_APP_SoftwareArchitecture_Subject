@@ -17,6 +17,10 @@ class GroupMemberRemoveRequest(BaseModel):
     user_id: int = Field(gt=0)
     role: Literal["member"] = "member"
 
+class GroupMemberLeaveRequest(BaseModel):
+    user_id: int = Field(gt=0)
+    role: Literal["member"] = "member"
+
 class GroupMemberRoleUpdate(BaseModel):
     role: Literal["member", "admin"]
 

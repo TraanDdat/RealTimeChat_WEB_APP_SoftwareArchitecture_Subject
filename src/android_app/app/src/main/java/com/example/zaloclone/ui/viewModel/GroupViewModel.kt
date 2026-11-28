@@ -27,11 +27,16 @@ class GroupViewModel(
             _state.value = _state.value.copy(isGroupsLoading = true)
             try {
                 val group_response = repository.getGroups()
-                _state.value = _state.value.copy(groups = group_response)
+                val filteredGroups = group_response.filter { group ->
+                    group.members.size > 1
+                }
+                _state.value = _state.value.copy(groups = filteredGroups)
             } catch (e: Exception) {
-                _state.value = _state.value.copy(error = e.message ?: "Could not load groups")
+                _state.value = _state.value.copy(
+                    error = e.message ?: "Could not load groups"
+                )
             } finally {
-               _state.value = _state.value.copy(isGroupsLoading = false)
+                _state.value = _state.value.copy(isGroupsLoading = false)
             }
         }
     }

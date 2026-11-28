@@ -13,6 +13,9 @@ export const groupApi = {
   removeMember: (groupId: number, userId: number, role: "member") =>
     axiosInstance.post<ChatGroup>(`/groups/${groupId}/remove/members`, { user_id: userId, role }),
 
+  leaveMember: (groupId: number, userId: number, role: "member") =>
+    axiosInstance.post<ChatGroup>(`/groups/${groupId}/leave/members`, { user_id: userId, role }),
+
   // updateMemberRole: (groupId: number, userId: number, role: "admin" | "member") =>
   //   axiosInstance.patch<ChatGroup>(`/groups/${groupId}/members/${userId}/role`, { role }),
 
