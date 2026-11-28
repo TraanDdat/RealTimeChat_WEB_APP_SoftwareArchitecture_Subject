@@ -253,6 +253,39 @@ fun GroupInfoDialog(
                                                 fontSize = 12.sp
                                             )
                                         }
+                                    } else {
+                                        if (member.user_id == currentUserId) {
+                                            TextButton(
+                                                onClick = {
+                                                    groupViewModel.leaveGroupMember(
+                                                        groupId = groupId,
+                                                        userId = currentUserId,
+                                                        role = "member"
+                                                    ) { success ->
+                                                        if (success) {
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Left group successfully",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        } else {
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Failed to leave group",
+                                                                Toast.LENGTH_SHORT
+                                                            ).show()
+                                                        }
+                                                    }
+                                                },
+                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                            ) {
+                                                Text(
+                                                    text = "Leave",
+                                                    color = Color.Red,
+                                                    fontSize = 12.sp
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }

@@ -24,6 +24,11 @@ data class GroupMemberRemoveRequest(
     val role: String = "member"
 )
 
+data class GroupMemberLeaveRequest(
+    val user_id: Int,
+    val role: String = "member"
+)
+
 data class GroupMemberRoleUpdateRequest(
     val groupId: Int,
     val userId: Int,

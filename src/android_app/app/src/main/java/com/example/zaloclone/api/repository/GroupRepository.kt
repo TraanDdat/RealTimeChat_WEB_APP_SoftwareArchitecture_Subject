@@ -32,6 +32,13 @@ class GroupRepository(
         return groupdApi.removeMember(groupId, data)
     }
 
+    override suspend fun leaveMember(
+        groupId: Int,
+        data: GroupMemberLeaveRequest
+    ): GetGroupDataResponse {
+        return groupdApi.leaveMember(groupId, data)
+    }
+
     override suspend fun updateMemberRole(
         groupId: Int,
         userId: Int,
